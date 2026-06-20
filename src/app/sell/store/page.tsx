@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { getStoreBySlug } from "@/lib/data";
 import { getMyStore, MY_STORE_SLUG } from "@/lib/devstore";
 import { StoreForm } from "@/components/StoreForm";
+import { SellerNav } from "@/components/SellerNav";
 import { isDbConfigured } from "@/db";
 
 export default async function StoreSettingsPage() {
@@ -13,10 +13,8 @@ export default async function StoreSettingsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
-      <Link href="/sell" className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200">
-        ← Seller home
-      </Link>
-      <h1 className="mt-3 text-2xl font-bold tracking-tight">Customize your store</h1>
+      <SellerNav />
+      <h1 className="text-2xl font-bold tracking-tight">Customize your store</h1>
       <p className="mt-1 text-sm text-zinc-500">
         Make it yours — name, tagline, and brand colors that show on your storefront.
       </p>

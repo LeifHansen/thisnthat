@@ -24,3 +24,54 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ---------------------------------------------------------------------------
+   Tinker-Hatfield-1990s marketing styling.
+   Bold condensed italics, color blocking, angular cuts, kinetic energy.
+   --------------------------------------------------------------------------- */
+
+/* Athletic slanted display type */
+.tk-display {
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+  transform: skewX(-6deg);
+}
+
+/* Angular hero block (cut corners, like a sneaker midsole panel) */
+.tk-clip {
+  clip-path: polygon(0 0, 100% 0, 100% 88%, 96% 100%, 0 100%);
+}
+
+/* Hard offset shadow for that 90s poster feel */
+.tk-shadow {
+  box-shadow: 8px 8px 0 0 rgba(0, 0, 0, 0.85);
+}
+
+/* Diagonal "speed" stripes */
+.tk-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.16) 0,
+    rgba(255, 255, 255, 0.16) 14px,
+    transparent 14px,
+    transparent 28px
+  );
+}
+
+/* Scrolling marquee */
+@keyframes tk-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.tk-marquee {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: tk-marquee 22s linear infinite;
+}

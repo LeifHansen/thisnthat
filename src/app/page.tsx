@@ -1,6 +1,7 @@
 import { getCategories, getListings } from "@/lib/data";
 import { CategoryNav } from "@/components/CategoryNav";
 import { ListingCard } from "@/components/ListingCard";
+import { Hero } from "@/components/Hero";
 import type { CategorySlug } from "@/lib/types";
 
 export default async function Home({
@@ -20,18 +21,9 @@ export default async function Home({
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
-      {!active && (
-        <section className="mb-8 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 p-8 text-white sm:p-12">
-          <h1 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
-            Vintage finds, sneakers & collectables — from sellers&apos; own stores.
-          </h1>
-          <p className="mt-3 max-w-xl text-indigo-100">
-            Buy it now, or make an offer. Every seller runs their own customizable storefront.
-          </p>
-        </section>
-      )}
+      {!active && <Hero />}
 
-      <div className="mb-6">
+      <div id="browse" className="mb-6">
         <h2 className="mb-3 text-lg font-semibold">
           {activeName ?? "Browse everything"}
         </h2>

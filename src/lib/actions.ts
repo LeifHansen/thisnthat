@@ -13,8 +13,34 @@ import {
   saveMyStore,
   saveUploadedImage,
 } from "./devstore";
+import { analyzeListingPhotos, type ListingSuggestion } from "./ai";
 
 export type ActionState = { ok: boolean; error?: string };
+
+export type AnalyzeState = {
+  ok: boolean;
+  suggestion?: ListingSuggestion;
+  error?: string;
+};
+
+// Photo-first step: scan the uploaded photo(s) and return form suggestions.
+export async function analyzePhotos(
+  _prev: AnalyzeState,
+  formData: FormData,
+): Promise<AnalyzeState> {
+  const files = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) return { ok: false, error: "Add at least one photo to scan." };
+
+  const images = await Promise.all(
+    files.slice(0, 4).map(async (f) => ({
+      base64: Buffer.from(await f.arrayBuffer()).toString("base64"),
+      mimeType: f.type || "image/jpeg",
+    })),
+  );
+
+  const suggestion = await analyzeListingPhotos(images);
+  return { ok: true, suggestion };
+}
 
 function dollarsToCents(value: FormDataEntryValue | null): number | null {
   if (value == null || value === "") return null;
