@@ -12,6 +12,7 @@ import type { Listing, Store } from "./types";
 const DATA_DIR = path.join(process.cwd(), ".data");
 const STORES_FILE = path.join(DATA_DIR, "stores.json");
 const LISTINGS_FILE = path.join(DATA_DIR, "listings.json");
+const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
 
 // The single "you" store for no-login local development.
 export const MY_STORE_SLUG = "my-store";
@@ -90,6 +91,33 @@ export async function addDevListing(input: NewListing): Promise<Listing> {
   listings.unshift(listing);
   await writeJson(LISTINGS_FILE, listings);
   return listing;
+}
+
+export interface DevOrder {
+  id: string;
+  listing_id: string;
+  title: string;
+  amount_cents: number;
+  email: string;
+  name: string;
+  address: string;
+  create_account: boolean;
+  marketing_opt_in: boolean;
+  created_at: string;
+}
+
+export async function addDevOrder(
+  input: Omit<DevOrder, "id" | "created_at">,
+): Promise<DevOrder> {
+  const orders = await readJson<DevOrder[]>(ORDERS_FILE, []);
+  const order: DevOrder = {
+    ...input,
+    id: `o-${randomUUID().slice(0, 8)}`,
+    created_at: new Date().toISOString(),
+  };
+  orders.unshift(order);
+  await writeJson(ORDERS_FILE, orders);
+  return order;
 }
 
 // Persist an uploaded image to /public/uploads and return its public path.

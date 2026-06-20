@@ -9,11 +9,13 @@ import type { CategorySlug, StoreTheme } from "./types";
 import {
   MY_STORE_SLUG,
   addDevListing,
+  addDevOrder,
   getMyStore,
   saveMyStore,
   saveUploadedImage,
 } from "./devstore";
 import { analyzeListingPhotos, type ListingSuggestion } from "./ai";
+import { getListingById } from "./data";
 
 export type ActionState = { ok: boolean; error?: string };
 
@@ -119,6 +121,62 @@ export async function createListing(
   revalidatePath("/");
   revalidatePath(`/store/${MY_STORE_SLUG}`);
   redirect(`/listings/${listingId}`);
+}
+
+// ---------------------------------------------------------------------------
+// Guest checkout
+// ---------------------------------------------------------------------------
+export type CheckoutState = {
+  ok: boolean;
+  orderId?: string;
+  createdAccount?: boolean;
+  error?: string;
+};
+
+export async function placeOrder(
+  _prev: CheckoutState,
+  formData: FormData,
+): Promise<CheckoutState> {
+  const listingId = String(formData.get("listing_id") ?? "");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const name = String(formData.get("name") ?? "").trim();
+  const address = String(formData.get("address") ?? "").trim();
+  const createAccount = formData.get("create_account") === "on";
+  const marketingOptIn = formData.get("marketing_opt_in") === "on";
+
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { ok: false, error: "Please enter a valid email." };
+  }
+  if (!name || !address) {
+    return { ok: false, error: "Please add your name and shipping address." };
+  }
+
+  const listing = await getListingById(listingId);
+  if (!listing) return { ok: false, error: "This item is no longer available." };
+
+  // TODO: create a Stripe Connect PaymentIntent and confirm payment here.
+  if (!db) {
+    const order = await addDevOrder({
+      listing_id: listing.id,
+      title: listing.title,
+      amount_cents: listing.price_cents,
+      email,
+      name,
+      address,
+      create_account: createAccount,
+      marketing_opt_in: marketingOptIn,
+    });
+    return { ok: true, orderId: order.id, createdAccount: createAccount };
+  }
+
+  const orderId = await placeOrderInDb({
+    listing,
+    email,
+    name,
+    createAccount,
+    amountCents: listing.price_cents,
+  });
+  return { ok: true, orderId, createdAccount: createAccount };
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +293,37 @@ async function createListingInDb(input: {
     );
   }
   return listing.id;
+}
+
+async function placeOrderInDb(input: {
+  listing: { id: string; store: { id: string } };
+  email: string;
+  name: string;
+  createAccount: boolean;
+  amountCents: number;
+}): Promise<string> {
+  if (!db) throw new Error("db not configured");
+  // Get-or-create a (guest) user keyed by email so the order has a buyer.
+  let [buyer] = await db.select().from(schema.users).where(eq(schema.users.email, input.email));
+  if (!buyer) {
+    [buyer] = await db
+      .insert(schema.users)
+      .values({ email: input.email, name: input.name })
+      .returning();
+  }
+  const feeBps = Number(process.env.PLATFORM_FEE_BPS ?? "800");
+  const [order] = await db
+    .insert(schema.orders)
+    .values({
+      listingId: input.listing.id,
+      buyerId: buyer.id,
+      storeId: input.listing.store.id,
+      amountCents: input.amountCents,
+      platformFeeCents: Math.round((input.amountCents * feeBps) / 10000),
+      status: "pending",
+    })
+    .returning();
+  return order.id;
 }
 
 async function saveStoreInDb(patch: {

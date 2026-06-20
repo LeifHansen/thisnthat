@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { formatPrice, type Listing } from "@/lib/types";
 
-// Buy / Make-Offer panel. The actions are stubbed for now (checkout will move
-// to Stripe Connect, offers to the offers table) but the full UX is in place.
+// Buy / Make-Offer panel. Buy now goes to guest checkout; offers are stubbed
+// (the offers table wires in next) but the full UX is in place.
 export function BuyPanel({ listing }: { listing: Listing }) {
   const [mode, setMode] = useState<"idle" | "offer">("idle");
   const [offer, setOffer] = useState("");
@@ -36,12 +37,12 @@ export function BuyPanel({ listing }: { listing: Listing }) {
       )}
 
       <div className="mt-4 flex flex-col gap-2">
-        <button
-          onClick={() => setDone("Checkout via Stripe coming soon. (Demo)")}
-          className="w-full rounded-lg bg-indigo-600 py-3 font-medium text-white transition-colors hover:bg-indigo-500"
+        <Link
+          href={`/checkout/${listing.id}`}
+          className="w-full rounded-lg bg-indigo-600 py-3 text-center font-medium text-white transition-colors hover:bg-indigo-500"
         >
           Buy now
-        </button>
+        </Link>
 
         {listing.allow_offers && mode === "idle" && (
           <button
