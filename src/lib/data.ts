@@ -9,6 +9,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import type { Category, Listing, Store, CategorySlug } from "./types";
 import * as seed from "./seed";
+import { getDevListings, getDevStores } from "./devstore";
 
 function rowToStore(s: typeof schema.stores.$inferSelect): Store {
   return {
@@ -31,7 +32,8 @@ export async function getListings(
   filter?: { category?: CategorySlug; storeSlug?: string },
 ): Promise<Listing[]> {
   if (!db) {
-    let items = seed.listings.filter((l) => l.status === "active");
+    const dev = await getDevListings();
+    let items = [...dev, ...seed.listings].filter((l) => l.status === "active");
     if (filter?.category) items = items.filter((l) => l.category_slug === filter.category);
     if (filter?.storeSlug) items = items.filter((l) => l.store.slug === filter.storeSlug);
     return items.sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -61,7 +63,10 @@ export async function getListings(
 }
 
 export async function getListingById(id: string): Promise<Listing | null> {
-  if (!db) return seed.listings.find((l) => l.id === id) ?? null;
+  if (!db) {
+    const dev = await getDevListings();
+    return [...dev, ...seed.listings].find((l) => l.id === id) ?? null;
+  }
 
   const [row] = await db
     .select({
@@ -80,9 +85,22 @@ export async function getListingById(id: string): Promise<Listing | null> {
 }
 
 export async function getStoreBySlug(slug: string): Promise<Store | null> {
-  if (!db) return seed.stores.find((s) => s.slug === slug) ?? null;
+  if (!db) {
+    const dev = await getDevStores();
+    return [...dev, ...seed.stores].find((s) => s.slug === slug) ?? null;
+  }
   const [row] = await db.select().from(schema.stores).where(eq(schema.stores.slug, slug)).limit(1);
   return row ? rowToStore(row) : null;
+}
+
+export async function getAllStores(): Promise<Store[]> {
+  if (!db) {
+    const dev = await getDevStores();
+    const all = [...dev, ...seed.stores];
+    return all.filter((s, i) => all.findIndex((x) => x.slug === s.slug) === i);
+  }
+  const rows = await db.select().from(schema.stores).orderBy(desc(schema.stores.createdAt));
+  return rows.map(rowToStore);
 }
 
 // Pull a listing's images and assemble the API-facing Listing shape.

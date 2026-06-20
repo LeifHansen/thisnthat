@@ -19,6 +19,10 @@ import type { AdapterAccountType } from "next-auth/adapters";
 // ---------------------------------------------------------------------------
 // Auth.js adapter tables (users / accounts / sessions / verification tokens)
 // ---------------------------------------------------------------------------
+// Platform roles. `super_admin` can administer every tenant/store; `admin`
+// is reserved for future staff; everyone else is a regular `user`.
+export const userRole = pgEnum("user_role", ["user", "admin", "super_admin"]);
+
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name"),
@@ -27,6 +31,7 @@ export const users = pgTable("users", {
   image: text("image"),
   // marketplace profile fields
   username: text("username").unique(),
+  role: userRole("role").notNull().default("user"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
