@@ -62,11 +62,27 @@ npm run db:seed      # load the sample stores/listings
 ## Configuration
 
 All secrets are documented in `.env.example`. Locally they live in
-`.env.local`; in production they are **Fly.io secrets**:
+`.env.local`; in production they are **Fly.io secrets**. Set them all in one
+command (one redeploy) — see `scripts/set-fly-secrets.example.sh` for a
+ready-to-fill template:
 
 ```bash
-fly secrets set DATABASE_URL=... AUTH_SECRET=... --app thisnthat
+fly secrets set \
+  DATABASE_URL="postgresql://...neon.tech/...?sslmode=require" \
+  AUTH_SECRET="$(openssl rand -base64 32)" \
+  AUTH_URL="https://thisnthat.fly.dev" \
+  AUTH_GOOGLE_ID="..." AUTH_GOOGLE_SECRET="..." \
+  SUPER_ADMIN_EMAIL="admin@thisnthat.com" \
+  GEMINI_API_KEY="..." \
+  STRIPE_SECRET_KEY="sk_live_..." STRIPE_WEBHOOK_SECRET="whsec_..." \
+  PLATFORM_FEE_BPS="800" \
+  R2_ACCOUNT_ID="..." R2_ACCESS_KEY_ID="..." R2_SECRET_ACCESS_KEY="..." \
+  R2_BUCKET="..." R2_PUBLIC_HOST="images.thisnthat.com" \
+  --app thisnthat
 ```
+
+Each service activates only when its keys are present; anything left unset
+falls back to the built-in demo/seed behavior.
 
 ## Deployment
 
