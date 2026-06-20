@@ -9,6 +9,7 @@ const TABS = [
   { href: "/sell", label: "Overview" },
   { href: "/sell/new", label: "List an item" },
   { href: "/sell/store", label: "Your store" },
+  { href: "/sell/payments", label: "Payments" },
   { href: "/store/my-store", label: "View storefront" },
 ];
 

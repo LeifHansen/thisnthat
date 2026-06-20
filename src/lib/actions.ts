@@ -16,6 +16,12 @@ import {
 } from "./devstore";
 import { analyzeListingPhotos, type ListingSuggestion } from "./ai";
 import { getListingById } from "./data";
+import {
+  getStripe,
+  isStripeConfigured,
+  platformFeeCents,
+  appUrl,
+} from "./stripe";
 
 export type ActionState = { ok: boolean; error?: string };
 
@@ -154,7 +160,7 @@ export async function placeOrder(
   const listing = await getListingById(listingId);
   if (!listing) return { ok: false, error: "This item is no longer available." };
 
-  // TODO: create a Stripe Connect PaymentIntent and confirm payment here.
+  // No database → local demo order.
   if (!db) {
     const order = await addDevOrder({
       listing_id: listing.id,
@@ -169,6 +175,7 @@ export async function placeOrder(
     return { ok: true, orderId: order.id, createdAccount: createAccount };
   }
 
+  // Record the order as pending first (so it exists regardless of payment path).
   const orderId = await placeOrderInDb({
     listing,
     email,
@@ -176,7 +183,127 @@ export async function placeOrder(
     createAccount,
     amountCents: listing.price_cents,
   });
+
+  // If Stripe is configured and the seller is onboarded, route the buyer
+  // through Stripe Checkout (destination charge with platform fee). On
+  // success Stripe returns to /checkout/success.
+  const stripe = getStripe();
+  const sellerAccount = await getStoreStripeAccount(listing.store.id);
+  if (stripe && sellerAccount) {
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer_email: email,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: listing.currency,
+            unit_amount: listing.price_cents,
+            product_data: { name: listing.title },
+          },
+        },
+      ],
+      payment_intent_data: {
+        application_fee_amount: platformFeeCents(listing.price_cents),
+        transfer_data: { destination: sellerAccount },
+      },
+      metadata: { order_id: orderId },
+      success_url: `${appUrl()}/checkout/success?order=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl()}/checkout/${listing.id}`,
+    });
+    await db
+      .update(schema.orders)
+      .set({ stripeCheckoutSession: session.id })
+      .where(eq(schema.orders.id, orderId));
+    redirect(session.url!);
+  }
+
+  // No Stripe (or seller not onboarded yet): demo confirmation.
   return { ok: true, orderId, createdAccount: createAccount };
+}
+
+// Look up a store's connected Stripe account id (null if not onboarded).
+async function getStoreStripeAccount(storeId: string): Promise<string | null> {
+  if (!db) return null;
+  const [row] = await db
+    .select({ acct: schema.stores.stripeAccountId })
+    .from(schema.stores)
+    .where(eq(schema.stores.id, storeId))
+    .limit(1);
+  return row?.acct ?? null;
+}
+
+// Mark an order paid (called from the Stripe webhook and the success page).
+export async function markOrderPaid(orderId: string, paymentIntent?: string): Promise<void> {
+  if (!db) return;
+  await db
+    .update(schema.orders)
+    .set({ status: "paid", stripePaymentIntent: paymentIntent ?? null })
+    .where(eq(schema.orders.id, orderId));
+  revalidatePath("/admin");
+}
+
+// ---------------------------------------------------------------------------
+// Seller payouts — Stripe Connect onboarding
+// ---------------------------------------------------------------------------
+export async function connectStripe(): Promise<void> {
+  const stripe = getStripe();
+  if (!stripe || !db) {
+    redirect("/sell/payments?error=not_configured");
+  }
+  const storeId = await ensureMyStore();
+  const [store] = await db
+    .select()
+    .from(schema.stores)
+    .where(eq(schema.stores.id, storeId))
+    .limit(1);
+
+  let accountId = store.stripeAccountId;
+  if (!accountId) {
+    const account = await stripe.accounts.create({ type: "express" });
+    accountId = account.id;
+    await db
+      .update(schema.stores)
+      .set({ stripeAccountId: accountId })
+      .where(eq(schema.stores.id, storeId));
+  }
+
+  const link = await stripe.accountLinks.create({
+    account: accountId,
+    refresh_url: `${appUrl()}/sell/payments?refresh=1`,
+    return_url: `${appUrl()}/sell/payments?connected=1`,
+    type: "account_onboarding",
+  });
+  redirect(link.url);
+}
+
+// Whether the seller's store has completed Stripe onboarding (charges enabled).
+export async function getStripeStatus(): Promise<{
+  configured: boolean;
+  connected: boolean;
+  chargesEnabled: boolean;
+}> {
+  const stripe = getStripe();
+  if (!stripe || !db) {
+    return { configured: isStripeConfigured, connected: false, chargesEnabled: false };
+  }
+  const [store] = await db
+    .select()
+    .from(schema.stores)
+    .where(eq(schema.stores.slug, MY_STORE_SLUG))
+    .limit(1);
+  const acct = store?.stripeAccountId;
+  if (!acct) return { configured: true, connected: false, chargesEnabled: false };
+  try {
+    const account = await stripe.accounts.retrieve(acct);
+    return {
+      configured: true,
+      connected: true,
+      chargesEnabled: Boolean(account.charges_enabled),
+    };
+  } catch {
+    return { configured: true, connected: true, chargesEnabled: false };
+  }
 }
 
 // ---------------------------------------------------------------------------

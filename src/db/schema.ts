@@ -234,6 +234,7 @@ export const orders = pgTable(
     platformFeeCents: integer("platform_fee_cents").notNull().default(0),
     status: orderStatus("status").notNull().default("pending"),
     stripePaymentIntent: text("stripe_payment_intent"),
+    stripeCheckoutSession: text("stripe_checkout_session"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [

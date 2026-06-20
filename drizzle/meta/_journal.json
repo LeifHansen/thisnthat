@@ -15,6 +15,13 @@
       "when": 1781923052807,
       "tag": "0001_add_user_role",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781927055882,
+      "tag": "0002_stripe_checkout_session",
+      "breakpoints": true
     }
   ]
 }

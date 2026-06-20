@@ -20,6 +20,10 @@ R2, Stripe, and Gemini all activate when their keys are added):
     banner preview
 - **Guest checkout** — buy as a guest while being nudged to create an
   account (pre-checked) and opt into marketing
+- **Payments (Stripe Connect)** — seller onboarding (Express accounts),
+  destination-charge checkout with the platform fee, success page, and a
+  webhook; activates when `STRIPE_SECRET_KEY` is set (demo checkout
+  otherwise)
 - **Multi-tenant admin** — `super_admin` role + `/admin` dashboard across
   all tenant stores; `admin@thisnthat.com` is auto-provisioned as super
   admin
@@ -75,7 +79,7 @@ fly deploy --app thisnthat
 ## Roadmap
 
 - Connect Neon + Auth.js so real users can sign in (multi-tenant login)
-- Stripe Connect: real payments, seller payouts, platform fee
+- Add live Stripe keys + webhook to flip Stripe Connect from code to live
 - Cloudflare R2 uploads (replace local dev image storage)
 - Wire the Gemini key for live photo scanning
 - Offer management (accept / decline / counter) backed by the offers table
