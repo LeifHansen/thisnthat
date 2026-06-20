@@ -7,15 +7,24 @@ make-an-offer pricing (like Depop). **No auctions.**
 
 ## Status
 
-Milestone 1 — **Foundations + browse** — is in place:
+Working today (runs against seed/dev data with **no setup** — Neon, auth,
+R2, Stripe, and Gemini all activate when their keys are added):
 
-- Marketplace homepage with category filtering
-- Listing detail pages with a Buy / Make-an-Offer panel
-- Per-seller store pages with their own theme/branding
-- Full data model (Drizzle schema) for stores, listings, offers, and orders
-
-The app runs against **seed data** out of the box, so you can browse the whole
-experience locally before any infrastructure is connected.
+- **Browse** — marketplace home with a 1990s-inspired hero, category
+  filtering, listing pages (Buy / Make-an-Offer), and themed store pages
+- **Sell (Seller Hub)** — eBay-style seller portal with its own tabs:
+  - **AI-assisted, photo-first listing** — upload a photo and Google
+    Gemini scans it to auto-fill title, category, brand, condition, size,
+    description, and a suggested price
+  - **Store customization** — name, tagline, and brand colors with a live
+    banner preview
+- **Guest checkout** — buy as a guest while being nudged to create an
+  account (pre-checked) and opt into marketing
+- **Multi-tenant admin** — `super_admin` role + `/admin` dashboard across
+  all tenant stores; `admin@thisnthat.com` is auto-provisioned as super
+  admin
+- Full data model (Drizzle) for users/roles, stores, listings, offers,
+  and orders
 
 ## Stack
 
@@ -25,6 +34,7 @@ experience locally before any infrastructure is connected.
 | Database        | Neon (serverless Postgres)           |
 | ORM             | Drizzle + drizzle-kit                |
 | Auth            | Auth.js (NextAuth v5), users in Neon |
+| AI assistant    | Google Gemini (vision)               |
 | Image storage   | Cloudflare R2                        |
 | Payments        | Stripe Connect                       |
 | Hosting/secrets | Fly.io (app `thisnthat`)             |
@@ -64,8 +74,10 @@ fly deploy --app thisnthat
 
 ## Roadmap
 
-- Seller dashboard + listing uploader (priority: effortless uploading)
-- Offer management (accept / decline / counter)
-- Stripe Connect checkout + seller payouts + platform fee
-- Cloudflare R2 image uploads
-- Store theme editor (colors, banner, logo, layout)
+- Connect Neon + Auth.js so real users can sign in (multi-tenant login)
+- Stripe Connect: real payments, seller payouts, platform fee
+- Cloudflare R2 uploads (replace local dev image storage)
+- Wire the Gemini key for live photo scanning
+- Offer management (accept / decline / counter) backed by the offers table
+- Buyer dashboard (orders, offers, saved items) separate from the Seller Hub
+- Store theme editor extras (banner, logo, layout)
