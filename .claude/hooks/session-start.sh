@@ -45,10 +45,14 @@ if command -v pg_ctlcluster >/dev/null 2>&1; then
     DATABASE_URL="${DB_URL}" npm run db:create-admin
   fi
 
-  # Expose the connection string to the whole session.
+  # Expose the connection string + sandbox auth config to the whole session.
+  # ALLOW_DEV_LOGIN enables passwordless email sign-in for local testing only.
   if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
     echo "export DATABASE_URL=\"${DB_URL}\"" >> "${CLAUDE_ENV_FILE}"
     echo "export SUPER_ADMIN_EMAIL=admin@thisnthat.com" >> "${CLAUDE_ENV_FILE}"
+    echo "export AUTH_SECRET=\"$(openssl rand -base64 32)\"" >> "${CLAUDE_ENV_FILE}"
+    echo "export AUTH_URL=\"http://localhost:3000\"" >> "${CLAUDE_ENV_FILE}"
+    echo "export ALLOW_DEV_LOGIN=true" >> "${CLAUDE_ENV_FILE}"
   fi
   echo "Local Postgres dev mirror ready at ${DB_URL}"
 else

@@ -84,6 +84,30 @@ fly secrets set \
 Each service activates only when its keys are present; anything left unset
 falls back to the built-in demo/seed behavior.
 
+### Claude Code on the web (sandbox)
+
+A `SessionStart` hook (`.claude/hooks/session-start.sh`) provisions a local
+Postgres mirror and enables passwordless dev login each web session, so the
+app runs against a real database without external services.
+
+To let the sandbox reach live external services, the environment's egress
+policy must allow them. This is configured in the web UI (not a CLI): edit the
+environment → **Network access → Custom**, enable **"Also include default list
+of common package managers"**, and add the hosts you need (one per line):
+
+```
+*.neon.tech                          # Neon Postgres
+api.stripe.com                       # Stripe payments
+generativelanguage.googleapis.com    # Gemini photo scanning
+accounts.google.com                  # Google sign-in
+oauth2.googleapis.com                # Google sign-in
+www.googleapis.com                   # Google sign-in
+openidconnect.googleapis.com         # Google sign-in
+*.r2.cloudflarestorage.com           # Cloudflare R2 uploads
+```
+
+Production on Fly is unaffected by this — it has open outbound access.
+
 ## Deployment
 
 Fly.io builds the included `Dockerfile` (Next.js standalone output):
