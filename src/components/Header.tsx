@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { isSuperAdmin } from "@/auth";
+import { getCurrentUser, isAuthConfigured } from "@/auth";
+import { signOutAction } from "@/lib/actions";
 
 export async function Header() {
-  const admin = await isSuperAdmin();
+  const user = await getCurrentUser();
+  const admin = user?.role === "super_admin" || !isAuthConfigured;
   return (
     <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
@@ -30,12 +32,28 @@ export async function Header() {
               Admin
             </Link>
           )}
-          <Link
-            href="/login"
-            className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            Sign in
-          </Link>
+          {user ? (
+            <>
+              <span className="hidden text-sm text-zinc-500 sm:inline" title={user.email}>
+                {user.name || user.email}
+              </span>
+              <form action={signOutAction}>
+                <button
+                  type="submit"
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  Sign out
+                </button>
+              </form>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              Sign in
+            </Link>
+          )}
           <Link
             href="/sell"
             className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-500"

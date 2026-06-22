@@ -22,6 +22,23 @@ import {
   platformFeeCents,
   appUrl,
 } from "./stripe";
+import { signIn, signOut } from "@/auth";
+
+// ---------------------------------------------------------------------------
+// Authentication actions
+// ---------------------------------------------------------------------------
+export async function devSignIn(formData: FormData): Promise<void> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  await signIn("dev", { email, redirectTo: "/" });
+}
+
+export async function googleSignIn(): Promise<void> {
+  await signIn("google", { redirectTo: "/" });
+}
+
+export async function signOutAction(): Promise<void> {
+  await signOut({ redirectTo: "/" });
+}
 
 export type ActionState = { ok: boolean; error?: string };
 
