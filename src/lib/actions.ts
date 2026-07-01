@@ -22,7 +22,8 @@ import {
   platformFeeCents,
   appUrl,
 } from "./stripe";
-import { signIn, signOut } from "@/auth";
+import { signIn, signOut, getCurrentUser, isAuthConfigured } from "@/auth";
+import { slugify } from "./seller";
 
 // ---------------------------------------------------------------------------
 // Authentication actions
@@ -142,7 +143,7 @@ export async function createListing(
   }
 
   revalidatePath("/");
-  revalidatePath(`/store/${MY_STORE_SLUG}`);
+  revalidatePath("/store/[slug]", "page");
   redirect(`/listings/${listingId}`);
 }
 
@@ -192,12 +193,16 @@ export async function placeOrder(
     return { ok: true, orderId: order.id, createdAccount: createAccount };
   }
 
-  // Record the order as pending first (so it exists regardless of payment path).
+  // Record the order as pending first (so it exists regardless of payment
+  // path). If the buyer is signed in, attribute the order to their account;
+  // otherwise fall back to a guest user keyed by email.
+  const buyer = await getCurrentUser();
   const orderId = await placeOrderInDb({
     listing,
     email,
     name,
-    createAccount,
+    address,
+    buyerUserId: buyer?.id ?? null,
     amountCents: listing.price_cents,
   });
 
@@ -250,6 +255,25 @@ async function getStoreStripeAccount(storeId: string): Promise<string | null> {
   return row?.acct ?? null;
 }
 
+// The current seller's connected Stripe account id — scoped to the logged-in
+// user's store (or the singleton when auth isn't configured). Read-only.
+async function currentSellerStripeAccount(): Promise<string | null> {
+  if (!db) return null;
+  const where = isAuthConfigured
+    ? await (async () => {
+        const user = await getCurrentUser();
+        return user ? eq(schema.stores.ownerId, user.id) : null;
+      })()
+    : eq(schema.stores.slug, MY_STORE_SLUG);
+  if (!where) return null;
+  const [row] = await db
+    .select({ acct: schema.stores.stripeAccountId })
+    .from(schema.stores)
+    .where(where)
+    .limit(1);
+  return row?.acct ?? null;
+}
+
 // Mark an order paid (called from the Stripe webhook and the success page).
 export async function markOrderPaid(orderId: string, paymentIntent?: string): Promise<void> {
   if (!db) return;
@@ -268,7 +292,7 @@ export async function connectStripe(): Promise<void> {
   if (!stripe || !db) {
     redirect("/sell/payments?error=not_configured");
   }
-  const storeId = await ensureMyStore();
+  const storeId = await ensureStoreForCurrentUser();
   const [store] = await db
     .select()
     .from(schema.stores)
@@ -304,12 +328,7 @@ export async function getStripeStatus(): Promise<{
   if (!stripe || !db) {
     return { configured: isStripeConfigured, connected: false, chargesEnabled: false };
   }
-  const [store] = await db
-    .select()
-    .from(schema.stores)
-    .where(eq(schema.stores.slug, MY_STORE_SLUG))
-    .limit(1);
-  const acct = store?.stripeAccountId;
+  const acct = await currentSellerStripeAccount();
   if (!acct) return { configured: true, connected: false, chargesEnabled: false };
   try {
     const account = await stripe.accounts.retrieve(acct);
@@ -350,7 +369,7 @@ export async function saveStore(
     await saveStoreInDb(patch);
   }
 
-  revalidatePath(`/store/${MY_STORE_SLUG}`);
+  revalidatePath("/store/[slug]", "page");
   revalidatePath("/sell/store");
   return { ok: true };
 }
@@ -359,9 +378,54 @@ export async function saveStore(
 // Neon write paths (used when DATABASE_URL is configured)
 // ---------------------------------------------------------------------------
 
-// Get-or-create a default seller + store so listings can be written without
-// requiring a full auth flow yet. Mirrors the demo seller used by db:seed.
-async function ensureMyStore(): Promise<string> {
+// Resolve the store the current seller writes to, creating it on first use.
+// With auth configured this is the logged-in user's own store (multi-tenant);
+// anonymous visitors are redirected to sign in. Without auth it falls back to
+// a shared singleton store (transient: db wired but auth keys not added yet).
+async function ensureStoreForCurrentUser(): Promise<string> {
+  if (!db) throw new Error("db not configured");
+  if (!isAuthConfigured) return ensureSingletonStore();
+
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const [existing] = await db
+    .select({ id: schema.stores.id })
+    .from(schema.stores)
+    .where(eq(schema.stores.ownerId, user.id))
+    .limit(1);
+  if (existing) return existing.id;
+
+  const slug = await uniqueStoreSlug(user.name || user.email.split("@")[0]);
+  const [row] = await db
+    .insert(schema.stores)
+    .values({
+      ownerId: user.id,
+      slug,
+      name: user.name ? `${user.name}'s store` : "My Store",
+      tagline: "A little of this, a little of that",
+    })
+    .returning();
+  return row.id;
+}
+
+// A slug derived from `base`, suffixed with -2, -3, … until it's unique.
+async function uniqueStoreSlug(base: string): Promise<string> {
+  if (!db) throw new Error("db not configured");
+  const root = slugify(base);
+  for (let n = 1; ; n++) {
+    const slug = n === 1 ? root : `${root}-${n}`;
+    const [hit] = await db
+      .select({ id: schema.stores.id })
+      .from(schema.stores)
+      .where(eq(schema.stores.slug, slug))
+      .limit(1);
+    if (!hit) return slug;
+  }
+}
+
+// Legacy shared store (demo seller), used only when auth isn't configured.
+async function ensureSingletonStore(): Promise<string> {
   if (!db) throw new Error("db not configured");
   const existing = await db
     .select()
@@ -406,7 +470,7 @@ async function createListingInDb(input: {
   images: string[];
 }): Promise<string> {
   if (!db) throw new Error("db not configured");
-  const storeId = await ensureMyStore();
+  const storeId = await ensureStoreForCurrentUser();
   const [cat] = await db
     .select()
     .from(schema.categories)
@@ -443,26 +507,33 @@ async function placeOrderInDb(input: {
   listing: { id: string; store: { id: string } };
   email: string;
   name: string;
-  createAccount: boolean;
+  address: string;
+  buyerUserId: string | null;
   amountCents: number;
 }): Promise<string> {
   if (!db) throw new Error("db not configured");
-  // Get-or-create a (guest) user keyed by email so the order has a buyer.
-  let [buyer] = await db.select().from(schema.users).where(eq(schema.users.email, input.email));
-  if (!buyer) {
-    [buyer] = await db
-      .insert(schema.users)
-      .values({ email: input.email, name: input.name })
-      .returning();
+  // Prefer the signed-in buyer; otherwise get-or-create a guest user by email.
+  let buyerId = input.buyerUserId;
+  if (!buyerId) {
+    let [buyer] = await db.select().from(schema.users).where(eq(schema.users.email, input.email));
+    if (!buyer) {
+      [buyer] = await db
+        .insert(schema.users)
+        .values({ email: input.email, name: input.name })
+        .returning();
+    }
+    buyerId = buyer.id;
   }
   const [order] = await db
     .insert(schema.orders)
     .values({
       listingId: input.listing.id,
-      buyerId: buyer.id,
+      buyerId,
       storeId: input.listing.store.id,
       amountCents: input.amountCents,
       platformFeeCents: platformFeeCents(input.amountCents),
+      shippingName: input.name,
+      shippingAddress: input.address,
       status: "pending",
     })
     .returning();
@@ -476,7 +547,7 @@ async function saveStoreInDb(patch: {
   theme: StoreTheme;
 }): Promise<void> {
   if (!db) throw new Error("db not configured");
-  const storeId = await ensureMyStore();
+  const storeId = await ensureStoreForCurrentUser();
   await db
     .update(schema.stores)
     .set({

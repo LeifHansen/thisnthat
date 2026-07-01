@@ -1,7 +1,9 @@
 import { SellerNav } from "@/components/SellerNav";
 import { getStripeStatus, connectStripe } from "@/lib/actions";
+import { requireSeller } from "@/lib/seller";
 
 export default async function PaymentsPage() {
+  await requireSeller();
   const status = await getStripeStatus();
 
   return (

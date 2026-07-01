@@ -86,7 +86,7 @@ export type StoreTheme = {
   layout: "grid" | "list";
 };
 
-const DEFAULT_THEME: StoreTheme = {
+export const DEFAULT_THEME: StoreTheme = {
   primary: "#4f46e5",
   accent: "#10b981",
   banner_url: null,
@@ -233,6 +233,8 @@ export const orders = pgTable(
     amountCents: integer("amount_cents").notNull(),
     platformFeeCents: integer("platform_fee_cents").notNull().default(0),
     status: orderStatus("status").notNull().default("pending"),
+    shippingName: text("shipping_name"),
+    shippingAddress: text("shipping_address"),
     stripePaymentIntent: text("stripe_payment_intent"),
     stripeCheckoutSession: text("stripe_checkout_session"),
     createdAt: timestamp("created_at").notNull().defaultNow(),

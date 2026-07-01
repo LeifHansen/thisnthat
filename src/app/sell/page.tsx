@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { SellerNav } from "@/components/SellerNav";
+import { requireSeller } from "@/lib/seller";
 
-export default function SellPage() {
+export default async function SellPage() {
+  await requireSeller();
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <SellerNav />

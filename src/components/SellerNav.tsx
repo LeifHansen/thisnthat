@@ -10,7 +10,7 @@ const TABS = [
   { href: "/sell/new", label: "List an item" },
   { href: "/sell/store", label: "Your store" },
   { href: "/sell/payments", label: "Payments" },
-  { href: "/store/my-store", label: "View storefront" },
+  { href: "/sell/storefront", label: "View storefront" },
 ];
 
 export function SellerNav() {

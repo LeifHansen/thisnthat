@@ -11,7 +11,7 @@ import type { Category, Listing, Store, CategorySlug } from "./types";
 import * as seed from "./seed";
 import { getDevListings, getDevStores } from "./devstore";
 
-function rowToStore(s: typeof schema.stores.$inferSelect): Store {
+export function rowToStore(s: typeof schema.stores.$inferSelect): Store {
   return {
     id: s.id,
     slug: s.slug,

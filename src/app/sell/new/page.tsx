@@ -1,8 +1,10 @@
 import { getCategories } from "@/lib/data";
 import { ListingForm } from "@/components/ListingForm";
 import { SellerNav } from "@/components/SellerNav";
+import { requireSeller } from "@/lib/seller";
 
 export default async function NewListingPage() {
+  await requireSeller();
   const categories = await getCategories();
 
   return (

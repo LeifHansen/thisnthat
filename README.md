@@ -124,18 +124,16 @@ fly deploy --app thisnthat
 Prioritized. Most feature code is already written and gated on env keys, so
 "go live" is largely configuration; the remaining build work is grouped below.
 
-### P0 — Finish multi-tenancy (the core promise)
+### ✅ P0 — Multi-tenancy (done)
 
-The data model is multi-tenant and login works, but the seller flow still
-writes to a single shared store (`my-store`, owned by a seeded demo user).
+Each seller now gets their **own** store scoped to their account, orders are
+attributed to the signed-in buyer (guests still allowed), and shipping details
+persist on database orders.
 
-- Scope each seller's store to the **logged-in user** — replace the
-  `MY_STORE_SLUG` singleton and `ensureMyStore()` demo-seller with
-  get-or-create-by-owner; require auth on `/sell/*`
-- Tie orders/offers to the logged-in **buyer** when signed in (guests still
-  allowed)
-- Persist the **shipping address** on DB orders (currently captured at
-  checkout but dropped in the database path — only the no-DB dev order keeps it)
+- Store resolved by owner (get-or-create), with a unique slug per seller;
+  `/sell/*` requires sign-in
+- Orders link to the logged-in buyer when present, else a guest keyed by email
+- `shipping_name` / `shipping_address` persisted on DB orders
 
 ### P1 — Go live (wire keys that already have code)
 
