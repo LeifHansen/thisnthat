@@ -82,11 +82,26 @@ redeploy.
    photo — suggestions now come from Gemini (`source: "ai"`) instead of the
    sample fallback.
 
-## 5. Cloudflare R2 (images) — optional, P3
+## 5. Cloudflare R2 (images)
 
-Not yet wired into upload code (listings currently save to local
-`/public/uploads`). When implemented, set `R2_ACCOUNT_ID`,
-`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_HOST`.
+Wired: when configured, listing photos upload to R2 (`listings/<uuid>.<ext>`)
+and are served from the bucket's public host; otherwise they fall back to local
+`/public/uploads`.
+
+1. Create the bucket (done — `thisnthat`).
+2. Enable public access so images are servable: either turn on the bucket's
+   **r2.dev** public URL, or attach a **custom domain** (e.g.
+   `images.thisnthat.com`). Set `R2_PUBLIC_HOST` to that hostname (no scheme).
+3. Create an **R2 API token** (Object Read & Write) → gives the access key id +
+   secret. Set:
+   - `R2_ACCOUNT_ID` (Cloudflare account id)
+   - `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
+   - `R2_BUCKET=thisnthat`
+   - `R2_PUBLIC_HOST` (from step 2)
+4. Allowlist egress `*.r2.cloudflarestorage.com` (sandbox only).
+5. `npm run preflight` → **Images** should be ✅ (it lists one object to verify
+   credentials + bucket). Then upload a listing photo and confirm the image URL
+   points at your public host.
 
 ---
 

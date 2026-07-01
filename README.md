@@ -166,7 +166,8 @@ persist on database orders.
 
 ### P3 — Media & polish
 
-- **Cloudflare R2** image uploads to replace local `/public/uploads`
+- **Cloudflare R2** image uploads — ✅ wired (gated on `R2_*`); falls back to
+  local `/public/uploads` until configured
 - **Store theme editor extras** — banner, logo, and layout options
 
 ### P4 — Hardening & quality

@@ -24,6 +24,7 @@ import {
 } from "./stripe";
 import { signIn, signOut, getCurrentUser, isAuthConfigured } from "@/auth";
 import { slugify } from "./seller";
+import { isR2Configured, uploadToR2 } from "./r2";
 
 // ---------------------------------------------------------------------------
 // Authentication actions
@@ -75,11 +76,17 @@ function dollarsToCents(value: FormDataEntryValue | null): number | null {
   return Math.round(n * 100);
 }
 
-// Store an uploaded image and return its URL. Falls back to local /public
-// storage until Cloudflare R2 credentials are configured.
+// Store an uploaded image and return its URL. Uploads to Cloudflare R2 when
+// configured; otherwise falls back to local /public storage (dev).
 async function uploadImage(file: File): Promise<string | null> {
   if (!file || file.size === 0) return null;
-  // TODO: when R2_* env is set, upload to Cloudflare R2 and return the CDN URL.
+  if (isR2Configured) {
+    try {
+      return await uploadToR2(file);
+    } catch (err) {
+      console.error("R2 upload failed, falling back to local:", err);
+    }
+  }
   return saveUploadedImage(file);
 }
 

@@ -85,13 +85,20 @@ async function checkGemini() {
   }
 }
 
-function checkImages() {
-  const r2 = ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"];
-  const missing = r2.filter((k) => !process.env[k]);
-  if (missing.length === r2.length)
+async function checkImages() {
+  const keys = ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET", "R2_PUBLIC_HOST"];
+  const present = keys.filter((k) => process.env[k]);
+  if (present.length === 0)
     return add("Images (R2)", false, "skip", "not configured — using local /public/uploads");
-  if (missing.length) return add("Images (R2)", false, "warn", `missing: ${missing.join(", ")}`);
-  add("Images (R2)", true, "ok", "all R2 vars present");
+  if (present.length < keys.length)
+    return add("Images (R2)", false, "warn", `missing: ${keys.filter((k) => !process.env[k]).join(", ")}`);
+  try {
+    const { r2Reachable } = await import("./lib/r2");
+    await withTimeout(r2Reachable(), 12000);
+    add("Images (R2)", true, "ok", "bucket reachable");
+  } catch (e) {
+    add("Images (R2)", true, "fail", msg(e));
+  }
 }
 
 function msg(e: unknown): string {
@@ -105,7 +112,7 @@ async function main() {
   checkAuth();
   await checkStripe();
   await checkGemini();
-  checkImages();
+  await checkImages();
 
   console.log("\n  ThisNThat — go-live preflight\n");
   for (const r of rows) {
