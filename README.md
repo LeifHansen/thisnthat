@@ -18,6 +18,9 @@ R2, Stripe, and Gemini all activate when their keys are added):
     description, and a suggested price
   - **Store customization** — name, tagline, and brand colors with a live
     banner preview
+- **Login (Auth.js)** — Google OAuth for production plus a passwordless
+  dev login for local testing; JWT sessions carry the user id and platform
+  role; sign-in/out in the header
 - **Guest checkout** — buy as a guest while being nudged to create an
   account (pre-checked) and opt into marketing
 - **Payments (Stripe Connect)** — seller onboarding (Express accounts),
@@ -118,10 +121,54 @@ fly deploy --app thisnthat
 
 ## Roadmap
 
-- Connect Neon + Auth.js so real users can sign in (multi-tenant login)
-- Add live Stripe keys + webhook to flip Stripe Connect from code to live
-- Cloudflare R2 uploads (replace local dev image storage)
-- Wire the Gemini key for live photo scanning
-- Offer management (accept / decline / counter) backed by the offers table
-- Buyer dashboard (orders, offers, saved items) separate from the Seller Hub
-- Store theme editor extras (banner, logo, layout)
+Prioritized. Most feature code is already written and gated on env keys, so
+"go live" is largely configuration; the remaining build work is grouped below.
+
+### P0 — Finish multi-tenancy (the core promise)
+
+The data model is multi-tenant and login works, but the seller flow still
+writes to a single shared store (`my-store`, owned by a seeded demo user).
+
+- Scope each seller's store to the **logged-in user** — replace the
+  `MY_STORE_SLUG` singleton and `ensureMyStore()` demo-seller with
+  get-or-create-by-owner; require auth on `/sell/*`
+- Tie orders/offers to the logged-in **buyer** when signed in (guests still
+  allowed)
+- Persist the **shipping address** on DB orders (currently captured at
+  checkout but dropped in the database path — only the no-DB dev order keeps it)
+
+### P1 — Go live (wire keys that already have code)
+
+- **Neon** — allowlist `*.neon.tech`, run migrations against Neon, point
+  `DATABASE_URL` at it
+- **Google OAuth** — add `AUTH_GOOGLE_ID/SECRET`; redirect URI
+  `https://thisnthat.fly.dev/api/auth/callback/google`
+- **Stripe** — add test keys + webhook secret, run a real test purchase, then
+  switch to live keys
+- **Gemini** — add `GEMINI_API_KEY` for live photo scanning
+
+### P2 — Commerce completeness
+
+- **Offer management** — accept / decline / counter, backed by the existing
+  `offers` table (schema present, no UI/actions yet)
+- **Buyer dashboard** — orders, offers, and saved items, separate from the
+  Seller Hub
+- **Order lifecycle** — states beyond `paid` (shipped/fulfilled), plus
+  refunds/disputes via Stripe
+- **Working search** — the header search box is present but disabled
+
+### P3 — Media & polish
+
+- **Cloudflare R2** image uploads to replace local `/public/uploads`
+- **Store theme editor extras** — banner, logo, and layout options
+
+### P4 — Hardening & quality
+
+- **Tests** — none yet; start with unit tests for fee math, AI-response
+  normalization, and input validation, then integration tests for checkout,
+  auth, and the Stripe webhook
+- **Query performance** — push category/store filters into SQL and fix the
+  per-listing image fetch (N+1) in `hydrateListing` with a join or batch load
+- **Server-action hardening** — rate limiting and stricter input validation
+- Keep `ALLOW_DEV_LOGIN` **off** in production (passwordless login is
+  sandbox-only)

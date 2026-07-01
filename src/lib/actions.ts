@@ -455,7 +455,6 @@ async function placeOrderInDb(input: {
       .values({ email: input.email, name: input.name })
       .returning();
   }
-  const feeBps = Number(process.env.PLATFORM_FEE_BPS ?? "800");
   const [order] = await db
     .insert(schema.orders)
     .values({
@@ -463,7 +462,7 @@ async function placeOrderInDb(input: {
       buyerId: buyer.id,
       storeId: input.listing.store.id,
       amountCents: input.amountCents,
-      platformFeeCents: Math.round((input.amountCents * feeBps) / 10000),
+      platformFeeCents: platformFeeCents(input.amountCents),
       status: "pending",
     })
     .returning();
