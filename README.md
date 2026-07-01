@@ -100,6 +100,7 @@ of common package managers"**, and add the hosts you need (one per line):
 
 ```
 *.neon.tech                          # Neon Postgres
+*.aws.neon.tech                      # Neon HTTP driver (api.<region>.aws.neon.tech)
 api.stripe.com                       # Stripe payments
 generativelanguage.googleapis.com    # Gemini photo scanning
 accounts.google.com                  # Google sign-in
@@ -108,6 +109,14 @@ www.googleapis.com                   # Google sign-in
 openidconnect.googleapis.com         # Google sign-in
 *.r2.cloudflarestorage.com           # Cloudflare R2 uploads
 ```
+
+> Note: the Neon serverless driver connects to a **multi-label** host like
+> `api.c-4.us-east-1.aws.neon.tech`, which a single-label `*.neon.tech` rule
+> may not match — include `*.aws.neon.tech` (verified against the sandbox
+> proxy, which otherwise returns `403 Host not in allowlist`).
+
+See **[GO-LIVE.md](GO-LIVE.md)** for the full per-service runbook, and run
+`npm run preflight` to verify every integration in one command.
 
 Production on Fly is unaffected by this — it has open outbound access.
 
