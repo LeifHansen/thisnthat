@@ -1,9 +1,10 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { looksLikeHandle, sellerPath } from "@/lib/handles";
 import { CARD_SELECT, FOR_SALE } from "@/lib/listings";
 import { SITE_NAME } from "@/lib/site";
 import { Avatar } from "@/components/Avatar";
@@ -22,15 +23,27 @@ const PROFILE_SELECT = {
   avatarUrl: true,
   suspended: true,
   createdAt: true,
+  handle: true,
 } as const;
 
 const LISTINGS_SHOWN = 24;
 
 // Memoized per request: generateMetadata and the page both load the profile,
 // and without cache() that is two identical queries on every profile view.
-const loadProfile = cache(async (id: string) => {
+//
+// The segment is a handle (/u/sams-closet) or, as the fallback every older
+// link and every seller without a handle uses, a user id (/u/<cuid>). Handles
+// are checked first; a cuid happens to satisfy the handle grammar but never
+// collides with one in practice, and a miss falls through to the id lookup.
+const loadProfile = cache(async (key: string) => {
+  if (looksLikeHandle(key)) {
+    const byHandle = await prisma.user
+      .findUnique({ where: { handle: key }, select: PROFILE_SELECT })
+      .catch(() => null);
+    if (byHandle) return byHandle;
+  }
   return prisma.user
-    .findUnique({ where: { id }, select: PROFILE_SELECT })
+    .findUnique({ where: { id: key }, select: PROFILE_SELECT })
     .catch(() => null);
 });
 
@@ -46,7 +59,7 @@ export async function generateMetadata({
   return {
     title: `${name} — Seller Profile`,
     description: `${name} on ${SITE_NAME}: items for sale, seller rating and buyer reviews.`,
-    alternates: { canonical: `/u/${user.id}` },
+    alternates: { canonical: sellerPath(user) },
   };
 }
 
@@ -58,6 +71,9 @@ export default async function PublicProfilePage({
   const { id } = await params;
   const [user, session] = await Promise.all([loadProfile(id), auth()]);
   if (!user || user.suspended) notFound();
+  // One canonical address per seller: an id link to someone who has picked a
+  // handle moves to the handle permanently.
+  if (user.handle && id !== user.handle) permanentRedirect(sellerPath(user));
 
   const name = displayNameOf(user);
   const isMe = session?.user?.id === user.id;
@@ -158,7 +174,7 @@ export default async function PublicProfilePage({
                       loggedIn={!!session?.user}
                       label={`Message ${name.split(" ")[0]}`}
                       className="tnt-btn !py-2 !px-4 text-sm"
-                      callbackPath={`/u/${user.id}`}
+                      callbackPath={sellerPath(user)}
                     />
                   </>
                 )}

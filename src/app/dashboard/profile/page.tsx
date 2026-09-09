@@ -6,6 +6,8 @@ import { deleteOwnAccount, updateProfile } from "@/lib/profileActions";
 import { accountDeletionBlocker } from "@/lib/deleteAccount";
 import { AvatarUploader } from "@/components/AvatarUploader";
 import { displayNameOf } from "@/lib/users";
+import { HANDLE_MAX, HANDLE_MIN, sellerPath } from "@/lib/handles";
+import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,7 @@ export default async function ProfileSettingsPage({
       bio: true,
       avatarUrl: true,
       shipFromPostalCode: true,
+      handle: true,
     },
   });
   if (!me) return null;
@@ -50,7 +53,7 @@ export default async function ProfileSettingsPage({
           </p>
         </div>
         <Link
-          href={`/u/${me.id}`}
+          href={sellerPath(me)}
           className="text-sm font-semibold !text-[var(--tnt-red)] shrink-0"
         >
           View public profile →
@@ -81,6 +84,32 @@ export default async function ProfileSettingsPage({
           <p className="text-xs text-muted">
             Shown on your listings, messages, and profile. Leave blank to use
             your account name ({me.name}).
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="handle" className="font-semibold text-sm block">
+            Handle
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted shrink-0">{SITE_URL.replace(/^https?:\/\//, "")}/u/</span>
+            <input
+              id="handle"
+              name="handle"
+              defaultValue={me.handle ?? ""}
+              placeholder="your-shop-name"
+              minLength={HANDLE_MIN}
+              maxLength={HANDLE_MAX}
+              pattern="[a-z0-9]([a-z0-9-]*[a-z0-9])?"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className="tnt-input max-w-[16rem]"
+            />
+          </div>
+          <p className="text-xs text-muted">
+            Your public profile address. {HANDLE_MIN}–{HANDLE_MAX} lowercase
+            letters, numbers and hyphens. Leave blank to keep the default link.
           </p>
         </div>
 

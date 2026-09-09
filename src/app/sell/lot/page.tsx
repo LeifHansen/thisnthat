@@ -7,6 +7,7 @@ import { lotSchema, firstError } from "@/lib/validation";
 import { parsePhotosField } from "@/lib/photos";
 import { parseMinAutoAcceptCents } from "@/lib/createListing";
 import { categoryIdForSlug } from "@/lib/categoryStore";
+import { publishEligibility } from "@/lib/sellerEligibility";
 import { LotWizard } from "@/components/LotWizard";
 
 export const metadata: Metadata = {
@@ -54,7 +55,17 @@ export default async function SellLotPage() {
     }
     const d = parsed.data;
 
-    const status = intent === "draft" ? "DRAFT" : "ACTIVE";
+    // Publishing is gated on payouts being enabled (src/lib/sellerEligibility.ts);
+    // a lot that can't go live yet is saved as a draft with nothing lost.
+    let status: "DRAFT" | "ACTIVE" = intent === "draft" ? "DRAFT" : "ACTIVE";
+    let held = false;
+    if (status === "ACTIVE") {
+      const eligible = await publishEligibility(me.id);
+      if (!eligible.ok) {
+        status = "DRAFT";
+        held = true;
+      }
+    }
     const categoryId = await categoryIdForSlug(d.categorySlug);
 
     // A lot is a single unique bundle: quantity is always 1 (it flips to SOLD
@@ -86,7 +97,7 @@ export default async function SellLotPage() {
     if (intent === "draft") {
       redirect(`/dashboard?draft=${listing.id}&toast=Lot+draft+saved`);
     }
-    redirect(`/sell/success?id=${listing.id}`);
+    redirect(`/sell/success?id=${listing.id}${held ? "&draft=1&payouts=1" : ""}`);
   }
 
   return <LotWizard userName={user.name} createLot={createLot} />;

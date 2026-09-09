@@ -7,6 +7,7 @@ import { listingSchema, firstError } from "@/lib/validation";
 import { parsePhotosField } from "@/lib/photos";
 import { getCategory, readAttributes, validateAttributes } from "@/lib/categories";
 import { categoryIdForSlug } from "@/lib/categoryStore";
+import { publishEligibility } from "@/lib/sellerEligibility";
 import { parseAttributesField, parseMinAutoAcceptCents } from "@/lib/createListing";
 import { EditListingForm } from "@/components/EditListingForm";
 
@@ -63,6 +64,13 @@ export default async function EditListingPage({
     // narrows `parsed` / `category` / `attrs` after it.
     const fail: (why: string) => never = (why) =>
       redirect(`/listings/${id}/edit?error=1&reason=${encodeURIComponent(why)}`);
+
+    // A draft only goes live for a seller who can be paid; everything else
+    // about the save still happens, so the edit is never lost.
+    if (publishing) {
+      const eligible = await publishEligibility(user.id);
+      if (!eligible.ok) fail(eligible.message);
+    }
 
     // A lot is one bundle: the single-item fields (brand, item name,
     // attributes) don't apply and whatever the form sends for them is ignored.

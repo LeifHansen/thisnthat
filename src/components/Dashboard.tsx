@@ -308,7 +308,15 @@ export async function Dashboard({
           </p>
         )}
 
-        <ConnectButton status={payout.status} />
+        <div className="flex flex-wrap items-center gap-3">
+          <ConnectButton status={payout.status} />
+          <Link
+            href="/dashboard/payouts"
+            className="text-sm font-semibold !text-[var(--tnt-red)]"
+          >
+            Held &amp; released balances, transfer history →
+          </Link>
+        </div>
       </section>
 
       {(offersReceived.length > 0 || offersSent.length > 0) && (

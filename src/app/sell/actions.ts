@@ -9,6 +9,7 @@ import {
   parseAttributesField,
   parseMinAutoAcceptCents,
   ListingInputError,
+  type CreateListingResult,
 } from "@/lib/createListing";
 
 export async function createListing(
@@ -36,7 +37,7 @@ export async function createListing(
     return { error: firstError(parsed.error) };
   }
 
-  let listing: { id: string };
+  let listing: CreateListingResult;
   try {
     listing = await createListingForSeller(me, parsed.data, {
       status: intent === "draft" ? "DRAFT" : "ACTIVE",
@@ -49,6 +50,11 @@ export async function createListing(
 
   if (intent === "draft") {
     redirect(`/dashboard?draft=${listing.id}&toast=Draft+saved`);
+  }
+  if (listing.held) {
+    // Asked to publish, saved as a draft: the success page explains why and
+    // points at payout setup.
+    redirect(`/sell/success?id=${listing.id}&draft=1&payouts=1`);
   }
   redirect(`/sell/success?id=${listing.id}`);
 }

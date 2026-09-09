@@ -3,6 +3,7 @@ import type { z } from "zod";
 import { prisma } from "@/lib/db";
 import { categoryIdForSlug } from "@/lib/categoryStore";
 import { getCategory, validateAttributes } from "@/lib/categories";
+import { publishEligibility } from "@/lib/sellerEligibility";
 import type { listingSchema } from "@/lib/validation";
 
 /**
@@ -18,21 +19,45 @@ export type ListingInput = z.infer<typeof listingSchema>;
 
 export class ListingInputError extends Error {}
 
+export type CreateListingResult = {
+  id: string;
+  status: "DRAFT" | "ACTIVE";
+  /**
+   * Set when the seller asked to publish but the listing was saved as a
+   * draft instead — today only because their payouts aren't enabled
+   * (src/lib/sellerEligibility.ts). The message is seller-facing.
+   */
+  held?: string;
+};
+
 export async function createListingForSeller(
   seller: { id: string },
   input: ListingInput,
   options: {
-    /** A non-draft listing publishes immediately. */
+    /** A non-draft listing publishes immediately — if the seller may publish. */
     status: "DRAFT" | "ACTIVE";
     /** Seller's auto-accept floor in cents; null means every offer waits. */
     minAutoAcceptCents: number | null;
   },
-): Promise<{ id: string }> {
+): Promise<CreateListingResult> {
   const category = getCategory(input.categorySlug);
   if (!category) throw new ListingInputError("Pick a category.");
   const attrs = validateAttributes(category, input.attributes);
   if (!attrs.ok) throw new ListingInputError(attrs.error);
   const categoryId = await categoryIdForSlug(category.slug);
+
+  // A listing only goes ACTIVE for a seller who can be paid. Everything else
+  // about the listing is saved exactly as entered, as a draft, so nothing the
+  // seller typed is lost while they finish payout setup.
+  let status = options.status;
+  let held: string | undefined;
+  if (status === "ACTIVE") {
+    const eligible = await publishEligibility(seller.id);
+    if (!eligible.ok) {
+      status = "DRAFT";
+      held = eligible.message;
+    }
+  }
 
   const listing = await prisma.listing.create({
     data: {
@@ -48,11 +73,11 @@ export async function createListingForSeller(
       quantity: input.quantity,
       photos: input.photos,
       minAutoAcceptCents: options.minAutoAcceptCents,
-      status: options.status,
+      status,
     },
     select: { id: true },
   });
-  return { id: listing.id };
+  return { id: listing.id, status, held };
 }
 
 /**

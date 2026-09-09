@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/guards";
 import { publicUrlFor } from "@/lib/r2";
 import { deleteAccount } from "@/lib/deleteAccount";
 import { signOut } from "@/lib/auth";
+import { normalizeHandle, sellerPath, validateHandle } from "@/lib/handles";
 
 const MAX_DISPLAY_NAME = 40;
 const MAX_BIO = 500;
@@ -45,19 +46,44 @@ export async function updateProfile(formData: FormData) {
     redirect("/dashboard/profile?toast=That+avatar+image+URL+isn%27t+allowed&toastKind=error");
   }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      displayName: displayName || null,
-      bio: bio || null,
-      avatarUrl: avatarUrl || null,
-      shipFromPostalCode: shipFromPostalCode || null,
-    },
-  });
+  // Public handle (/u/<handle>). Blank clears it; anything present must pass
+  // the format + reserved-word rules, and the unique index decides collisions.
+  const handleRaw = normalizeHandle(formData.get("handle"));
+  let handle: string | null = null;
+  if (handleRaw !== "") {
+    const checked = validateHandle(handleRaw);
+    if (!checked.ok) {
+      redirect(
+        `/dashboard/profile?toast=${encodeURIComponent(checked.error)}&toastKind=error`,
+      );
+    }
+    handle = checked.handle;
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        displayName: displayName || null,
+        bio: bio || null,
+        avatarUrl: avatarUrl || null,
+        shipFromPostalCode: shipFromPostalCode || null,
+        handle,
+      },
+    });
+  } catch (e) {
+    if ((e as { code?: string })?.code === "P2002") {
+      redirect(
+        "/dashboard/profile?toast=That+handle+is+already+taken+%E2%80%94+try+another&toastKind=error",
+      );
+    }
+    throw e;
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/profile");
   revalidatePath(`/u/${user.id}`);
+  revalidatePath(sellerPath({ id: user.id, handle }));
   redirect("/dashboard/profile?toast=Profile+saved");
 }
 

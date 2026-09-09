@@ -3,6 +3,7 @@ import {
   createListingForSeller,
   parseMinAutoAcceptCents,
   ListingInputError,
+  type CreateListingResult,
 } from "@/lib/createListing";
 import { getMobileUser } from "@/lib/mobileAuth";
 import { rateLimit } from "@/lib/rateLimit";
@@ -56,7 +57,7 @@ export async function POST(req: Request) {
   // means the same thing.
   const intent = body.intent === "draft" || body.draft === true ? "draft" : "post";
 
-  let listing: { id: string };
+  let listing: CreateListingResult;
   try {
     listing = await createListingForSeller(seller, parsed.data, {
       status: intent === "draft" ? "DRAFT" : "ACTIVE",
@@ -69,5 +70,10 @@ export async function POST(req: Request) {
     throw e;
   }
 
-  return NextResponse.json({ id: listing.id }, { status: 201 });
+  // `held` is set when the app asked to publish but the seller's payouts
+  // aren't enabled yet: the listing is a draft and the message says why.
+  return NextResponse.json(
+    { id: listing.id, status: listing.status, held: listing.held ?? null },
+    { status: 201 },
+  );
 }

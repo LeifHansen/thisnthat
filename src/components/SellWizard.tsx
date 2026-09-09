@@ -132,11 +132,14 @@ function validateAll(f: FormState): { step: StepIndex; error: string } | null {
 export function SellWizard({
   userName,
   shipFromPostalCode,
+  canPublish = true,
   createListing,
 }: {
   userName?: string | null;
   /** Seller's ship-from ZIP from their profile; null = flat-rate fallback. */
   shipFromPostalCode: string | null;
+  /** False when publishing is gated (payouts not enabled): drafts only. */
+  canPublish?: boolean;
   createListing: (formData: FormData) => Promise<{ error: string } | void>;
 }) {
   const [step, setStep] = useState<StepIndex>(0);
@@ -460,6 +463,28 @@ export function SellWizard({
         </div>
         <Stepper step={step} onJump={goTo} />
       </div>
+
+      {!canPublish && (
+        <div
+          className="tnt-panel p-4 space-y-1"
+          style={{ borderColor: "var(--tnt-yellow)" }}
+        >
+          <p className="text-sm font-bold text-ink">Set up payouts to publish</p>
+          <p className="text-muted text-xs">
+            You can build this listing and save it as a draft now. It goes live
+            once your seller payouts are connected (about two minutes) —{" "}
+            <a
+              href="/dashboard/payouts"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold !text-[var(--tnt-red)]"
+            >
+              set up payouts
+            </a>
+            .
+          </p>
+        </div>
+      )}
 
       {step === 0 && (
         <Link
@@ -999,7 +1024,11 @@ export function SellWizard({
               className="tnt-btn flex-1"
               disabled={busy}
             >
-              {busy ? "Posting…" : "Post listing"}
+              {busy
+                ? "Saving…"
+                : canPublish
+                  ? "Post listing"
+                  : "Save draft — payouts needed to publish"}
             </button>
           </div>
 

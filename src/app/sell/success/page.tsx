@@ -12,10 +12,13 @@ export const metadata: Metadata = {
 export default async function SellSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; draft?: string }>;
+  searchParams: Promise<{ id?: string; draft?: string; payouts?: string }>;
 }) {
-  const { id, draft } = await searchParams;
+  const { id, draft, payouts } = await searchParams;
   const isDraft = draft === "1";
+  // The seller pressed Post, but publishing is gated on payouts being enabled
+  // (src/lib/sellerEligibility.ts): the listing was saved as a draft instead.
+  const heldForPayouts = isDraft && payouts === "1";
 
   // Nudge sellers who haven't finished payout setup: the sale can complete
   // but the transfer can't land until Stripe payouts are enabled.
@@ -47,12 +50,18 @@ export default async function SellSuccessPage({
 
         <div className="space-y-2">
           <h1 className="text-2xl sm:text-3xl font-bold">
-            {isDraft ? "Draft saved" : "Your listing is live! 🎉"}
+            {heldForPayouts
+              ? "Saved as a draft — one step before it goes live"
+              : isDraft
+                ? "Draft saved"
+                : "Your listing is live! 🎉"}
           </h1>
           <p className="text-muted">
-            {isDraft
-              ? "It's tucked away in your dashboard — post it whenever you're ready."
-              : "Buyers can find it on the marketplace right now."}
+            {heldForPayouts
+              ? "Listings publish once your seller payouts are set up, so a buyer's money always has somewhere to go. Connect payouts below (about two minutes), then publish from Edit listing."
+              : isDraft
+                ? "It's tucked away in your dashboard — post it whenever you're ready."
+                : "Buyers can find it on the marketplace right now."}
           </p>
         </div>
 

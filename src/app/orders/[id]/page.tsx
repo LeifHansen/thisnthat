@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { formatCents, PLATFORM_FEE_LABEL } from "@/lib/fees";
 import { guestTokenMatches, statusLabel } from "@/lib/orderState";
 import { displayNameOf } from "@/lib/users";
+import { sellerPath } from "@/lib/handles";
 import { Timeline } from "@/components/Timeline";
 import { ConditionBadge } from "@/components/ConditionBadge";
 import {
@@ -173,7 +174,7 @@ export default async function OrderPage({
           ) : (
             <>
               Sold by{" "}
-              <Link href={`/u/${order.seller.id}`} className="!text-ink font-semibold">
+              <Link href={sellerPath(order.seller)} className="!text-ink font-semibold">
                 {sellerName}
               </Link>
               .

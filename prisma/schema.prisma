@@ -72,6 +72,10 @@ model User {
   displayName            String?
   bio                    String?
   avatarUrl              String?
+  // Public seller handle: /u/<handle>. Lowercase letters, digits and hyphens,
+  // 3-30 chars, unique, reserved words refused (src/lib/handles.ts). Null until
+  // the seller picks one; /u/<id> keeps working as the fallback.
+  handle                 String?   @unique
   // Stripe Connect. `stripeConnectId` is written the moment the Express account
   // is provisioned — i.e. when the seller first clicks "Set Up Seller Payouts",
   // BEFORE they have filled in anything — so its presence means "started", not

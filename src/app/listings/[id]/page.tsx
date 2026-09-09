@@ -12,6 +12,7 @@ import { attributeEntries, getCategory, readAttributes } from "@/lib/categories"
 import { conditionLabel } from "@/lib/listingOptions";
 import { getMoreFromSeller, getSimilarListings } from "@/lib/listings";
 import { displayNameOf } from "@/lib/users";
+import { sellerPath } from "@/lib/handles";
 import { SITE_NAME } from "@/lib/site";
 import { Avatar } from "@/components/Avatar";
 import { BuyBox } from "@/components/BuyBox";
@@ -391,12 +392,12 @@ export default async function ListingPage({
 
         {/* Seller */}
         <div className="tnt-panel p-4 flex items-center gap-3">
-          <Link href={`/u/${listing.sellerId}`} className="shrink-0">
+          <Link href={sellerPath(listing.seller)} className="shrink-0">
             <Avatar src={listing.seller.avatarUrl} name={sellerName} size={44} />
           </Link>
           <div className="min-w-0 flex-1">
             <Link
-              href={`/u/${listing.sellerId}`}
+              href={sellerPath(listing.seller)}
               className="font-semibold !text-ink hover:underline block truncate"
             >
               {sellerName}
@@ -595,7 +596,7 @@ export default async function ListingPage({
             ))}
           </div>
           <Link
-            href={`/u/${listing.sellerId}`}
+            href={sellerPath(listing.seller)}
             className="inline-block text-sm font-semibold !text-[var(--tnt-red)]"
           >
             See all reviews →
@@ -608,7 +609,7 @@ export default async function ListingPage({
           <h2 className="text-xl">
             More from this seller{" "}
             <Link
-              href={`/u/${listing.sellerId}`}
+              href={sellerPath(listing.seller)}
               className="text-base font-normal !text-[var(--tnt-red)]"
             >
               View all →

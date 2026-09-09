@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { sellerPath } from "@/lib/handles";
 import { prisma } from "@/lib/db";
 import { CATEGORIES } from "@/lib/categories";
 import { SITE_URL } from "@/lib/site";
@@ -83,7 +84,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         deletedAt: null,
         listings: { some: { status: "ACTIVE" } },
       },
-      select: { id: true, updatedAt: true },
+      select: { id: true, handle: true, updatedAt: true },
       orderBy: { updatedAt: "desc" },
       take: 2000,
     });
@@ -91,7 +92,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sellers = [];
   }
   const sellerEntries: MetadataRoute.Sitemap = sellers.map((u) => ({
-    url: `${SITE_URL}/u/${u.id}`,
+    url: `${SITE_URL}${sellerPath(u)}`,
     lastModified: u.updatedAt,
     changeFrequency: "weekly",
     priority: 0.5,
