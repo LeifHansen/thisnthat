@@ -1,7 +1,7 @@
 /**
  * The end user's IP address for a request, as seen from behind Cloudflare.
  *
- * beaniexchange.com is proxied through Cloudflare (DNS resolves to Cloudflare
+ * The production domain is proxied through Cloudflare (DNS resolves to Cloudflare
  * anycast; responses carry `server: cloudflare` and a `cf-ray`), so the peer
  * Fly reports in `Fly-Client-IP` is a *Cloudflare edge node*, not the visitor.
  * Keying anything per-user off that header lumps every visitor sharing a
@@ -9,7 +9,7 @@
  *
  * Cloudflare puts the real address in `CF-Connecting-IP`. That header is only
  * trustworthy when the request actually arrived through Cloudflare: the Fly
- * origin also answers directly on beanie-xchange.fly.dev, where anyone can set
+ * origin also answers directly on its *.fly.dev hostname, where anyone can set
  * it to whatever they like. So it is honoured only when the connecting peer is
  * itself a Cloudflare address — otherwise we fall back to the peer, which Fly
  * sets and a client cannot forge.

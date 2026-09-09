@@ -6,9 +6,9 @@ import { S3Client } from "@aws-sdk/client-s3";
  *   R2_ACCOUNT_ID         — your Cloudflare account id
  *   R2_ACCESS_KEY_ID      — R2 API token access key
  *   R2_SECRET_ACCESS_KEY  — R2 API token secret
- *   R2_BUCKET             — bucket name (e.g. beaniexchange-uploads)
+ *   R2_BUCKET             — bucket name (e.g. thisnthat-uploads)
  *   R2_PUBLIC_URL         — public URL prefix (e.g. https://pub-xxx.r2.dev
- *                           or https://images.beaniexchange.com)
+ *                           or https://images.example.com)
  */
 
 const accountId = process.env.R2_ACCOUNT_ID;
