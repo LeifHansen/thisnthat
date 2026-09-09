@@ -1,0 +1,813 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AuthType {
+  TRUE_BLUE
+  THIRD_PARTY_COA
+  BX_EXPRESS_COA
+  BX_FULL_SERVICE
+  UNAUTHENTICATED
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_AUTH
+  ACTIVE
+  SOLD
+  REMOVED
+}
+
+enum FulfillmentPath {
+  DIRECT
+  VIA_HQ
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID_ESCROW
+  AWAITING_SHIP_TO_BUYER
+  SHIPPED_TO_BUYER
+  COMPLETED
+  REFUNDED
+  CANCELLED
+}
+
+enum AuthServiceLevel {
+  EXPRESS_COA
+  FULL_SERVICE
+}
+
+// BX in-house authentication tier.
+//   BASIC        — authenticate + authentication tag + heat-sealed mylar baggie.
+//   FULL_GRADING — adds a 5-component grade (→ overall /10), a plexiglass case,
+//                  and a signed certificate.
+enum AuthTier {
+  BASIC
+  FULL_GRADING
+}
+
+// Which authentication service the customer chose for a submission.
+// Open-ended: add more partners (PSA, third-party graders) here.
+enum AuthProvider {
+  TRUE_BLUE
+  BX_AUTHENTICATION
+}
+
+// Who issued a registry entry's underlying authentication.
+// Mirrors AuthProvider but is separate so the registry can record
+// historical entries even if a provider relationship ends.
+enum RegistryIssuer {
+  TRUE_BLUE
+  BX_AUTHENTICATION
+}
+
+enum AuthRequestStatus {
+  REQUESTED
+  PAID
+  AWAITING_INBOUND
+  AT_CENTER
+  IN_REVIEW
+  PASSED
+  FAILED
+  RETURNED
+}
+
+enum ShipmentLeg {
+  SUBMITTER_TO_CENTER
+  CENTER_TO_SUBMITTER
+  SELLER_TO_BUYER
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  AUTO_ACCEPTED
+  REJECTED
+  EXPIRED
+  SUPERSEDED
+}
+
+enum TradeStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+  EXPIRED
+  SUPERSEDED
+}
+
+model User {
+  id                     String    @id @default(cuid())
+  email                  String    @unique
+  passwordHash           String
+  name                   String
+  role                   Role      @default(USER)
+  // Superadmin-only moderation: a suspended user is blocked from signing in and
+  // has their active listings pulled from the marketplace.
+  suspended              Boolean   @default(false)
+  // Self-serve account deletion (Apple requires it in-app for any app that
+  // creates accounts). The row survives as a scrubbed tombstone because Order
+  // and Listing reference it and are the counterparty's history — see
+  // src/lib/deleteAccount.ts. Set together with `suspended`, which is what
+  // every existing guard already checks.
+  deletedAt              DateTime?
+  // Public profile customization — all optional; `name` stays the fallback
+  // identity everywhere via displayNameOf().
+  displayName            String?
+  bio                    String?
+  avatarUrl              String?
+  // Stripe Connect. `stripeConnectId` is written the moment the Express account
+  // is provisioned — i.e. when the seller first clicks "Set Up Seller Payouts",
+  // BEFORE they have filled in anything — so its presence means "started", not
+  // "connected". The two timestamps separate those, which is the whole point:
+  // without them a low connect count can't be told apart from a high abandon
+  // rate. Both are stamped once and never cleared.
+  stripeConnectId        String?
+  /// When the Express account was provisioned — the seller started onboarding.
+  stripeConnectStartedAt DateTime?
+  /// When payouts first went live on that account — the seller finished.
+  stripePayoutsEnabledAt DateTime?
+  addressLine1           String?
+  addressLine2           String?
+  city                   String?
+  state                  String?
+  postalCode             String?
+  country                String?   @default("US")
+  // Seller ship-from ZIP: origin for live EasyPost rating of seller -> buyer
+  // shipping on direct sales. Null = flat-rate fallback.
+  shipFromPostalCode     String?
+
+  // Email notifications. Per-category toggles (default on); the token backs
+  // one-click List-Unsubscribe links so recipients can opt out without
+  // signing in. emailVerified is reserved for a future verify-email flow.
+  emailVerified    DateTime?
+  unsubscribeToken String?   @unique
+  notifyOrders     Boolean   @default(true)
+  notifyOffers     Boolean   @default(true)
+  notifyMessages   Boolean   @default(true)
+  notifySocial     Boolean   @default(true)
+  // Product tips & nudges (e.g. the list-your-first-beanie email) — its own
+  // opt-out category so unsubscribing from it never touches transactional mail.
+  notifyTips       Boolean   @default(true)
+
+  // When the one-time "list your first beanie" nudge went out (null = never).
+  // Doubles as the idempotency marker for the nudge sweep.
+  firstListingNudgeSentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  listings         Listing[]
+  buyerOrders      Order[]                 @relation("BuyerOrders")
+  sellerOrders     Order[]                 @relation("SellerOrders")
+  authRequests     AuthenticationRequest[]
+  registry         RegistryEntry[]
+  offers           Offer[]                 @relation("BuyerOffers")
+  forumThreads     ForumThread[]           @relation("ForumThreads")
+  forumPosts       ForumPost[]             @relation("ForumPosts")
+  forumVotes       ForumVote[]             @relation("ForumVotes")
+  tradesProposed   TradeOffer[]            @relation("TradeProposer")
+  tradesOwned      TradeOffer[]            @relation("TradeOwner")
+  conversationsAsA Conversation[]          @relation("ConversationsAsA")
+  conversationsAsB Conversation[]          @relation("ConversationsAsB")
+  sentMessages     Message[]               @relation("SentMessages")
+  listingLikes     ListingLike[]           @relation("ListingLikes")
+  following        Follow[]                @relation("Following")
+  followers        Follow[]                @relation("Followers")
+  productReviews   ProductReview[]
+
+  // /admin/users lists newest-first.
+  @@index([createdAt])
+}
+
+model Listing {
+  id          String   @id @default(cuid())
+  sellerId    String
+  seller      User     @relation(fields: [sellerId], references: [id])
+  title       String
+  description String
+  beanieName  String
+  year        Int?
+  condition   String
+  priceCents  Int
+  // Units available. Reserving a unit decrements this; the listing flips to
+  // SOLD only when it reaches 0, and released reservations restore it.
+  quantity    Int      @default(1)
+  // A "lot" bundles many beanies (mixed, or multiples of the same) sold as one
+  // unit for one price — the contents live in `lotItems`. Lots are excluded
+  // from the by-beanieName storefront grouping and get their own browse view.
+  isLot       Boolean  @default(false)
+  photos      String[]
+  authType    AuthType
+  coaImageUrl String?
+
+  // Denormalised badge data (from a passed authentication / external cert)
+  trueBlueCertId     String?
+  bxCertId           String?
+  grade              String?
+  registrationNumber String?
+
+  // Seller-set floor for auto-accepting offers. Null = no auto-accept; any
+  // incoming offer >= this value bypasses the seller-decide step and lands
+  // straight in an Order at the offer price.
+  minAutoAcceptCents Int?
+
+  status    ListingStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  orders          Order[]
+  authRequest     AuthenticationRequest?
+  offers          Offer[]
+  reviews         ProductReview[]
+  tradesAsTarget  TradeOffer[]           @relation("TradeTarget")
+  tradesAsOffered TradeOffer[]           @relation("TradeOffered")
+  likes           ListingLike[]
+  lotItems        LotItem[]
+
+  @@index([status])
+  @@index([sellerId])
+  @@index([authType, status])
+  // Homepage "newest" strips and dashboards read ACTIVE non-lot listings
+  // ordered by createdAt on every render.
+  @@index([status, isLot, createdAt])
+  // getOtherOptions() filters ACTIVE listings by beanieName ordered by price on
+  // every listing-detail render; this composite serves that without a scan.
+  @@index([beanieName, status, priceCents])
+  // Storefront grouping filters `isLot=false, status=ACTIVE`; the Lots browse
+  // view filters `isLot=true, status=ACTIVE`. This composite serves both.
+  @@index([isLot, status])
+}
+
+// One line in a lot listing: a beanie (free text, optionally catalogue-linked
+// via styleNumber) and how many copies of it the lot contains. Cascades with
+// its parent listing.
+model LotItem {
+  id          String   @id @default(cuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  beanieName  String
+  year        Int?
+  styleNumber String?
+  quantity    Int      @default(1)
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([listingId])
+}
+
+// A user's ♥ on a listing. Presence = liked; the @@unique makes the
+// like/unlike toggle idempotent under double-submits (same trick as
+// ForumVote). Cascades so likes vanish with their user or listing.
+model ListingLike {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("ListingLikes", fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+}
+
+// follower → followed edge for following another collector's store/profile.
+model Follow {
+  id         String   @id @default(cuid())
+  followerId String
+  follower   User     @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  followedId String
+  followed   User     @relation("Followers", fields: [followedId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([followerId, followedId])
+  @@index([followedId])
+}
+
+model Order {
+  id         String  @id @default(cuid())
+  listingId  String
+  listing    Listing @relation(fields: [listingId], references: [id])
+  // Buyer is optional: guest checkout creates orders with no account, tracked
+  // by email + a per-order guestToken instead.
+  buyerId    String?
+  buyer      User?   @relation("BuyerOrders", fields: [buyerId], references: [id])
+  // Guest checkout contact + access token (null for signed-in buyers).
+  guestEmail String?
+  guestToken String? @unique
+  // Groups the orders created from a single multi-item cart checkout. All
+  // orders in a cart share one Stripe PaymentIntent (stripePaymentIntentId).
+  cartId     String?
+  sellerId   String
+  seller     User    @relation("SellerOrders", fields: [sellerId], references: [id])
+
+  itemCents        Int
+  platformFeeCents Int
+  shipToBuyerCents Int @default(0)
+  totalCents       Int
+
+  status          OrderStatus     @default(PENDING_PAYMENT)
+  fulfillmentPath FulfillmentPath @default(DIRECT)
+
+  stripePaymentIntentId String?
+  stripeTransferId      String?
+
+  shipName       String
+  shipLine1      String
+  shipLine2      String?
+  shipCity       String
+  shipState      String
+  shipPostalCode String
+  shipCountry    String  @default("US")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shipmentEvents ShipmentEvent[]
+
+  // Order may have originated from an accepted Offer.
+  offer Offer?
+
+  // Verified-buyer review left after the order completed (max one per order).
+  review ProductReview?
+
+  // One reservation per listing per cart — a retried checkout POST can't
+  // double-create orders (NULL cartIds are exempt, as Postgres treats them
+  // as distinct).
+  @@unique([cartId, listingId])
+  // Dashboards read by buyer/seller ordered by createdAt; the sweep filters
+  // status + createdAt — composites serve those without a re-sort.
+  @@index([buyerId, createdAt])
+  @@index([sellerId, createdAt])
+  @@index([status, createdAt])
+  @@index([cartId])
+}
+
+// A verified-buyer product review: only the account buyer of a COMPLETED
+// order can leave one, and only one per order (enforced by @unique + the
+// server action's status check). `beanieName` is denormalized so listing
+// pages can aggregate ratings across every sale of the same beanie — this
+// feeds the Product JSON-LD aggregateRating/review fields (Search Console
+// "product snippets"), which must reflect genuine user reviews.
+model ProductReview {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  buyerId    String
+  buyer      User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  listingId  String
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  beanieName String
+  rating     Int // 1-5 stars
+  body       String?
+  createdAt  DateTime @default(now())
+
+  @@index([beanieName])
+  @@index([listingId])
+}
+
+model Offer {
+  id         String      @id @default(cuid())
+  listingId  String
+  listing    Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerId    String
+  buyer      User        @relation("BuyerOffers", fields: [buyerId], references: [id])
+  priceCents Int
+  message    String?
+  status     OfferStatus @default(PENDING)
+  expiresAt  DateTime
+
+  // Set when accepted (manually or auto). Tracks the order the offer
+  // turned into so the buyer can pay at the locked-in price.
+  orderId String? @unique
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  decidedAt DateTime?
+
+  // Buyer cleared this finished offer off their dashboard. A soft hide, not a
+  // row delete: an offer is part of a listing's negotiation history, and the
+  // admin user view still needs to see it.
+  dismissedAt DateTime?
+
+  @@index([listingId])
+  @@index([buyerId])
+  // expireStaleOffers() sweeps status=PENDING + expiresAt<now on hot pages;
+  // a bare status index over a low-cardinality enum can't serve that.
+  @@index([status, expiresAt])
+}
+
+// A peer-to-peer trade proposal: `proposer` offers `offeredListing`
+// (optionally + cash) in exchange for `targetListing`, owned by `owner`.
+model TradeOffer {
+  id               String  @id @default(cuid())
+  targetListingId  String
+  targetListing    Listing @relation("TradeTarget", fields: [targetListingId], references: [id], onDelete: Cascade)
+  offeredListingId String
+  offeredListing   Listing @relation("TradeOffered", fields: [offeredListingId], references: [id], onDelete: Cascade)
+  proposerId       String
+  proposer         User    @relation("TradeProposer", fields: [proposerId], references: [id])
+  ownerId          String
+  owner            User    @relation("TradeOwner", fields: [ownerId], references: [id])
+
+  cashAddedCents Int         @default(0)
+  message        String?
+  status         TradeStatus @default(PENDING)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  decidedAt DateTime?
+  expiresAt DateTime
+
+  @@index([targetListingId, status])
+  @@index([ownerId, status])
+  @@index([proposerId, status])
+}
+
+model AuthenticationRequest {
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id])
+  serviceLevel AuthServiceLevel
+  provider     AuthProvider      @default(TRUE_BLUE)
+  // BX service tier (null for True Blue submissions).
+  tier         AuthTier?
+  status       AuthRequestStatus @default(REQUESTED)
+
+  beanieName  String
+  description String?
+  condition   String?
+  photos      String[]
+
+  // Submitter's return address, collected at checkout to rate (and buy)
+  // shipping via EasyPost. Same for every beanie in a batch.
+  shipName       String?
+  shipLine1      String?
+  shipLine2      String?
+  shipCity       String?
+  shipState      String?
+  shipPostalCode String?
+
+  serviceFeeCents   Int
+  inboundShipCents  Int      @default(0)
+  outboundShipCents Int      @default(0)
+  // Whether inbound/outbound shipping came from a live EasyPost rate (true) or
+  // the flat fallback estimate (false). null = N/A (True Blue is all-in).
+  shipRated         Boolean?
+  totalCents        Int
+
+  stripePaymentIntentId String?
+
+  grade              String?
+  // FULL_GRADING 5-component sub-scores (swing tag, tush tag, fabric, fill,
+  // cleanliness), each 1–10; `grade` holds the rolled-up overall.
+  gradeScores        Json?
+  bxCertId           String?
+  registrationNumber String?
+  reviewNotes        String?
+  reviewedAt         DateTime?
+
+  // Optional link: a listing created from / awaiting this authentication
+  listingId String?  @unique
+  listing   Listing? @relation(fields: [listingId], references: [id])
+
+  // Groups beanies submitted & paid together in one bulk submission. All
+  // requests in a batch share one Stripe PaymentIntent; each is still
+  // authenticated / graded individually.
+  batchId String?
+
+  // Claimed (batch-wide, in one atomic statement) before buying the prepaid
+  // inbound label, so a retried Stripe webhook can never buy real postage
+  // twice. Released again if the purchase fails, so a later retry can.
+  inboundLabelClaimed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shipmentEvents ShipmentEvent[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([batchId])
+}
+
+// --- Direct messages --------------------------------------------------
+// Reddit-style 1:1 DMs. Each unordered pair of users maps to exactly one
+// Conversation (participants stored as userA/userB with userAId < userBId so
+// the @@unique enforces one row per pair). Messages are a flat, time-ordered
+// list; `readAt` powers per-recipient unread counts.
+
+model Conversation {
+  id      String @id @default(cuid())
+  userAId String
+  userA   User   @relation("ConversationsAsA", fields: [userAId], references: [id])
+  userBId String
+  userB   User   @relation("ConversationsAsB", fields: [userBId], references: [id])
+
+  messages Message[]
+
+  // Denormalised for cheap inbox sorting + preview without re-aggregating.
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@unique([userAId, userBId])
+  @@index([userAId, lastMessageAt])
+  @@index([userBId, lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+  body           String
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  // Unread counts filter on readAt (and the read-marking updateMany matches
+  // senderId != me + readAt null) — without this every poll scans the
+  // conversation's full message history.
+  @@index([conversationId, readAt])
+}
+
+model RegistryEntry {
+  id                 String         @id @default(cuid())
+  registrationNumber String         @unique
+  itemName           String
+  // Null for Basic authentication (authenticated, not graded).
+  grade              String?
+  bxCertId           String
+  // Originating authentication service (BX in-house, True Blue, etc).
+  issuer             RegistryIssuer @default(BX_AUTHENTICATION)
+  // Issuer's own cert number when issuer != BX (e.g. True Blue cert).
+  // Indexed for lookup so /registry can resolve by either ID.
+  externalCertId     String?
+  ownerId            String
+  owner              User           @relation(fields: [ownerId], references: [id])
+  issuedAt           DateTime       @default(now())
+
+  @@index([externalCertId])
+  @@index([issuer])
+  // /registry looks up by registrationNumber OR bxCertId OR externalCertId;
+  // one unindexed OR branch forces a full scan on a public, unauthenticated
+  // form.
+  @@index([bxCertId])
+}
+
+model ShipmentEvent {
+  id             String                 @id @default(cuid())
+  orderId        String?
+  order          Order?                 @relation(fields: [orderId], references: [id])
+  authRequestId  String?
+  authRequest    AuthenticationRequest? @relation(fields: [authRequestId], references: [id])
+  leg            ShipmentLeg
+  carrier        String?
+  trackingNumber String?
+  // EasyPost-purchased label (PDF/PNG URL) when bought through the platform.
+  labelUrl       String?
+  status         String
+  createdAt      DateTime               @default(now())
+
+  // The EasyPost webhook resolves events by trackingNumber on every carrier
+  // status change, and the order/auth detail pages read by their FK — all
+  // previously sequential scans on a table that grows ~5-10 rows per package.
+  @@index([trackingNumber, createdAt])
+  @@index([orderId])
+  @@index([authRequestId])
+}
+
+// --- BeanieX Forum -----------------------------------------------------
+// Reddit-style discussion. Categories contain threads; threads have a
+// flat list of posts (replies); votes are stored separately so we can
+// later expose per-user vote state without recounting.
+
+model ForumCategory {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String
+  position    Int           @default(0)
+  threads     ForumThread[]
+  createdAt   DateTime      @default(now())
+}
+
+model ForumThread {
+  id         String        @id @default(cuid())
+  categoryId String
+  category   ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  // Optional author: seeded threads have no real user behind them and
+  // surface `authorDisplayName` (e.g. "BeanieX Team") instead.
+  authorId          String?
+  author            User?   @relation("ForumThreads", fields: [authorId], references: [id])
+  authorDisplayName String?
+
+  title String
+  body  String
+
+  // Denormalised vote total (sum of ForumVote.value). Maintained by the
+  // vote action so list views don't have to re-aggregate every render.
+  score    Int     @default(0)
+  isPinned Boolean @default(false)
+  isLocked Boolean @default(false)
+
+  posts ForumPost[]
+  votes ForumVote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([score])
+  @@index([createdAt])
+}
+
+model ForumPost {
+  id       String      @id @default(cuid())
+  threadId String
+  thread   ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  authorId          String?
+  author            User?   @relation("ForumPosts", fields: [authorId], references: [id])
+  authorDisplayName String?
+
+  body  String
+  score Int    @default(0)
+
+  votes ForumVote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Thread pages sort replies by score within a thread; the composite serves
+  // that without an in-memory sort (and still covers threadId-only lookups).
+  @@index([threadId, score])
+  @@index([createdAt])
+}
+
+model ForumVote {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("ForumVotes", fields: [userId], references: [id])
+
+  // Exactly one of threadId / postId is non-null per row.
+  threadId String?
+  thread   ForumThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  postId   String?
+  post     ForumPost?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // -1 or +1
+  value Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, threadId])
+  @@unique([userId, postId])
+}
+
+// Seller-submitted beanie that isn't in the static catalogue yet. The listing
+// goes live immediately; admins review the new beanie here and approve/reject.
+enum BeanieSubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model BeanieSubmission {
+  id              String                 @id @default(cuid())
+  name            String
+  // beaniePhotoKey(name) — de-dupes repeat submissions of the same new beanie.
+  normalizedKey   String                 @unique
+  year            Int?
+  submittedByName String?
+  firstListingId  String?
+  status          BeanieSubmissionStatus @default(PENDING)
+  reviewNotes     String?
+  reviewedAt      DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([status])
+}
+
+// One row per click on a tracked outbound partner link (the True Blue Beans
+// egress link routes through /out/true-blue, which records a row here before
+// redirecting). The superadmin dashboard reports the all-time total.
+model OutboundClick {
+  id        String   @id @default(cuid())
+  // Destination slug, e.g. "true-blue" — see OUTBOUND_TARGETS in src/lib/outbound.ts.
+  target    String
+  // Placement the click came from, e.g. "footer", "authenticate".
+  source    String?
+  createdAt DateTime @default(now())
+
+  @@index([target, createdAt])
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// Editorial blog. Articles are authored by superadmins, usually via the AI
+// blog generator (which rewrites a reference article into an original BX post).
+// `sourceUrl` records the reference the draft was built from; `content` is
+// Markdown, rendered server-side on /blog/[slug].
+model BlogPost {
+  id                String     @id @default(cuid())
+  slug              String     @unique
+  title             String
+  excerpt           String
+  content           String
+  coverImageUrl     String?
+  sourceUrl         String?
+  authorDisplayName String?    @default("BeanieX Team")
+  status            BlogStatus @default(DRAFT)
+  publishedAt       DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+// Superadmin-generated catalogue placeholder images for beanies with no real
+// marketplace photo yet. Keyed by the normalized beanie name (beaniePhotoKey)
+// so the database page can look one up per catalogue row. `source` is "ai"
+// (OpenAI-generated), "manual" (superadmin upload / pasted URL) for now; these
+// are clearly labelled reference placeholders, never presented as real product
+// photos.
+model BeanieImage {
+  id            String   @id @default(cuid())
+  normalizedKey String   @unique
+  name          String
+  url           String
+  source        String   @default("ai")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Superadmin edits to a static catalogue row (src/lib/beanie-database.ts),
+// keyed by beaniePhotoKey(original name). The static file stays the source of
+// truth for defaults; only the fields a superadmin changed are stored here
+// (null = "use the catalogue value"), and /database merges them on top of the
+// static entry at render time. This lets a superadmin correct a name, year,
+// value, style number, or note — without shipping a code change or creating a
+// listing. Photos live in BeanieImage; deleting this row reverts the fields.
+model BeanieOverride {
+  id            String   @id @default(cuid())
+  normalizedKey String   @unique
+  name          String?
+  animal        String?
+  category      String?
+  year          Int?
+  styleNumber   String?
+  valueLow      Int?
+  valueHigh     Int?
+  note          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// A single eBay completed/sold listing, attributed to a catalogue beanie by
+// beaniePhotoKey. Ingested from the eBay "average selling price" API (recent
+// sold items only — eBay exposes ~90 days), so we snapshot on each ingest and
+// dedupe by the eBay item id, letting real price history accumulate over time.
+// Powers the /price-trends dashboard and the data-driven price guide.
+model SoldItem {
+  id            String   @id @default(cuid())
+  // Catalogue attribution (beaniePhotoKey of the beanie name) + label.
+  normalizedKey String
+  beanieName    String
+  // eBay item id — unique so re-ingesting the same window is idempotent.
+  itemId        String   @unique
+  title         String
+  priceCents    Int
+  shippingCents Int      @default(0)
+  currency      String   @default("$")
+  condition     String?
+  buyingFormat  String?
+  soldAt        DateTime
+  link          String?
+  imageUrl      String?
+  createdAt     DateTime @default(now())
+
+  // Per-beanie trend/stat queries over a date range, and global date filtering.
+  @@index([normalizedKey, soldAt])
+  @@index([soldAt])
+}

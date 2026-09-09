@@ -1,77 +1,432 @@
 @import "tailwindcss";
 
+/*
+  BeanieXchange — "90s Collectible" theme.
+  Warm, playful, nostalgic: cream backgrounds, candy colors, rounded
+  sticker-buttons, trading-card frames, collector badges, soft drop shadows,
+  and a subtle animated backdrop (clouds / sparkles / heart-tags / rainbows).
+
+  CSS variable NAMES are preserved from the previous theme so every page
+  re-skins automatically; only the values and component styles change.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces — warm off-white, white cards (brand kit) */
+  --bx-bg: #faf5ec;
+  --bx-bg2: #fffdf8;
+  --bx-surface: #ffffff;
+  --bx-card: #ffffff;
+  --bx-ink: #201c2b;          /* near-black text */
+  --bx-ink-soft: #494357;
+  --bx-muted: #8b8597;
+  --bx-line: #ece5d9;
+  --bx-line-strong: #ddd4c5;
+  --bx-outline: #201c2b;
+
+  /* Primary — soft purple */
+  --bx-purple: #8b66d9;
+  --bx-purple-dark: #6c45c2;
+  --bx-purple-bright: #b39bec;
+  --bx-purple-soft: #efe9fb;
+
+  /* Accent — bubblegum pink (kept on the legacy --bx-red role so existing
+     emphasis / links / prices recolour to the brand accent automatically) */
+  --bx-red: #e8479a;
+  --bx-red-dark: #cf3a85;
+  --bx-red-soft: #fde3f1;
+
+  /* Secondary — teal */
+  --bx-green: #1f9e8d;        /* readable teal for text/links */
+  --bx-green-bright: #45c9b6;
+  --bx-green-soft: #ddf5f0;
+  --bx-blue: #3f86df;         /* blue (verified-authentic) */
+  --bx-blue-bright: #6ba8f0;
+  --bx-cyan: #1f9e8d;
+  --bx-purple-text: #7a52cf;
+
+  /* Highlight — golden yellow */
+  --bx-yellow: #f4c84d;
+  --bx-amber: #d99e22;
+  --bx-pink: #e8479a;
+  --bx-success: #1f9e8d;
+
+  /* Dark band (stats bar, footer-ish) — deep grape */
+  --bx-dark: #2a2440;
+  --bx-dark-soft: #3a3357;
+
+  --bx-panel: var(--bx-card);
+
+  --bx-shadow-sm: 0 2px 0 rgba(43, 35, 80, 0.06), 0 4px 12px rgba(43, 35, 80, 0.07);
+  --bx-shadow: 0 3px 0 rgba(43, 35, 80, 0.08), 0 8px 22px rgba(43, 35, 80, 0.10);
+  --bx-shadow-lg: 0 6px 0 rgba(43, 35, 80, 0.10), 0 18px 40px rgba(43, 35, 80, 0.16);
+
+  --bx-radius: 18px;
+
+  /* Headings and body are the same family at different weights, so both come
+     from the single next/font loader in layout.tsx, which defines --font-body.
+     Aliased here so every --font-display rule below keeps working unchanged. */
+  --font-display: var(--font-body);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bx-bg);
+  --color-ink: var(--bx-ink);
+  --color-muted: var(--bx-muted);
+  --color-pink: var(--bx-pink);
+  --color-cyan: var(--bx-blue);
+  --color-yellow: var(--bx-amber);
+  --color-purple: var(--bx-purple);
+  --color-green: var(--bx-green);
+  --color-panel: var(--bx-card);
+  --color-red: var(--bx-red);
+  --color-blue: var(--bx-blue);
+  --font-sans: var(--font-body), ui-rounded, "Nunito", system-ui, sans-serif;
+  --font-display: var(--font-display), ui-rounded, "Fredoka", system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bx-bg);
+  /* Layered nostalgic backdrop: cream base + faint rainbow corner washes +
+     a soft halftone dot texture. Fixed so it doesn't scroll-jank. */
+  background-image:
+    radial-gradient(120% 90% at 100% 0%, rgba(77, 184, 255, 0.16), transparent 55%),
+    radial-gradient(120% 90% at 0% 0%, rgba(255, 217, 61, 0.18), transparent 55%),
+    radial-gradient(130% 100% at 50% 120%, rgba(179, 136, 255, 0.16), transparent 60%),
+    radial-gradient(rgba(255, 95, 162, 0.07) 1.5px, transparent 1.6px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 22px 22px;
+  background-attachment: fixed;
+  color: var(--bx-ink);
+  font-family: var(--font-body), ui-rounded, system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
 }
 
-/* ---------------------------------------------------------------------------
-   Tinker-Hatfield-1990s marketing styling.
-   Bold condensed italics, color blocking, angular cuts, kinetic energy.
-   --------------------------------------------------------------------------- */
-
-/* Athletic slanted display type */
-.tk-display {
-  font-style: italic;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: -0.03em;
-  line-height: 0.92;
-  transform: skewX(-6deg);
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display), ui-rounded, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.08;
+  color: var(--bx-ink);
 }
 
-/* Angular hero block (cut corners, like a sneaker midsole panel) */
-.tk-clip {
-  clip-path: polygon(0 0, 100% 0, 100% 88%, 96% 100%, 0 100%);
+a {
+  color: var(--bx-ink);
+  text-decoration: none;
+  transition: color 0.12s ease;
+}
+a:hover {
+  color: var(--bx-red);
 }
 
-/* Hard offset shadow for that 90s poster feel */
-.tk-shadow {
-  box-shadow: 8px 8px 0 0 rgba(0, 0, 0, 0.85);
+/* ── Trading-card / panel ─────────────────────────────────────── */
+.bx-panel {
+  background: var(--bx-card);
+  border: 2px solid var(--bx-line-strong);
+  border-radius: var(--bx-radius);
+  box-shadow: var(--bx-shadow-sm);
+}
+.bx-panel--accent {
+  background: var(--bx-red-soft);
+  border-color: #ffc9c4;
 }
 
-/* Diagonal "speed" stripes */
-.tk-stripes {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    rgba(255, 255, 255, 0.16) 0,
-    rgba(255, 255, 255, 0.16) 14px,
-    transparent 14px,
-    transparent 28px
-  );
+/* Collectible card: thick playful frame + lift on hover */
+.bx-card {
+  position: relative;
+  background: var(--bx-card);
+  border: 3px solid var(--bx-ink);
+  border-radius: 20px;
+  box-shadow: var(--bx-shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.bx-card:hover {
+  transform: translateY(-4px) rotate(-0.6deg);
+  box-shadow: var(--bx-shadow-lg);
 }
 
-/* Scrolling marquee */
-@keyframes tk-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-.tk-marquee {
+/* ── Sticker buttons (chunky, pressable) ──────────────────────── */
+.bx-btn {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  border-radius: 999px;
+  border: 2.5px solid var(--bx-ink);
+  color: #ffffff;
+  background: var(--bx-purple);
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--bx-ink);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.12s ease;
+}
+.bx-btn:hover {
+  color: #ffffff;
+  background: var(--bx-purple-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--bx-ink);
+}
+.bx-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--bx-ink);
+}
+.bx-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+.bx-btn--ghost {
+  background: #ffffff;
+  color: var(--bx-ink);
+}
+.bx-btn--ghost:hover {
+  background: var(--bx-yellow);
+  color: var(--bx-ink);
+}
+.bx-btn--green { background: var(--bx-green-bright); color: var(--bx-ink); }
+.bx-btn--green:hover { background: var(--bx-green); color: #fff; }
+.bx-btn--purple { background: var(--bx-purple-bright); }
+.bx-btn--purple:hover { background: var(--bx-purple); color: #fff; }
+
+/* ── Inputs ───────────────────────────────────────────────────── */
+.bx-input {
+  width: 100%;
+  background: #ffffff;
+  color: var(--bx-ink);
+  border: 2.5px solid var(--bx-line-strong);
+  border-radius: 999px;
+  padding: 0.62rem 1rem;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.95rem;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.bx-input::placeholder { color: var(--bx-muted); }
+.bx-input:focus {
+  outline: none;
+  border-color: var(--bx-blue-bright);
+  box-shadow: 0 0 0 4px rgba(77, 184, 255, 0.25);
+}
+/* The pill radius is for single-line inputs only; multi-line textareas and
+   selects need a normal radius so their text lines up cleanly. */
+textarea.bx-input,
+select.bx-input {
+  border-radius: 16px;
+}
+textarea.bx-input {
+  padding: 0.7rem 1rem;
+  line-height: 1.5;
+}
+
+/* ── Collector badges ─────────────────────────────────────────── */
+.bx-badge {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 0.32rem 0.8rem;
+  border-radius: 999px;
+  border: 2px solid var(--bx-ink);
+  background: var(--bx-yellow);
+  color: var(--bx-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: 0 2px 0 var(--bx-ink);
+}
+.bx-badge--on { background: var(--bx-green-bright); color: var(--bx-ink); }
+.bx-badge--error { background: var(--bx-red); color: #fff; }
+
+/* ── Auth chip (subtle verification tag) ──────────────────────────
+   Deliberately quiet: a small outlined pill that informs without
+   shouting, so the product (photo + price) leads on a storefront. */
+.bx-authchip {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  max-width: 100%;
   white-space: nowrap;
-  animation: tk-marquee 22s linear infinite;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bx-authchip--lg {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.7rem;
+}
+.bx-authchip__icon { opacity: 0.85; }
+
+/* Hide the scrollbar on swipeable carousels (still scrolls/swipes). */
+.bx-noscrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.bx-noscrollbar::-webkit-scrollbar { display: none; }
+
+/* ── Cart count bubble ───────────────────────────────────────────── */
+.bx-cartdot {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  background: var(--bx-red);
+  color: #fff;
+  border: 2px solid var(--bx-bg2);
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Wizard stepper ───────────────────────────────────────────── */
+.bx-step {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  border: 2.5px solid var(--bx-ink);
+  color: var(--bx-ink);
+  background: #ffffff;
+  box-shadow: 0 2px 0 var(--bx-ink);
+}
+.bx-step--active { background: var(--bx-red); color: #fff; }
+.bx-step--done { background: var(--bx-green-bright); color: var(--bx-ink); }
+
+/* ── Section helpers ──────────────────────────────────────────── */
+.bx-stats {
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 14px, transparent 14px 28px),
+    var(--bx-dark);
+  color: #ffffff;
+  border: 3px solid var(--bx-ink);
+  border-radius: 22px;
+  box-shadow: var(--bx-shadow);
+}
+.bx-auth-banner {
+  background:
+    radial-gradient(80% 120% at 100% 0%, rgba(77,184,255,0.25), transparent 60%),
+    linear-gradient(105deg, #fff3d6 0%, #ffe0ee 55%, #efe2ff 100%);
+  border: 3px solid var(--bx-ink);
+  border-radius: 22px;
+  box-shadow: var(--bx-shadow);
+}
+
+/* ── Sitewide background: tiled brand backdrop ─────────────────── */
+.bx-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* Tiled (not stretched) so the art keeps its native proportions on any
+     viewport. WebP tile: 11KB vs the 1.2MB source PNG — this loads on every
+     page, and at 0.16 opacity the compression is invisible. */
+  background-image: url("/updated-website-backdrop.webp");
+  background-repeat: repeat;
+  background-size: 560px auto;
+  opacity: 0.16;
+}
+/* ── Toasts ───────────────────────────────────────────────────── */
+@keyframes bx-toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.bx-toast-in { animation: bx-toast-in 0.18s ease-out; }
+
+/* ── Chat dock ────────────────────────────────────────────────── */
+@keyframes bx-dock-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.bx-dock-in { animation: bx-dock-in 0.2s ease-out; }
+
+/* ── Sold-price ticker (stock-ticker marquee) ─────────────────── */
+.bx-ticker {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  background: var(--bx-ink);
+  color: #fff;
+  border: 2px solid var(--bx-ink);
+  border-radius: 0.75rem;
+  box-shadow: var(--bx-shadow-sm);
+  text-decoration: none;
+}
+.bx-ticker__label {
+  position: relative;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  padding: 0 0.85rem;
+  background: var(--bx-red);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.bx-ticker__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: #fff;
+  animation: bx-ticker-pulse 1.6s ease-in-out infinite;
+}
+.bx-ticker__track {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  white-space: nowrap;
+  animation: bx-ticker-scroll linear infinite;
+  will-change: transform;
+}
+.bx-ticker:hover .bx-ticker__track { animation-play-state: paused; }
+.bx-ticker__group { display: inline-flex; align-items: center; }
+.bx-ticker__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+@keyframes bx-ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes bx-ticker-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bx-ticker { overflow-x: auto; }
+  .bx-ticker__track { animation: none; }
+  .bx-ticker__dot { animation: none; }
 }

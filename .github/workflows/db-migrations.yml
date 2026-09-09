@@ -1,0 +1,56 @@
+name: DB migrations
+
+# Guards against the recurring "schema changed but no migration was committed"
+# bug: replays every committed migration into a throwaway Postgres, then fails
+# if prisma/schema.prisma still differs from the resulting database. If this is
+# red, run `npx prisma migrate dev` and commit the generated migration.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bxtest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/bxtest"
+      DIRECT_URL: "postgresql://postgres:postgres@localhost:5432/bxtest"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply committed migrations
+        run: npx prisma migrate deploy
+
+      - name: Fail if schema.prisma drifts from migrations
+        # `migrate diff --exit-code` exits non-zero when the migrated database
+        # and schema.prisma differ — i.e. a schema change has no migration.
+        run: |
+          npx prisma migrate diff \
+            --from-url "$DATABASE_URL" \
+            --to-schema-datamodel prisma/schema.prisma \
+            --exit-code \
+          || { echo "::error::schema.prisma has changes with no committed migration. Run 'npx prisma migrate dev' and commit the result."; exit 1; }

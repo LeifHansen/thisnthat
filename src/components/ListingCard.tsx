@@ -1,37 +1,82 @@
 import Link from "next/link";
-import Image from "next/image";
-import { formatPrice, type Listing } from "@/lib/types";
+import type { Listing } from "@prisma/client";
+import { formatCents } from "@/lib/fees";
+import { firstRealPhoto } from "@/lib/photos";
+import { AuthBadge } from "@/components/AuthBadge";
+import { AddToCartButton } from "@/components/AddToCartButton";
+import { PhotoCarousel } from "@/components/PhotoCarousel";
 
-export function ListingCard({ listing }: { listing: Listing }) {
+// The subset of Listing a card actually renders. Accepting a Pick (rather than
+// the full Prisma model) lets the same card render from a server query OR from
+// the JSON the /api/listings load-more endpoint returns.
+export type ListingCardData = Pick<
+  Listing,
+  | "id"
+  | "title"
+  | "beanieName"
+  | "priceCents"
+  | "photos"
+  | "authType"
+  | "registrationNumber"
+  | "grade"
+  | "sellerId"
+  | "status"
+  | "quantity"
+>;
+
+export function ListingCard({ listing }: { listing: ListingCardData }) {
+  const photo = firstRealPhoto(listing.photos);
+
   return (
-    <Link
-      href={`/listings/${listing.id}`}
-      className="group overflow-hidden rounded-xl border border-zinc-200 bg-white transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
-    >
-      <div className="relative aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-        <Image
-          src={listing.images[0]}
+    <div className="bx-panel p-3 h-full flex flex-col gap-2.5 transition-shadow hover:shadow-[var(--bx-shadow-lg)]">
+      <Link
+        href={`/listings/${listing.id}`}
+        aria-label={`View ${listing.title}`}
+        className="block"
+      >
+        <PhotoCarousel
+          photos={listing.photos}
           alt={listing.title}
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-cover transition-transform duration-300 group-hover:scale-105"
+          compact
+          sizes="(max-width:768px) 50vw, 25vw"
         />
-        {listing.allow_offers && (
-          <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-xs font-medium text-white">
-            Offers OK
-          </span>
+      </Link>
+
+      <Link href={`/listings/${listing.id}`} className="!text-ink">
+        <h3 className="text-sm font-bold leading-tight line-clamp-2 hover:opacity-80">
+          {listing.title}
+        </h3>
+      </Link>
+
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-lg font-extrabold text-[var(--bx-red)] leading-none">
+          {formatCents(listing.priceCents)}
+        </p>
+        <AuthBadge
+          authType={listing.authType}
+          registrationNumber={listing.registrationNumber}
+          grade={listing.grade}
+        />
+      </div>
+
+      <div className="mt-auto pt-0.5">
+        {listing.status === "SOLD" || listing.quantity <= 0 ? (
+          <p className="bx-badge bx-badge--error w-full justify-center text-center">
+            Sold Out
+          </p>
+        ) : (
+          <AddToCartButton
+            variant="card"
+            item={{
+              listingId: listing.id,
+              title: listing.title,
+              priceCents: listing.priceCents,
+              photo,
+              sellerId: listing.sellerId,
+            }}
+          />
         )}
       </div>
-      <div className="p-3">
-        <h3 className="line-clamp-1 text-sm font-medium">{listing.title}</h3>
-        <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">{listing.store.name}</p>
-        <div className="mt-2 flex items-center justify-between">
-          <span className="font-semibold">{formatPrice(listing.price_cents, listing.currency)}</span>
-          {listing.condition && (
-            <span className="text-xs text-zinc-500">{listing.condition}</span>
-          )}
-        </div>
-      </div>
-    </Link>
+    </div>
   );
 }

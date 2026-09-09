@@ -1,24 +1,56 @@
-# Fly.io configuration for ThisNThat.
-# Secrets (DATABASE_URL, AUTH_SECRET, STRIPE_*, R2_*, ...) are NOT stored here.
-# Set them with:  fly secrets set KEY=value --app thisnthat
+# fly.toml app configuration file generated for beanie-xchange on 2026-05-20T23:14:23Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = "thisnthat"
-primary_region = "iad"
+app = 'beanie-xchange'
+primary_region = 'ams'
 
 [build]
+  # NEXT_PUBLIC_* values are inlined into the bundle at BUILD time, so they
+  # must arrive as build args — runtime `fly secrets` are too late for them.
+  # The Stripe publishable key is NOT one of them: baking it in meant one empty
+  # build arg silently killed checkout for every customer until the next deploy,
+  # so it is read at request time from STRIPE_PUBLISHABLE_KEY (an unprefixed name
+  # precisely so nothing inlines it). Set it with `fly secrets set` — no rebuild.
+  # The secret-ish ones (Google client/API IDs, GA ID) are passed by
+  # .github/workflows/fly-deploy.yml from GitHub secrets; the app URL is a
+  # public constant so it lives here. Without it, baseUrl() compiled to ""
+  # and Stripe rejected Connect-onboarding redirect URLs ("Not a valid URL").
+  [build.args]
+    NEXT_PUBLIC_APP_URL = "https://beaniexchange.com"
 
-[env]
-  NODE_ENV = "production"
-  PORT = "3000"
+[deploy]
+  # Apply committed migrations deterministically, then (re)seed the demo
+  # accounts. We moved off `prisma db push` because it silently dropped schema
+  # changes on release: without `--accept-data-loss` it aborts non-interactively
+  # the moment Prisma flags any change as lossy, so prod drifted out of sync with
+  # schema.prisma (e.g. PR #29's auth tier/shipping columns never landed, 500ing
+  # the dashboard). `migrate deploy` only applies pending migrations and never
+  # touches existing data. The seed is idempotent and scoped to the demo users,
+  # so it is safe on every release; it never touches real user-created data.
+  #
+  # ONE-TIME BASELINE (already run against prod): because this database was
+  # originally bootstrapped with `db push`, it had no migration history. Each
+  # existing migration was marked applied via `prisma migrate resolve --applied
+  # <name>` so `migrate deploy` starts from a clean, in-sync baseline.
+  #
+  # Both steps are non-fatal so a transient migrate/seed hiccup never aborts the
+  # release and leaves prod on stale code. This runs before any machine boots
+  # the new image, so it is the primary applier; docker-entrypoint.js repeats it
+  # as a backstop for a failed release step, but only once the server already
+  # holds the port (the Prisma CLI competing for a shared vCPU during boot is
+  # what pushed cold starts past Fly's ~8.4s proxy cutoff).
+  release_command = "sh scripts/release.sh"
 
 [http_service]
-  internal_port = 3000
+  internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
-  processes = ["app"]
+  min_machines_running = 1
+  processes = ['app']
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "512mb"
+  size = 'shared-cpu-1x'
+  memory = '1gb'

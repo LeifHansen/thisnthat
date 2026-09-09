@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 160" role="img" aria-label="True Blue Beans Authentication Service">
+  <defs>
+    <linearGradient id="tbbBeans" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e7a8d6"/>
+      <stop offset="0.5" stop-color="#d63d92"/>
+      <stop offset="0.5" stop-color="#3c1ee6"/>
+      <stop offset="1" stop-color="#1e0fb2"/>
+    </linearGradient>
+    <filter id="tbbShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="1.4" flood-color="#000" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <!-- Rounded blue capsule border -->
+  <rect x="4" y="4" width="392" height="152" rx="76" ry="76"
+        fill="none" stroke="#58b3e8" stroke-width="8"/>
+  <!-- True Blue -->
+  <text x="200" y="48" text-anchor="middle"
+        fill="#1e3fc8"
+        font-family="'Trebuchet MS', 'Nunito', system-ui, sans-serif"
+        font-weight="700"
+        font-size="30">True Blue</text>
+  <!-- BEANS — pink-to-blue split -->
+  <text x="200" y="103" text-anchor="middle"
+        fill="url(#tbbBeans)"
+        stroke="#fff" stroke-width="0.5"
+        font-family="'Trebuchet MS', 'Nunito', system-ui, sans-serif"
+        font-weight="900"
+        font-size="58"
+        letter-spacing="2"
+        filter="url(#tbbShadow)">BEANS</text>
+  <!-- Authentication Service -->
+  <text x="200" y="136" text-anchor="middle"
+        fill="#1a2a6c"
+        font-family="'Trebuchet MS', 'Nunito', system-ui, sans-serif"
+        font-weight="700"
+        font-size="22">Authentication Service</text>
+</svg>

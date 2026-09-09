@@ -1,182 +1,136 @@
-# ThisNThat
+# Beanie Xchange
 
-A multi-tenant marketplace for buying and selling **vintage clothing, shoes,
-accessories, sports memorabilia, and collectables**. Think eBay — but simpler,
-with fully customizable per-seller storefronts (like Shopify) and
-make-an-offer pricing (like Depop). **No auctions.**
-
-## Status
-
-Working today (runs against seed/dev data with **no setup** — Neon, auth,
-R2, Stripe, and Gemini all activate when their keys are added):
-
-- **Browse** — marketplace home with a 1990s-inspired hero, category
-  filtering, listing pages (Buy / Make-an-Offer), and themed store pages
-- **Sell (Seller Hub)** — eBay-style seller portal with its own tabs:
-  - **AI-assisted, photo-first listing** — upload a photo and Google
-    Gemini scans it to auto-fill title, category, brand, condition, size,
-    description, and a suggested price
-  - **Store customization** — name, tagline, and brand colors with a live
-    banner preview
-- **Login (Auth.js)** — Google OAuth for production plus a passwordless
-  dev login for local testing; JWT sessions carry the user id and platform
-  role; sign-in/out in the header
-- **Guest checkout** — buy as a guest while being nudged to create an
-  account (pre-checked) and opt into marketing
-- **Payments (Stripe Connect)** — seller onboarding (Express accounts),
-  destination-charge checkout with the platform fee, success page, and a
-  webhook; activates when `STRIPE_SECRET_KEY` is set (demo checkout
-  otherwise)
-- **Multi-tenant admin** — `super_admin` role + `/admin` dashboard across
-  all tenant stores; `admin@thisnthat.com` is auto-provisioned as super
-  admin
-- Full data model (Drizzle) for users/roles, stores, listings, offers,
-  and orders
+A retro-90s, StockX-style marketplace prototype for Beanie Babies. Every item is
+**True Blue verified**, **COA-backed**, or **Express Authenticated ($10)** before
+it reaches the buyer. Payments are held in **escrow** until authenticity is
+confirmed.
 
 ## Stack
 
-| Concern         | Choice                               |
-| --------------- | ------------------------------------ |
-| Framework       | Next.js (App Router) + Tailwind CSS  |
-| Database        | Neon (serverless Postgres)           |
-| ORM             | Drizzle + drizzle-kit                |
-| Auth            | Auth.js (NextAuth v5), users in Neon |
-| AI assistant    | Google Gemini (vision)               |
-| Image storage   | Cloudflare R2                        |
-| Payments        | Stripe Connect                       |
-| Hosting/secrets | Fly.io (app `thisnthat`)             |
+- Next.js 16 (App Router) + TypeScript
+- iOS app (Expo / React Native) in [`mobile/`](mobile/README.md) — a thin
+  native client over this app's API
+- Tailwind CSS v4 (custom retro theme)
+- Prisma + Neon Postgres
+- Auth.js v5 (credentials)
+- Stripe (PaymentIntents w/ manual-capture escrow + Connect payouts)
+- Cloudflare R2 (image upload)
+- Deploy: Fly.io (`fly.toml`), behind Cloudflare
 
-## Local development
+## Authentication & fulfillment model
+
+| Listing type      | Path          | Verification             | BX auth fee                  |
+| ----------------- | ------------- | ------------------------ | ---------------------------- |
+| `TRUE_BLUE`       | Direct s→b    | None (trusted)           | —                            |
+| `UNAUTHENTICATED` | Direct s→b    | None (sold as-is, no COA)| —                            |
+| `COA`             | Via HQ s→HQ→b | Third-party COA check    | —                            |
+| `BX_EXPRESS`      | Via HQ s→HQ→b | Authenticate + COA       | $9.99 flat                   |
+| `BX_COMPLETE`     | Via HQ s→HQ→b | Auth + grade + COA + box | $19.99/$14.00/$9.00 by grade |
+
+`UNAUTHENTICATED` items are sold as-is with no COA, prominently flagged, and
+buyers can hide them via a Browse filter. `BX_EXPRESS` is roughly half the
+`BX_COMPLETE` headline price; the Complete top tier is authorized at checkout
+and the true grade-tier amount captured when HQ grades the item.
+
+Order lifecycle (HQ paths): `PENDING_PAYMENT → PAID_ESCROW → (ship) → AT_HQ →
+VERIFIED → SHIPPED_TO_BUYER → COMPLETED` (or `FAILED_AUTH` → buyer refunded).
+Direct paths (True Blue, Unauthenticated) skip HQ: `… →
+AWAITING_SHIP_TO_BUYER → SHIPPED_TO_BUYER →` buyer confirms receipt →
+`COMPLETED`.
+
+The single source of truth for fees/paths is `src/lib/fees.ts`.
+
+## Local setup
 
 ```bash
+cp .env.example .env        # fill in Neon, Stripe, AUTH_SECRET
 npm install
-npm run dev          # http://localhost:3000  (browses seed data)
+npm run db:push             # create schema in Neon
+npm run db:seed             # demo users + listings
+npm run dev
 ```
 
-To run against a real database, copy `.env.example` to `.env.local`, set
-`DATABASE_URL` (Neon), then:
+Demo logins (password `password123`): `admin@beaniex.com` (ADMIN),
+`seller@beaniex.com`, `buyer@beaniex.com`.
+
+### Stripe locally
 
 ```bash
-npm run db:generate  # generate SQL migrations from src/db/schema.ts
-npm run db:migrate   # apply them to Neon
-npm run db:seed      # load the sample stores/listings
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+# put the printed whsec_... in STRIPE_WEBHOOK_SECRET
 ```
 
-## Configuration
+Test card: `4242 4242 4242 4242`, any future expiry, any CVC.
 
-All secrets are documented in `.env.example`. Locally they live in
-`.env.local`; in production they are **Fly.io secrets**. Set them all in one
-command (one redeploy) — see `scripts/set-fly-secrets.example.sh` for a
-ready-to-fill template:
+## Deploy (Fly.io)
 
-```bash
-fly secrets set \
-  DATABASE_URL="postgresql://...neon.tech/...?sslmode=require" \
-  AUTH_SECRET="$(openssl rand -base64 32)" \
-  AUTH_URL="https://thisnthat.fly.dev" \
-  AUTH_GOOGLE_ID="..." AUTH_GOOGLE_SECRET="..." \
-  SUPER_ADMIN_EMAIL="admin@thisnthat.com" \
-  GEMINI_API_KEY="..." \
-  STRIPE_SECRET_KEY="sk_live_..." STRIPE_WEBHOOK_SECRET="whsec_..." \
-  PLATFORM_FEE_BPS="800" \
-  R2_ACCOUNT_ID="..." R2_ACCESS_KEY_ID="..." R2_SECRET_ACCESS_KEY="..." \
-  R2_BUCKET="..." R2_PUBLIC_HOST="images.thisnthat.com" \
-  --app thisnthat
-```
+Pushing to `main` deploys: `.github/workflows/fly-deploy.yml` runs
+`flyctl deploy`. Migrations are applied by the release command, and again by
+`docker-entrypoint.js` as a backstop for a failed release step.
 
-Each service activates only when its keys are present; anything left unset
-falls back to the built-in demo/seed behavior.
+### Nothing may sit in front of the port
 
-### Claude Code on the web (sandbox)
+`min_machines_running` pins only the primary region, so every other region
+autostops to zero and cold-starts on the next request. Fly's proxy waits about
+8.4s for `:8080` and then answers the visitor with *"instance refused
+connection. is your app listening on 0.0.0.0:8080?"* — the whole cold start has
+to fit in that budget, and the machine itself takes ~1.2s of it.
 
-A `SessionStart` hook (`.claude/hooks/session-start.sh`) provisions a local
-Postgres mirror and enables passwordless dev login each web session, so the
-app runs against a real database without external services.
+So the container execs the `next` binary directly rather than `npm run start`,
+and the entrypoint's migration backstop does not run until the port is already
+accepting connections. Anything added to the boot path has to hold that line;
+the read-only `prod-diagnostics` workflow prints the boot logs (`machine
+became reachable in …`) to check it.
 
-To let the sandbox reach live external services, the environment's egress
-policy must allow them. This is configured in the web UI (not a CLI): edit the
-environment → **Network access → Custom**, enable **"Also include default list
-of common package managers"**, and add the hosts you need (one per line):
+Everything except the `NEXT_PUBLIC_*` build args is a runtime secret
+(`fly secrets set …`), so keys can be rotated without a rebuild — including
+the Stripe publishable key, which is read per request in
+`src/lib/stripePublic.ts` and passed to the checkout components as a prop.
+That is why it is spelled `STRIPE_PUBLISHABLE_KEY` and **not**
+`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Next inlines every `NEXT_PUBLIC_*`
+reference at build time, so a prefixed name would freeze whatever value CI
+happened to have into the image. Every release prints a verdict from
+`scripts/check-stripe-key.mjs` into the deploy log; `/api/health` reports the
+same thing at runtime (admin-only detail).
 
-```
-*.neon.tech                          # Neon Postgres
-*.aws.neon.tech                      # Neon HTTP driver (api.<region>.aws.neon.tech)
-api.stripe.com                       # Stripe payments
-generativelanguage.googleapis.com    # Gemini photo scanning
-accounts.google.com                  # Google sign-in
-oauth2.googleapis.com                # Google sign-in
-www.googleapis.com                   # Google sign-in
-openidconnect.googleapis.com         # Google sign-in
-*.r2.cloudflarestorage.com           # Cloudflare R2 uploads
-```
+Stripe setup:
 
-> Note: the Neon serverless driver connects to a **multi-label** host like
-> `api.c-4.us-east-1.aws.neon.tech`, which a single-label `*.neon.tech` rule
-> may not match — include `*.aws.neon.tech` (verified against the sandbox
-> proxy, which otherwise returns `403 Host not in allowlist`).
+1. Add a webhook endpoint for `payment_intent.amount_capturable_updated`,
+   `payment_intent.succeeded` and `payment_intent.canceled`. (The handler
+   deliberately ignores `payment_intent.payment_failed` — it fires on
+   recoverable declines while the intent is still usable.) Copy the signing
+   secret to `STRIPE_WEBHOOK_SECRET`.
+2. Enable **Connect** (Express) — sellers only need the `transfers`
+   capability; see `src/app/api/stripe/connect/route.ts`.
 
-See **[GO-LIVE.md](GO-LIVE.md)** for the full per-service runbook, and run
-`npm run preflight` to verify every integration in one command.
+### The edge has to let Stripe through
 
-Production on Fly is unaffected by this — it has open outbound access.
+`beaniexchange.com` sits behind Cloudflare, which currently answers
+server-to-server callers with a `403` managed challenge — including Stripe's
+`POST /api/stripe/webhook`. The origin itself is fine: the same request to
+`beanie-xchange.fly.dev` returns the expected `400 Missing stripe-signature
+header`. Verify with the read-only `prod-diagnostics` workflow, whose
+endpoint-probe step posts to both hostnames and prints the status of each.
 
-## Deployment
+Until a WAF skip rule exists for `/api/*/webhook`, no `payment_intent` event
+ever reaches the app. Nothing fails loudly when that happens — the money is
+authorized at Stripe either way — so the read paths reconcile against Stripe
+directly and are what keep the site correct meanwhile:
 
-Fly.io builds the included `Dockerfile` (Next.js standalone output):
+- `sweepAbandonedReservations()` (`src/lib/listings.ts`), called from `/`,
+  `/browse` and `/api/checkout`, releases genuinely abandoned reservations and
+  advances every pending order Stripe says is authorized, sending the buyer
+  receipt and seller "you sold an item" emails the webhook would have sent.
+- `advancePaidAuthBatch()` / `reconcileStuckAuthRequests()`
+  (`src/lib/authPayment.ts`), called from the submission page, the dashboard
+  and the admin queue, advance paid authentication batches and buy the prepaid
+  inbound label the submitter was billed for. The submission page
+  (`/authenticate/[id]`) waits for that purchase before rendering, so the
+  first thing a submitter sees after paying is their label, and it retries a
+  missing label on later views (`ensureInboundLabel` in
+  `src/lib/authLabels.ts` is claim-guarded, so no path ever buys postage
+  twice).
 
-```bash
-fly deploy --app thisnthat
-```
-
-## Roadmap
-
-Prioritized. Most feature code is already written and gated on env keys, so
-"go live" is largely configuration; the remaining build work is grouped below.
-
-### ✅ P0 — Multi-tenancy (done)
-
-Each seller now gets their **own** store scoped to their account, orders are
-attributed to the signed-in buyer (guests still allowed), and shipping details
-persist on database orders.
-
-- Store resolved by owner (get-or-create), with a unique slug per seller;
-  `/sell/*` requires sign-in
-- Orders link to the logged-in buyer when present, else a guest keyed by email
-- `shipping_name` / `shipping_address` persisted on DB orders
-
-### P1 — Go live (wire keys that already have code)
-
-- **Neon** — allowlist `*.neon.tech`, run migrations against Neon, point
-  `DATABASE_URL` at it
-- **Google OAuth** — add `AUTH_GOOGLE_ID/SECRET`; redirect URI
-  `https://thisnthat.fly.dev/api/auth/callback/google`
-- **Stripe** — add test keys + webhook secret, run a real test purchase, then
-  switch to live keys
-- **Gemini** — add `GEMINI_API_KEY` for live photo scanning
-
-### P2 — Commerce completeness
-
-- **Offer management** — accept / decline / counter, backed by the existing
-  `offers` table (schema present, no UI/actions yet)
-- **Buyer dashboard** — orders, offers, and saved items, separate from the
-  Seller Hub
-- **Order lifecycle** — states beyond `paid` (shipped/fulfilled), plus
-  refunds/disputes via Stripe
-- **Working search** — the header search box is present but disabled
-
-### P3 — Media & polish
-
-- **Cloudflare R2** image uploads — ✅ wired (gated on `R2_*`); falls back to
-  local `/public/uploads` until configured
-- **Store theme editor extras** — banner, logo, and layout options
-
-### P4 — Hardening & quality
-
-- **Tests** — none yet; start with unit tests for fee math, AI-response
-  normalization, and input validation, then integration tests for checkout,
-  auth, and the Stripe webhook
-- **Query performance** — push category/store filters into SQL and fix the
-  per-listing image fetch (N+1) in `hydrateListing` with a join or batch load
-- **Server-action hardening** — rate limiting and stricter input validation
-- Keep `ALLOW_DEV_LOGIN` **off** in production (passwordless login is
-  sandbox-only)
+These are backstops, not a substitute: they only run when someone loads a
+page, so escrow release and shipping notices still lag until the webhook is
+reachable. Fix the edge.

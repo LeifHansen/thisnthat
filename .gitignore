@@ -24,6 +24,7 @@
 .DS_Store
 *.pem
 
+
 # debug
 npm-debug.log*
 yarn-debug.log*
@@ -32,7 +33,6 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-# ...but the example template (placeholders only) should be committed
 !.env.example
 
 # vercel
@@ -41,10 +41,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# local dev data (no-DB mode) and uploaded images
-/.data/
-/public/uploads/
-
-# filled-in Fly secrets script (keep only the .example template)
-/scripts/set-fly-secrets.sh

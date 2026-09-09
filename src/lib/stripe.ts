@@ -1,37 +1,27 @@
-// Stripe Connect client (marketplace model).
-//
-// Lazily constructed and gated on STRIPE_SECRET_KEY so the app runs without
-// Stripe configured (checkout falls back to the local demo flow). With a key
-// set, payments use destination charges: the buyer pays, the platform takes an
-// application fee, and the remainder is transferred to the seller's connected
-// account.
-
 import Stripe from "stripe";
 
-let stripe: Stripe | null = null;
+const key = process.env.STRIPE_SECRET_KEY;
 
-export function getStripe(): Stripe | null {
-  if (stripe) return stripe;
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) return null;
-  stripe = new Stripe(key);
+// Lazily constructed so the app can boot (build, non-payment pages) without keys.
+const stripe = key
+  ? new Stripe(key, {
+      // Pinned deliberately, even though it currently equals the version this
+      // SDK ships with. stripe-node sends its OWN generated version in the
+      // Stripe-Version header when we don't pass one, so `npm update stripe`
+      // would silently move every API call — and the shape of every webhook
+      // payload we parse — to a new API version as a side effect of a
+      // dependency bump. Pinning turns that into a reviewed change: the type is
+      // `LatestApiVersion`, so bumping the SDK without revisiting this line
+      // fails the build instead of shifting behaviour in production.
+      apiVersion: "2026-04-22.dahlia",
+      // Names this integration in Stripe's request logs and support tooling.
+      appInfo: { name: "Beanie Xchange", url: "https://beaniexchange.com" },
+    })
+  : (null as unknown as Stripe);
+
+export function requireStripe(): Stripe {
+  if (!stripe) {
+    throw new Error("Stripe is not configured. Set STRIPE_SECRET_KEY.");
+  }
   return stripe;
-}
-
-export const isStripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
-
-// Platform fee in basis points (800 = 8%).
-export const PLATFORM_FEE_BPS = Number(process.env.PLATFORM_FEE_BPS ?? "800");
-
-export function platformFeeCents(amountCents: number): number {
-  return Math.round((amountCents * PLATFORM_FEE_BPS) / 10000);
-}
-
-// Public base URL used for Stripe redirect (success/return) URLs.
-export function appUrl(): string {
-  return (
-    process.env.AUTH_URL ??
-    process.env.APP_URL ??
-    "http://localhost:3000"
-  ).replace(/\/$/, "");
 }

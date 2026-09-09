@@ -1,8 +1,8 @@
 #!/bin/bash
 # SessionStart hook for Claude Code on the web.
 # Installs Node deps and brings up a local Postgres dev database that mirrors
-# the Neon schema (same Drizzle migrations), so the app runs against a real
-# database in the sandbox even though *.neon.tech is blocked by egress.
+# the production schema (same Prisma migrations), so the app runs against a real
+# database in the sandbox even though the hosted database is blocked by egress.
 set -euo pipefail
 
 # Web (remote) environment only — local machines use their own DB/Neon.
@@ -36,23 +36,23 @@ if command -v pg_ctlcluster >/dev/null 2>&1; then
   sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" | grep -q 1 \
     || sudo -u postgres createdb -O "${DB_USER}" "${DB_NAME}"
 
-  # Apply migrations, then seed once (only if the DB is empty).
-  DATABASE_URL="${DB_URL}" npm run db:migrate
+  # Apply committed Prisma migrations, then seed once (only if the DB is empty).
+  export DATABASE_URL="${DB_URL}" DIRECT_URL="${DB_URL}"
+  npx prisma migrate deploy
   HAS_DATA=$(sudo -u postgres psql -d "${DB_NAME}" -tAc \
-    "SELECT to_regclass('public.stores') IS NOT NULL AND (SELECT count(*) FROM stores) > 0" 2>/dev/null || echo f)
+    "SELECT to_regclass('public.\"User\"') IS NOT NULL AND (SELECT count(*) FROM \"User\") > 0" 2>/dev/null || echo f)
   if [ "${HAS_DATA}" != "t" ]; then
-    DATABASE_URL="${DB_URL}" npm run db:seed
-    DATABASE_URL="${DB_URL}" npm run db:create-admin
+    npm run db:seed
   fi
 
-  # Expose the connection string + sandbox auth config to the whole session.
-  # ALLOW_DEV_LOGIN enables passwordless email sign-in for local testing only.
+  # Expose the connection string + sandbox config to the whole session.
   if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
     echo "export DATABASE_URL=\"${DB_URL}\"" >> "${CLAUDE_ENV_FILE}"
-    echo "export SUPER_ADMIN_EMAIL=admin@thisnthat.com" >> "${CLAUDE_ENV_FILE}"
+    echo "export DIRECT_URL=\"${DB_URL}\"" >> "${CLAUDE_ENV_FILE}"
+    echo "export SUPERADMIN_EMAIL=admin@thisnthat.com" >> "${CLAUDE_ENV_FILE}"
     echo "export AUTH_SECRET=\"$(openssl rand -base64 32)\"" >> "${CLAUDE_ENV_FILE}"
-    echo "export AUTH_URL=\"http://localhost:3000\"" >> "${CLAUDE_ENV_FILE}"
-    echo "export ALLOW_DEV_LOGIN=true" >> "${CLAUDE_ENV_FILE}"
+    echo "export NEXT_PUBLIC_APP_URL=\"http://localhost:3000\"" >> "${CLAUDE_ENV_FILE}"
+    echo "export STRIPE_PUBLISHABLE_KEY=\"pk_test_local\"" >> "${CLAUDE_ENV_FILE}"
   fi
   echo "Local Postgres dev mirror ready at ${DB_URL}"
 else

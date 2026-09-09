@@ -2,566 +2,519 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import type { CategorySlug, StoreTheme } from "./types";
-import {
-  MY_STORE_SLUG,
-  addDevListing,
-  addDevOrder,
-  getMyStore,
-  saveMyStore,
-  saveUploadedImage,
-} from "./devstore";
-import { analyzeListingPhotos, type ListingSuggestion } from "./ai";
-import { getListingById } from "./data";
-import {
-  getStripe,
-  isStripeConfigured,
-  platformFeeCents,
-  appUrl,
-} from "./stripe";
-import { signIn, signOut, getCurrentUser, isAuthConfigured } from "@/auth";
-import { slugify } from "./seller";
-import { isR2Configured, uploadToR2 } from "./r2";
+import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/guards";
+import { releaseEscrow, refundOrderPayment } from "@/lib/payout";
+import { buyReturnLabel, createTracker } from "@/lib/shipping";
+import { guestTokenMatches } from "@/lib/orderState";
+import type { OrderStatus } from "@prisma/client";
+import * as notify from "@/lib/notify";
 
-// ---------------------------------------------------------------------------
-// Authentication actions
-// ---------------------------------------------------------------------------
-export async function devSignIn(formData: FormData): Promise<void> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  await signIn("dev", { email, redirectTo: "/" });
-}
+const rand = (n: number) =>
+  crypto.randomUUID().replace(/-/g, "").slice(0, n).toUpperCase();
 
-export async function googleSignIn(): Promise<void> {
-  await signIn("google", { redirectTo: "/" });
-}
+// --- Marketplace sale (direct, escrow) ---
 
-export async function signOutAction(): Promise<void> {
-  await signOut({ redirectTo: "/" });
-}
+export async function sellerMarkShipped(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+  const orderId = String(formData.get("orderId"));
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order || order.sellerId !== session.user.id) return;
+  if (order.status !== "AWAITING_SHIP_TO_BUYER") return;
 
-export type ActionState = { ok: boolean; error?: string };
-
-export type AnalyzeState = {
-  ok: boolean;
-  suggestion?: ListingSuggestion;
-  error?: string;
-};
-
-// Photo-first step: scan the uploaded photo(s) and return form suggestions.
-export async function analyzePhotos(
-  _prev: AnalyzeState,
-  formData: FormData,
-): Promise<AnalyzeState> {
-  const files = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length === 0) return { ok: false, error: "Add at least one photo to scan." };
-
-  const images = await Promise.all(
-    files.slice(0, 4).map(async (f) => ({
-      base64: Buffer.from(await f.arrayBuffer()).toString("base64"),
-      mimeType: f.type || "image/jpeg",
-    })),
-  );
-
-  const suggestion = await analyzeListingPhotos(images);
-  return { ok: true, suggestion };
-}
-
-function dollarsToCents(value: FormDataEntryValue | null): number | null {
-  if (value == null || value === "") return null;
-  const n = Number(value);
-  if (!Number.isFinite(n) || n < 0) return null;
-  return Math.round(n * 100);
-}
-
-// Store an uploaded image and return its URL. Uploads to Cloudflare R2 when
-// configured; otherwise falls back to local /public storage (dev).
-async function uploadImage(file: File): Promise<string | null> {
-  if (!file || file.size === 0) return null;
-  if (isR2Configured) {
-    try {
-      return await uploadToR2(file);
-    } catch (err) {
-      console.error("R2 upload failed, falling back to local:", err);
-    }
+  // "Shipped" is what unlocks the buyer's escrow-release button, so shipping
+  // evidence is required — a blank carrier/tracking would advance the escrow
+  // clock with nothing for support to adjudicate a dispute against.
+  const carrier = String(formData.get("carrier") ?? "").trim();
+  const trackingNumber = String(formData.get("trackingNumber") ?? "").trim();
+  if (!carrier || !trackingNumber) {
+    redirect(
+      `/orders/${orderId}?toast=${encodeURIComponent(
+        "Enter the carrier and tracking number to mark this shipped.",
+      )}&toastKind=error`,
+    );
   }
-  return saveUploadedImage(file);
-}
 
-// ---------------------------------------------------------------------------
-// Create a listing
-// ---------------------------------------------------------------------------
-export async function createListing(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const title = String(formData.get("title") ?? "").trim();
-  const priceCents = dollarsToCents(formData.get("price"));
-  const category = String(formData.get("category") ?? "") as CategorySlug;
-
-  if (!title) return { ok: false, error: "Please add a title." };
-  if (priceCents == null) return { ok: false, error: "Please enter a valid price." };
-
-  const description = String(formData.get("description") ?? "").trim();
-  const condition = String(formData.get("condition") ?? "").trim() || null;
-  const brand = String(formData.get("brand") ?? "").trim() || null;
-  const size = String(formData.get("size") ?? "").trim() || null;
-  const allowOffers = formData.get("allow_offers") === "on";
-  const minOfferCents = allowOffers ? dollarsToCents(formData.get("min_offer")) : null;
-
-  const files = formData.getAll("images").filter((f): f is File => f instanceof File);
-  const uploaded = (await Promise.all(files.map(uploadImage))).filter(
-    (u): u is string => Boolean(u),
-  );
-  const images = uploaded.length ? uploaded : ["/seed/comic1.svg"];
-
-  let listingId: string;
-
-  if (!db) {
-    const listing = await addDevListing({
-      category_slug: category || "collectables",
-      title,
-      description,
-      price_cents: priceCents,
-      currency: "usd",
-      condition,
-      brand,
-      size,
-      allow_offers: allowOffers,
-      min_offer_cents: minOfferCents,
-      images,
+  // Guarded + transactional: a double-submit can't advance the order twice or
+  // write a duplicate shipment event.
+  const advanced = await prisma.$transaction(async (tx) => {
+    const res = await tx.order.updateMany({
+      where: { id: orderId, status: "AWAITING_SHIP_TO_BUYER" },
+      data: { status: "SHIPPED_TO_BUYER" },
     });
-    listingId = listing.id;
-  } else {
-    listingId = await createListingInDb({
-      title,
-      description,
-      priceCents,
-      category,
-      condition,
-      brand,
-      size,
-      allowOffers,
-      minOfferCents,
-      images,
-    });
-  }
-
-  revalidatePath("/");
-  revalidatePath("/store/[slug]", "page");
-  redirect(`/listings/${listingId}`);
-}
-
-// ---------------------------------------------------------------------------
-// Guest checkout
-// ---------------------------------------------------------------------------
-export type CheckoutState = {
-  ok: boolean;
-  orderId?: string;
-  createdAccount?: boolean;
-  error?: string;
-};
-
-export async function placeOrder(
-  _prev: CheckoutState,
-  formData: FormData,
-): Promise<CheckoutState> {
-  const listingId = String(formData.get("listing_id") ?? "");
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const name = String(formData.get("name") ?? "").trim();
-  const address = String(formData.get("address") ?? "").trim();
-  const createAccount = formData.get("create_account") === "on";
-  const marketingOptIn = formData.get("marketing_opt_in") === "on";
-
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return { ok: false, error: "Please enter a valid email." };
-  }
-  if (!name || !address) {
-    return { ok: false, error: "Please add your name and shipping address." };
-  }
-
-  const listing = await getListingById(listingId);
-  if (!listing) return { ok: false, error: "This item is no longer available." };
-
-  // No database → local demo order.
-  if (!db) {
-    const order = await addDevOrder({
-      listing_id: listing.id,
-      title: listing.title,
-      amount_cents: listing.price_cents,
-      email,
-      name,
-      address,
-      create_account: createAccount,
-      marketing_opt_in: marketingOptIn,
-    });
-    return { ok: true, orderId: order.id, createdAccount: createAccount };
-  }
-
-  // Record the order as pending first (so it exists regardless of payment
-  // path). If the buyer is signed in, attribute the order to their account;
-  // otherwise fall back to a guest user keyed by email.
-  const buyer = await getCurrentUser();
-  const orderId = await placeOrderInDb({
-    listing,
-    email,
-    name,
-    address,
-    buyerUserId: buyer?.id ?? null,
-    amountCents: listing.price_cents,
-  });
-
-  // If Stripe is configured and the seller is onboarded, route the buyer
-  // through Stripe Checkout (destination charge with platform fee). On
-  // success Stripe returns to /checkout/success.
-  const stripe = getStripe();
-  const sellerAccount = await getStoreStripeAccount(listing.store.id);
-  if (stripe && sellerAccount) {
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer_email: email,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: listing.currency,
-            unit_amount: listing.price_cents,
-            product_data: { name: listing.title },
-          },
-        },
-      ],
-      payment_intent_data: {
-        application_fee_amount: platformFeeCents(listing.price_cents),
-        transfer_data: { destination: sellerAccount },
+    if (res.count === 0) return false;
+    await tx.shipmentEvent.create({
+      data: {
+        orderId,
+        leg: "SELLER_TO_BUYER",
+        carrier,
+        trackingNumber,
+        status: "IN_TRANSIT",
       },
-      metadata: { order_id: orderId },
-      success_url: `${appUrl()}/checkout/success?order=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl()}/checkout/${listing.id}`,
     });
-    await db
-      .update(schema.orders)
-      .set({ stripeCheckoutSession: session.id })
-      .where(eq(schema.orders.id, orderId));
-    redirect(session.url!);
-  }
-
-  // No Stripe (or seller not onboarded yet): demo confirmation.
-  return { ok: true, orderId, createdAccount: createAccount };
-}
-
-// Look up a store's connected Stripe account id (null if not onboarded).
-async function getStoreStripeAccount(storeId: string): Promise<string | null> {
-  if (!db) return null;
-  const [row] = await db
-    .select({ acct: schema.stores.stripeAccountId })
-    .from(schema.stores)
-    .where(eq(schema.stores.id, storeId))
-    .limit(1);
-  return row?.acct ?? null;
-}
-
-// The current seller's connected Stripe account id — scoped to the logged-in
-// user's store (or the singleton when auth isn't configured). Read-only.
-async function currentSellerStripeAccount(): Promise<string | null> {
-  if (!db) return null;
-  const where = isAuthConfigured
-    ? await (async () => {
-        const user = await getCurrentUser();
-        return user ? eq(schema.stores.ownerId, user.id) : null;
-      })()
-    : eq(schema.stores.slug, MY_STORE_SLUG);
-  if (!where) return null;
-  const [row] = await db
-    .select({ acct: schema.stores.stripeAccountId })
-    .from(schema.stores)
-    .where(where)
-    .limit(1);
-  return row?.acct ?? null;
-}
-
-// Mark an order paid (called from the Stripe webhook and the success page).
-export async function markOrderPaid(orderId: string, paymentIntent?: string): Promise<void> {
-  if (!db) return;
-  await db
-    .update(schema.orders)
-    .set({ status: "paid", stripePaymentIntent: paymentIntent ?? null })
-    .where(eq(schema.orders.id, orderId));
-  revalidatePath("/admin");
-}
-
-// ---------------------------------------------------------------------------
-// Seller payouts — Stripe Connect onboarding
-// ---------------------------------------------------------------------------
-export async function connectStripe(): Promise<void> {
-  const stripe = getStripe();
-  if (!stripe || !db) {
-    redirect("/sell/payments?error=not_configured");
-  }
-  const storeId = await ensureStoreForCurrentUser();
-  const [store] = await db
-    .select()
-    .from(schema.stores)
-    .where(eq(schema.stores.id, storeId))
-    .limit(1);
-
-  let accountId = store.stripeAccountId;
-  if (!accountId) {
-    const account = await stripe.accounts.create({ type: "express" });
-    accountId = account.id;
-    await db
-      .update(schema.stores)
-      .set({ stripeAccountId: accountId })
-      .where(eq(schema.stores.id, storeId));
-  }
-
-  const link = await stripe.accountLinks.create({
-    account: accountId,
-    refresh_url: `${appUrl()}/sell/payments?refresh=1`,
-    return_url: `${appUrl()}/sell/payments?connected=1`,
-    type: "account_onboarding",
+    return true;
   });
-  redirect(link.url);
+  if (advanced) {
+    void notify.orderShipped(orderId); // fire before redirect() throws
+    // Register the seller's tracking number with the carrier feed so a
+    // delivery scan can release escrow on its own. Best-effort and
+    // fire-and-forget: unrecognised codes just mean the buyer's confirm
+    // button stays the only release path, exactly as before.
+    void createTracker(trackingNumber, carrier);
+  }
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath("/dashboard");
+  redirect(`/orders/${orderId}?toast=Marked+shipped+%E2%80%94+tracking+shared+with+the+buyer`);
 }
 
-// Whether the seller's store has completed Stripe onboarding (charges enabled).
-export async function getStripeStatus(): Promise<{
-  configured: boolean;
-  connected: boolean;
-  chargesEnabled: boolean;
-}> {
-  const stripe = getStripe();
-  if (!stripe || !db) {
-    return { configured: isStripeConfigured, connected: false, chargesEnabled: false };
-  }
-  const acct = await currentSellerStripeAccount();
-  if (!acct) return { configured: true, connected: false, chargesEnabled: false };
+export async function buyerConfirmReceipt(formData: FormData) {
+  const orderId = String(formData.get("orderId"));
+  const token = String(formData.get("token") ?? "");
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) return;
+
+  // The buyer is either the signed-in account that placed the order, or a
+  // guest holding the order's secret token (emailed at checkout).
+  const session = await auth();
+  const isAccountBuyer =
+    !!order.buyerId && order.buyerId === session?.user?.id;
+  const isGuestBuyer = guestTokenMatches(token, order.guestToken);
+  if (!isAccountBuyer && !isGuestBuyer) return;
+  if (order.status !== "SHIPPED_TO_BUYER") return;
+
+  const tokenQs = isGuestBuyer ? `&t=${encodeURIComponent(token)}` : "";
   try {
-    const account = await stripe.accounts.retrieve(acct);
-    return {
-      configured: true,
-      connected: true,
-      chargesEnabled: Boolean(account.charges_enabled),
-    };
-  } catch {
-    return { configured: true, connected: true, chargesEnabled: false };
+    // Shared with the delivery webhook. Claims the status transition first, so
+    // if the carrier already reported delivery and released this order, the
+    // click simply no-ops instead of paying the seller twice. On a capture
+    // failure the order stays SHIPPED_TO_BUYER and remains retryable.
+    await releaseEscrow(orderId);
+  } catch (e) {
+    console.error(`confirmReceipt: capture/payout failed for order ${orderId}`, e);
+    redirect(
+      `/orders/${orderId}?toast=${encodeURIComponent(
+        "We couldn't release the payment. Please try again, or contact support if it keeps failing.",
+      )}&toastKind=error${tokenQs}`,
+    );
   }
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath("/dashboard");
+  redirect(
+    `/orders/${orderId}?toast=Receipt+confirmed+%E2%80%94+payment+released+to+the+seller${tokenQs}`,
+  );
 }
 
-// ---------------------------------------------------------------------------
-// Save store customization
-// ---------------------------------------------------------------------------
-export async function saveStore(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { ok: false, error: "Your store needs a name." };
+// Who may cancel, and until when. A seller can call off a sale they haven't
+// shipped; once a parcel is in transit only an admin can, because someone has
+// to adjudicate where the goods are. COMPLETED/REFUNDED/CANCELLED are terminal.
+const SELLER_CANCELLABLE: OrderStatus[] = [
+  "PENDING_PAYMENT",
+  "PAID_ESCROW",
+  "AWAITING_SHIP_TO_BUYER",
+];
+const ADMIN_CANCELLABLE: OrderStatus[] = [
+  ...SELLER_CANCELLABLE,
+  "SHIPPED_TO_BUYER",
+];
 
-  const theme: Partial<StoreTheme> = {
-    primary: String(formData.get("primary") ?? "#4f46e5"),
-    accent: String(formData.get("accent") ?? "#10b981"),
-  };
-  const patch = {
-    name,
-    tagline: String(formData.get("tagline") ?? "").trim() || null,
-    description: String(formData.get("description") ?? "").trim() || null,
-    theme: theme as StoreTheme,
-  };
+/**
+ * Cancel an order and give the buyer their money back.
+ *
+ * Before this existed there was no way to return a payment at all: a sale that
+ * couldn't be fulfilled just sat in escrow until the card authorization
+ * expired. Stripe does the right thing per state — an uncaptured hold is
+ * cancelled (the buyer is never charged), a captured charge is refunded — and
+ * the reserved unit goes back on the market.
+ */
+export async function cancelAndRefundOrder(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+  const orderId = String(formData.get("orderId") ?? "");
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) return;
 
-  if (!db) {
-    await saveMyStore(patch);
-  } else {
-    await saveStoreInDb(patch);
+  const isAdmin = session.user.role === "ADMIN";
+  const isSeller = order.sellerId === session.user.id;
+  if (!isAdmin && !isSeller) return;
+
+  const allowed = isAdmin ? ADMIN_CANCELLABLE : SELLER_CANCELLABLE;
+  if (!allowed.includes(order.status)) {
+    redirect(
+      `/orders/${orderId}?toast=${encodeURIComponent(
+        order.status === "SHIPPED_TO_BUYER"
+          ? "This order has already shipped — contact support to arrange a return."
+          : "This order can no longer be cancelled.",
+      )}&toastKind=error`,
+    );
   }
 
-  revalidatePath("/store/[slug]", "page");
-  revalidatePath("/sell/store");
+  // Money first: only claim the terminal status once Stripe has actually
+  // undone the payment, so the order can never read "refunded" on a refund
+  // that failed. Idempotency keys make a double-submit safe at Stripe.
+  let outcome;
+  try {
+    outcome = await refundOrderPayment(orderId);
+  } catch (e) {
+    console.error(`cancelAndRefundOrder: refund failed for order ${orderId}`, e);
+    redirect(
+      `/orders/${orderId}?toast=${encodeURIComponent(
+        "We couldn't return the payment. Nothing was changed — please try again or contact support.",
+      )}&toastKind=error`,
+    );
+  }
+
+  // Guarded so two submissions can't both hand the unit back (phantom stock).
+  const finalStatus: OrderStatus =
+    outcome === "refunded" ? "REFUNDED" : "CANCELLED";
+  const applied = await prisma.$transaction(async (tx) => {
+    const res = await tx.order.updateMany({
+      where: { id: orderId, status: { in: allowed } },
+      data: { status: finalStatus },
+    });
+    if (res.count === 0) return false;
+    await tx.listing.updateMany({
+      where: { id: order.listingId },
+      data: { quantity: { increment: 1 } },
+    });
+    // Suspension only REMOVEs a seller's ACTIVE listings, so one that was
+    // SOLD out at the time would otherwise be put back on the market here.
+    await tx.listing.updateMany({
+      where: {
+        id: order.listingId,
+        status: "SOLD",
+        quantity: { gt: 0 },
+        seller: { is: { suspended: false } },
+      },
+      data: { status: "ACTIVE" },
+    });
+    return true;
+  });
+
+  if (applied) void notify.orderRefunded(orderId, outcome);
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath("/dashboard");
+  revalidatePath(`/listings/${order.listingId}`);
+  redirect(
+    `/orders/${orderId}?toast=${encodeURIComponent(
+      outcome === "refunded"
+        ? "Order cancelled — the buyer has been refunded."
+        : "Order cancelled — the payment hold was released, so the buyer was never charged.",
+    )}`,
+  );
+}
+
+// --- Seller: delete a listing ---
+//
+// A "delete" is a SOFT delete (status → REMOVED), never a row delete: listings
+// are referenced by orders, offers, and reviews, and destroying one would
+// break buyers' order history and payout records. REMOVED listings are already
+// filtered from Browse and the seller's manager, no-indexed, and 404'd by the
+// JSON API — so to everyone they're gone, while the paper trail survives.
+// Owner-or-admin only; idempotent.
+export type DeleteListingResult = { ok: boolean; error?: string };
+
+export async function deleteListing(
+  formData: FormData,
+): Promise<DeleteListingResult> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, error: "Sign in required." };
+
+  const id = String(formData.get("listingId") ?? "");
+  if (!id) return { ok: false, error: "Missing listing." };
+
+  const listing = await prisma.listing.findUnique({
+    where: { id },
+    select: { id: true, sellerId: true, status: true },
+  });
+  if (!listing) return { ok: false, error: "Listing not found." };
+
+  const isOwner = listing.sellerId === session.user.id;
+  const isAdmin = session.user.role === "ADMIN";
+  if (!isOwner && !isAdmin) return { ok: false, error: "Not your listing." };
+
+  if (listing.status !== "REMOVED") {
+    await prisma.listing.update({
+      where: { id },
+      data: { status: "REMOVED" },
+    });
+  }
+
+  // No revalidatePath: every page here is force-dynamic, so there's no cache
+  // entry to invalidate, and a bare action call (not a form submission) gets
+  // no re-rendered tree back either way. RemovableRow hides the row
+  // optimistically and calls router.refresh() to reconcile the rest.
   return { ok: true };
 }
 
-// ---------------------------------------------------------------------------
-// Neon write paths (used when DATABASE_URL is configured)
-// ---------------------------------------------------------------------------
+// --- Authentication module (admin) ---
 
-// Resolve the store the current seller writes to, creating it on first use.
-// With auth configured this is the logged-in user's own store (multi-tenant);
-// anonymous visitors are redirected to sign in. Without auth it falls back to
-// a shared singleton store (transient: db wired but auth keys not added yet).
-async function ensureStoreForCurrentUser(): Promise<string> {
-  if (!db) throw new Error("db not configured");
-  if (!isAuthConfigured) return ensureSingletonStore();
-
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-
-  const [existing] = await db
-    .select({ id: schema.stores.id })
-    .from(schema.stores)
-    .where(eq(schema.stores.ownerId, user.id))
-    .limit(1);
-  if (existing) return existing.id;
-
-  const slug = await uniqueStoreSlug(user.name || user.email.split("@")[0]);
-  const [row] = await db
-    .insert(schema.stores)
-    .values({
-      ownerId: user.id,
-      slug,
-      name: user.name ? `${user.name}'s store` : "My Store",
-      tagline: "A little of this, a little of that",
-    })
-    .returning();
-  return row.id;
+/** Every request in the same batch as `r` (itself included); just `r` if unbatched. */
+async function batchSiblingIds(r: { id: string; batchId: string | null }) {
+  if (!r.batchId) return [r.id];
+  const rows = await prisma.authenticationRequest.findMany({
+    where: { batchId: r.batchId },
+    select: { id: true },
+  });
+  return rows.map((x) => x.id);
 }
 
-// A slug derived from `base`, suffixed with -2, -3, … until it's unique.
-async function uniqueStoreSlug(base: string): Promise<string> {
-  if (!db) throw new Error("db not configured");
-  const root = slugify(base);
-  for (let n = 1; ; n++) {
-    const slug = n === 1 ? root : `${root}-${n}`;
-    const [hit] = await db
-      .select({ id: schema.stores.id })
-      .from(schema.stores)
-      .where(eq(schema.stores.slug, slug))
-      .limit(1);
-    if (!hit) return slug;
-  }
+export async function authReceiveAtCenter(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("authRequestId"));
+  const r = await prisma.authenticationRequest.findUnique({ where: { id } });
+  if (!r || r.status !== "AWAITING_INBOUND") return;
+
+  await prisma.shipmentEvent.create({
+    data: {
+      authRequestId: id,
+      leg: "SUBMITTER_TO_CENTER",
+      carrier: String(formData.get("carrier") ?? ""),
+      trackingNumber: String(formData.get("trackingNumber") ?? ""),
+      status: "RECEIVED",
+    },
+  });
+  // A batch is one box under one label, so receiving it receives every beanie
+  // in it — the same thing the EasyPost delivery scan does. Before this the
+  // admin had to click "received" once per beanie of a multi-beanie box.
+  const siblingIds = await batchSiblingIds(r);
+  await prisma.authenticationRequest.updateMany({
+    where: { id: { in: siblingIds }, status: "AWAITING_INBOUND" },
+    data: { status: "AT_CENTER" },
+  });
+  revalidatePath("/admin");
+  for (const sid of siblingIds) revalidatePath(`/authenticate/${sid}`);
 }
 
-// Legacy shared store (demo seller), used only when auth isn't configured.
-async function ensureSingletonStore(): Promise<string> {
-  if (!db) throw new Error("db not configured");
-  const existing = await db
-    .select()
-    .from(schema.stores)
-    .where(eq(schema.stores.slug, MY_STORE_SLUG))
-    .limit(1);
-  if (existing.length) return existing[0].id;
+// The five components of a BX Full + Grading score, each 1–10. The overall
+// grade is their average, rounded to the nearest half-point (PSA-style).
+const GRADE_COMPONENTS = [
+  "swingTag",
+  "tushTag",
+  "fabric",
+  "fill",
+  "cleanliness",
+] as const;
 
-  const email = "demo-seller@thisnthat.local";
-  let [user] = await db.select().from(schema.users).where(eq(schema.users.email, email));
-  if (!user) {
-    [user] = await db
-      .insert(schema.users)
-      .values({ email, name: "Demo Seller", username: "demo-seller" })
-      .returning();
-  }
-  const store = await getMyStore(); // default shape
-  const [row] = await db
-    .insert(schema.stores)
-    .values({
-      ownerId: user.id,
-      slug: MY_STORE_SLUG,
-      name: store.name,
-      tagline: store.tagline,
-      description: store.description,
-      theme: store.theme,
-    })
-    .returning();
-  return row.id;
-}
+export async function authReview(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("authRequestId"));
+  const result = String(formData.get("result"));
+  const notes = String(formData.get("notes") ?? "");
+  // Only an explicit PASS or FAIL is actionable; anything else (missing or
+  // malformed) must not fall through to the certificate-issuing PASS branch.
+  if (result !== "PASS" && result !== "FAIL") return;
 
-async function createListingInDb(input: {
-  title: string;
-  description: string;
-  priceCents: number;
-  category: CategorySlug;
-  condition: string | null;
-  brand: string | null;
-  size: string | null;
-  allowOffers: boolean;
-  minOfferCents: number | null;
-  images: string[];
-}): Promise<string> {
-  if (!db) throw new Error("db not configured");
-  const storeId = await ensureStoreForCurrentUser();
-  const [cat] = await db
-    .select()
-    .from(schema.categories)
-    .where(eq(schema.categories.slug, input.category))
-    .limit(1);
+  const r = await prisma.authenticationRequest.findUnique({
+    where: { id },
+    include: { listing: true },
+  });
+  if (!r || (r.status !== "AT_CENTER" && r.status !== "IN_REVIEW")) return;
 
-  const [listing] = await db
-    .insert(schema.listings)
-    .values({
-      storeId,
-      categoryId: cat?.id ?? null,
-      title: input.title,
-      description: input.description,
-      priceCents: input.priceCents,
-      currency: "usd",
-      condition: input.condition,
-      brand: input.brand,
-      size: input.size,
-      allowOffers: input.allowOffers,
-      minOfferCents: input.minOfferCents,
-      status: "active",
-    })
-    .returning();
-
-  if (input.images.length) {
-    await db.insert(schema.listingImages).values(
-      input.images.map((url, position) => ({ listingId: listing.id, url, position })),
-    );
-  }
-  return listing.id;
-}
-
-async function placeOrderInDb(input: {
-  listing: { id: string; store: { id: string } };
-  email: string;
-  name: string;
-  address: string;
-  buyerUserId: string | null;
-  amountCents: number;
-}): Promise<string> {
-  if (!db) throw new Error("db not configured");
-  // Prefer the signed-in buyer; otherwise get-or-create a guest user by email.
-  let buyerId = input.buyerUserId;
-  if (!buyerId) {
-    let [buyer] = await db.select().from(schema.users).where(eq(schema.users.email, input.email));
-    if (!buyer) {
-      [buyer] = await db
-        .insert(schema.users)
-        .values({ email: input.email, name: input.name })
-        .returning();
+  if (result === "FAIL") {
+    await prisma.authenticationRequest.update({
+      where: { id },
+      data: { status: "FAILED", reviewNotes: notes, reviewedAt: new Date() },
+    });
+    if (r.listingId) {
+      await prisma.listing.update({
+        where: { id: r.listingId },
+        data: { status: "REMOVED" },
+      });
     }
-    buyerId = buyer.id;
+    revalidatePath("/admin");
+    revalidatePath(`/authenticate/${id}`);
+    return;
   }
-  const [order] = await db
-    .insert(schema.orders)
-    .values({
-      listingId: input.listing.id,
-      buyerId,
-      storeId: input.listing.store.id,
-      amountCents: input.amountCents,
-      platformFeeCents: platformFeeCents(input.amountCents),
-      shippingName: input.name,
-      shippingAddress: input.address,
-      status: "pending",
-    })
-    .returning();
-  return order.id;
+
+  // PASS — branches by provider/tier:
+  //   TRUE_BLUE                  → admin records True Blue's cert ID; we wrap it
+  //                                with a BX registry number + the TB grade.
+  //   BX_AUTHENTICATION / BASIC  → in-house authentication; cert + registry, no
+  //                                grade (returned sealed in a mylar baggie).
+  //   BX_AUTHENTICATION / FULL   → in-house grading; admin enters 5 sub-scores
+  //                                and we roll them up to an overall /10.
+  const isTrueBlue = r.provider === "TRUE_BLUE";
+  const isGrading =
+    r.provider === "BX_AUTHENTICATION" && r.tier === "FULL_GRADING";
+  const trueBlueCertId = String(formData.get("trueBlueCertId") ?? "").trim();
+  if (isTrueBlue && !trueBlueCertId) return; // TB pass requires the partner cert
+
+  // Resolve the grade + optional component sub-scores.
+  let grade: string | null = null;
+  let gradeScores: Record<string, number> | null = null;
+  if (isGrading) {
+    const scores: Record<string, number> = {};
+    for (const key of GRADE_COMPONENTS) {
+      const v = Number(formData.get(`score_${key}`));
+      if (!Number.isFinite(v) || v < 1 || v > 10) return; // all five required
+      scores[key] = v;
+    }
+    const avg =
+      GRADE_COMPONENTS.reduce((sum, k) => sum + scores[k], 0) /
+      GRADE_COMPONENTS.length;
+    grade = (Math.round(avg * 2) / 2).toFixed(1); // nearest half-point
+    gradeScores = scores;
+  } else if (isTrueBlue) {
+    grade = String(formData.get("grade") ?? "").trim();
+    if (!grade) return; // True Blue records the partner's grade
+  }
+  // Basic BX: grade stays null.
+
+  const bxCertId = `BX-${new Date().getFullYear()}-${rand(8)}`;
+  const registrationNumber = `BXR-${rand(6)}`;
+
+  // Issue the cert/registry #, mark the request PASSED, and flip the listing to
+  // ACTIVE with its badge — all atomically. A registrationNumber collision (it's
+  // @unique) or any mid-sequence failure rolls the whole pass back rather than
+  // leaving a registry row with no request, or a PASSED request whose listing
+  // was never activated.
+  await prisma.$transaction(async (tx) => {
+    await tx.registryEntry.create({
+      data: {
+        registrationNumber,
+        itemName: r.beanieName,
+        grade,
+        bxCertId,
+        issuer: isTrueBlue ? "TRUE_BLUE" : "BX_AUTHENTICATION",
+        externalCertId: isTrueBlue ? trueBlueCertId : null,
+        ownerId: r.userId,
+      },
+    });
+
+    await tx.authenticationRequest.update({
+      where: { id },
+      data: {
+        status: "PASSED",
+        bxCertId,
+        grade,
+        gradeScores: gradeScores ?? undefined,
+        registrationNumber,
+        reviewNotes: isTrueBlue
+          ? `True Blue cert ${trueBlueCertId}${notes ? ` · ${notes}` : ""}`
+          : notes || null,
+        reviewedAt: new Date(),
+      },
+    });
+
+    if (r.listingId) {
+      await tx.listing.update({
+        where: { id: r.listingId },
+        data: {
+          status: "ACTIVE",
+          // Graded → flagship BX Verified; Basic → lighter BX · COA badge.
+          authType: isTrueBlue
+            ? "TRUE_BLUE"
+            : isGrading
+              ? "BX_FULL_SERVICE"
+              : "BX_EXPRESS_COA",
+          trueBlueCertId: isTrueBlue ? trueBlueCertId : null,
+          bxCertId,
+          grade,
+          registrationNumber,
+        },
+      });
+    }
+  });
+  revalidatePath("/admin");
+  revalidatePath(`/authenticate/${id}`);
 }
 
-async function saveStoreInDb(patch: {
-  name: string;
-  tagline: string | null;
-  description: string | null;
-  theme: StoreTheme;
-}): Promise<void> {
-  if (!db) throw new Error("db not configured");
-  const storeId = await ensureStoreForCurrentUser();
-  await db
-    .update(schema.stores)
-    .set({
-      name: patch.name,
-      tagline: patch.tagline,
-      description: patch.description,
-      theme: patch.theme,
-    })
-    .where(eq(schema.stores.id, storeId));
+// --- New-beanie catalogue submissions (admin) ---
+
+export async function approveBeanieSubmission(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("submissionId"));
+  if (!id) return;
+  await prisma.beanieSubmission.update({
+    where: { id },
+    data: { status: "APPROVED", reviewedAt: new Date() },
+  });
+  revalidatePath("/admin");
+}
+
+export async function rejectBeanieSubmission(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("submissionId"));
+  if (!id) return;
+  const notes = String(formData.get("notes") ?? "").trim();
+  await prisma.beanieSubmission.update({
+    where: { id },
+    data: { status: "REJECTED", reviewedAt: new Date(), reviewNotes: notes || null },
+  });
+  revalidatePath("/admin");
+}
+
+export async function authRecordReturn(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("authRequestId"));
+  const r = await prisma.authenticationRequest.findUnique({ where: { id } });
+  if (!r || (r.status !== "PASSED" && r.status !== "FAILED")) return;
+
+  let carrier = String(formData.get("carrier") ?? "");
+  let trackingNumber = String(formData.get("trackingNumber") ?? "");
+  let labelUrl: string | null = null;
+
+  // Everything reviewed in this batch goes home together in one box: this
+  // request plus every PASSED/FAILED sibling. A sibling still under review
+  // stays behind and gets its own return when it is done. One label is
+  // bought for the box, sized for its contents — previously a batch got no
+  // label at all (to avoid buying one per beanie) and the admin had to buy
+  // and type one by hand.
+  const going = r.batchId
+    ? await prisma.authenticationRequest.findMany({
+        where: { batchId: r.batchId, status: { in: ["PASSED", "FAILED"] } },
+        select: { id: true },
+      })
+    : [{ id }];
+  const goingIds = going.map((g) => g.id);
+
+  // Auto-buy the return label via EasyPost when we have the submitter's
+  // address and the admin hasn't entered a tracking number by hand.
+  if (
+    !trackingNumber &&
+    r.shipName &&
+    r.shipLine1 &&
+    r.shipCity &&
+    r.shipState &&
+    r.shipPostalCode
+  ) {
+    const bought = await buyReturnLabel(
+      {
+        name: r.shipName,
+        line1: r.shipLine1,
+        line2: r.shipLine2,
+        city: r.shipCity,
+        state: r.shipState,
+        postalCode: r.shipPostalCode,
+      },
+      goingIds.length,
+    );
+    if (bought) {
+      carrier = bought.carrier || carrier;
+      trackingNumber = bought.tracking || trackingNumber;
+      labelUrl = bought.labelUrl || null;
+    }
+  }
+
+  // Recorded once, against the request the admin acted on; the submission
+  // page reads shipments across the batch, so every beanie in the box shows
+  // it.
+  await prisma.shipmentEvent.create({
+    data: {
+      authRequestId: id,
+      leg: "CENTER_TO_SUBMITTER",
+      carrier,
+      trackingNumber,
+      labelUrl,
+      status: "IN_TRANSIT",
+    },
+  });
+  await prisma.authenticationRequest.updateMany({
+    where: { id: { in: goingIds }, status: { in: ["PASSED", "FAILED"] } },
+    data: { status: "RETURNED" },
+  });
+  revalidatePath("/admin");
+  for (const gid of goingIds) revalidatePath(`/authenticate/${gid}`);
 }

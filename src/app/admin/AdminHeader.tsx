@@ -1,0 +1,30 @@
+import Link from "next/link";
+import { AdminNav } from "./AdminNav";
+
+export function AdminHeader({
+  isSuperadmin,
+  queueCount = 0,
+}: {
+  isSuperadmin: boolean;
+  queueCount?: number;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--bx-dark)] text-white px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-[var(--bx-red)] px-2.5 py-1 text-xs font-bold">
+            {isSuperadmin ? "SUPERADMIN" : "ADMIN"}
+          </span>
+          <span className="text-sm font-semibold">Admin Dashboard</span>
+        </div>
+        <Link
+          href="/dashboard"
+          className="rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-sm font-semibold !text-white"
+        >
+          ← Back to my account
+        </Link>
+      </div>
+      <AdminNav isSuperadmin={isSuperadmin} queueCount={queueCount} />
+    </div>
+  );
+}

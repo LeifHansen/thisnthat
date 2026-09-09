@@ -1,36 +1,65 @@
-# syntax=docker/dockerfile:1
-# Multi-stage build for Next.js (standalone output) on Fly.io.
+# syntax = docker/dockerfile:1
 
-FROM node:22-slim AS base
+ARG NODE_VERSION=22.21.1
+FROM node:${NODE_VERSION}-slim AS base
+
+LABEL fly_launch_runtime="Next.js/Prisma"
+
 WORKDIR /app
+ENV NODE_ENV="production"
 
-# --- Dependencies ---
-FROM base AS deps
-COPY package.json package-lock.json ./
-RUN npm ci
+# Build stage
+FROM base AS build
 
-# --- Build ---
-FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential node-gyp openssl pkg-config python-is-python3
+
+# Prisma schema must exist before `npm ci` (postinstall runs prisma generate)
+COPY package-lock.json package.json ./
+COPY prisma ./prisma
+RUN npm ci --include=dev
+
+# Copy application code
 COPY . .
-# Next telemetry off; build the standalone server.
-ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
 
-# --- Runtime ---
-FROM base AS runner
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
+# NEXT_PUBLIC_* are baked into the client bundle at build time, so these public
+# values must arrive as build args, passed via fly.toml + the deploy workflow.
+# The Stripe publishable key is deliberately NOT among them: it is read at
+# request time from STRIPE_PUBLISHABLE_KEY (src/lib/stripePublic.ts) so it can be
+# set or rotated with `fly secrets set` without rebuilding the image.
+ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_GA_ID
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+ENV NEXT_PUBLIC_GA_ID=${NEXT_PUBLIC_GA_ID}
 
-RUN groupadd --system --gid 1001 nodejs \
-  && useradd --system --uid 1001 --gid nodejs nextjs
+# Build (prisma generate is also run via the build script)
+RUN npx next build
 
-# Standalone output bundles only what's needed to run.
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Final stage
+FROM base
 
-USER nextjs
-EXPOSE 3000
-CMD ["node", "server.js"]
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y openssl && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+COPY --from=build /app /app
+
+# Fly proxy targets internal_port 8080; make Next listen there. `next start`
+# reads PORT from the environment (commander `.env("PORT")`) but has no such
+# binding for the host — it passes undefined to server.listen(), which binds
+# every interface over IPv6 dual-stack, so both the proxy's IPv4 hop and 6PN
+# reach it. HOSTNAME is therefore inert for `next start`; it is set because the
+# standalone `server.js` entry point does read it, and defaults to localhost.
+ENV PORT=8080
+ENV HOSTNAME="0.0.0.0"
+
+ENTRYPOINT [ "/app/docker-entrypoint.js" ]
+
+EXPOSE 8080
+# The `next` binary directly, NOT `npm run start`. npm is a second full Node
+# program — thousands of small files — read off a cold page cache on a shared
+# vCPU before it does anything but spawn this exact command, and that sat on
+# the critical path while Fly's proxy counted down to its ~8.4s cutoff. Keep
+# this in step with the `start` script in package.json, which is what a
+# developer runs locally.
+CMD [ "/app/node_modules/.bin/next", "start" ]
