@@ -59,7 +59,9 @@ export default async function EditListingPage({
       existing.status === "DRAFT" &&
       String(formData.get("intent") ?? "") === "publish";
 
-    const fail = (why: string): never =>
+    // Explicitly typed so TypeScript treats each call as never-returning and
+    // narrows `parsed` / `category` / `attrs` after it.
+    const fail: (why: string) => never = (why) =>
       redirect(`/listings/${id}/edit?error=1&reason=${encodeURIComponent(why)}`);
 
     // A lot is one bundle: the single-item fields (brand, item name,

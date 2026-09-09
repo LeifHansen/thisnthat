@@ -9,9 +9,12 @@ export default function NotFound() {
         We couldn&apos;t find that page. It may have moved, or the listing may
         have sold.
       </p>
-      <div className="pt-2">
-        <Link className="tnt-btn" href="/">
-          Back to the marketplace
+      <div className="flex flex-wrap gap-3 justify-center pt-2">
+        <Link className="tnt-btn" href="/browse">
+          Browse listings
+        </Link>
+        <Link className="tnt-btn tnt-btn--ghost" href="/">
+          Go home
         </Link>
       </div>
     </div>

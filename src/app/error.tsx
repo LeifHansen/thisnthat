@@ -18,10 +18,10 @@ export default function Error({
 
   return (
     <div className="max-w-lg mx-auto text-center space-y-4 py-16">
-      <p className="tnt-badge mx-auto">Something went wrong</p>
+      <p className="tnt-badge tnt-badge--error mx-auto">Something went wrong</p>
       <h1 className="text-3xl">This page hit an unexpected error</h1>
       <p className="text-muted">
-        Sorry about that. Try again, or head back to the marketplace.
+        Sorry about that. Try again, or head back to browsing.
       </p>
       <div className="flex gap-3 justify-center pt-2">
         <button className="tnt-btn" onClick={reset}>

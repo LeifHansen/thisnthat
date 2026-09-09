@@ -1,4 +1,4 @@
-const SITE_URL = "https://beaniexchange.com";
+import { SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
 
 // Served at /.well-known/security.txt per RFC 9116 so security researchers
 // have a documented way to report vulnerabilities. The `Expires` field is
@@ -11,7 +11,7 @@ export function GET() {
   expires.setUTCFullYear(expires.getUTCFullYear() + 1);
 
   const body = [
-    `Contact: mailto:support@beaniexchange.com`,
+    `Contact: mailto:${SUPPORT_EMAIL}`,
     `Expires: ${expires.toISOString()}`,
     `Preferred-Languages: en`,
     `Canonical: ${SITE_URL}/.well-known/security.txt`,

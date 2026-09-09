@@ -26,15 +26,15 @@ export default function GlobalError({
           alignItems: "center",
           justifyContent: "center",
           fontFamily:
-            "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-          background: "#ffffff",
-          color: "#111827",
+            "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+          background: "#faf7f2",
+          color: "#1f1a17",
         }}
       >
         <div style={{ textAlign: "center", padding: "2rem", maxWidth: 460 }}>
           <p
             style={{
-              color: "#e0252f",
+              color: "#d9553b",
               fontWeight: 700,
               letterSpacing: "0.05em",
               margin: 0,
@@ -43,10 +43,10 @@ export default function GlobalError({
             SOMETHING WENT WRONG
           </p>
           <h1 style={{ fontSize: "1.75rem", margin: "0.5rem 0" }}>
-            The site hit an unexpected error
+            This&rsquo;n&rsquo;that hit an unexpected error
           </h1>
-          <p style={{ color: "#6b7280", margin: "0 0 1.5rem" }}>
-            Sorry about that. Try again, or head back to the marketplace.
+          <p style={{ color: "#7c736c", margin: "0 0 1.5rem" }}>
+            Sorry about that. Try again, or head back to browsing.
           </p>
           <div
             style={{
@@ -58,10 +58,10 @@ export default function GlobalError({
             <button
               onClick={reset}
               style={{
-                background: "#e0252f",
+                background: "#d9553b",
                 color: "#fff",
                 border: "none",
-                borderRadius: 8,
+                borderRadius: 999,
                 padding: "0.6rem 1.1rem",
                 fontWeight: 700,
                 cursor: "pointer",
@@ -75,9 +75,10 @@ export default function GlobalError({
             <a
               href="/"
               style={{
-                background: "#f3f4f6",
-                color: "#111827",
-                borderRadius: 8,
+                background: "#ffffff",
+                color: "#1f1a17",
+                border: "1px solid #d6cdc0",
+                borderRadius: 999,
                 padding: "0.6rem 1.1rem",
                 fontWeight: 700,
                 textDecoration: "none",

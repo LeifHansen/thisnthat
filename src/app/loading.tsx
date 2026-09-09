@@ -1,8 +1,8 @@
 /**
- * Root route-loading fallback. Several pages are force-dynamic (dashboard,
- * database, listings...) and none had a loading state, so soft navigations
- * froze on the old page with zero feedback until the server responded. Routes
- * with their own loading.tsx (e.g. /browse) override this.
+ * Root route-loading fallback. Several pages are force-dynamic (home,
+ * dashboard, listings…) so soft navigations would otherwise freeze on the old
+ * page with zero feedback until the server responded. Routes with their own
+ * loading.tsx (e.g. /browse) override this.
  */
 export default function RootLoading() {
   return (
