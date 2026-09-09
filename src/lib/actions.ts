@@ -44,7 +44,6 @@ export async function sellerMarkShipped(formData: FormData) {
     await tx.shipmentEvent.create({
       data: {
         orderId,
-        leg: "SELLER_TO_BUYER",
         carrier,
         trackingNumber,
         status: "IN_TRANSIT",
