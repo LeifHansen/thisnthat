@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import * as notify from "@/lib/notify";
 
 /**
- * One-time "list your first beanie" nudge: accounts that are at least
+ * One-time "list your first item" nudge: accounts that are at least
  * NUDGE_AFTER_DAYS old, have never created a listing, and haven't been
  * nudged before.
  *

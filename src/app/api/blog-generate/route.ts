@@ -2,27 +2,28 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { fetchPublicUrl } from "@/lib/ssrf";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 // AI blog generator (superadmin only). Given a reference article URL — and an
 // optional cover image URL plus angle/instructions — it fetches the article,
 // strips it to readable text, and asks the model to WRITE or REWRITE it into an
-// original, on-brand BeanieXchange blog post. Returns a structured draft the
+// original, on-brand blog post for the marketplace. Returns a structured draft the
 // admin reviews and edits before publishing. Nothing is persisted here; saving
 // is a separate server action (src/lib/blog.ts).
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY || process.env.OPEN_AI_API_KEY;
 
-const SYSTEM_PROMPT = `You are the editorial writer for BeanieXchange (BX) — the trusted marketplace and community for authenticated Ty Beanie Babies.
+const SYSTEM_PROMPT = `You are the editorial writer for ${SITE_NAME} — an online resale marketplace where anyone can list what they have (clothing, shoes, accessories, collectibles, trading cards, art, home decor, pottery and glass, electronics, books and media, toys and games) and sell it to the public. Posts are bylined "${SITE_NAME} Team".
 
-You are given the text of a REFERENCE article and a mode. Produce an ORIGINAL blog post for the BeanieXchange blog.
+You are given the text of a REFERENCE article and a mode. Produce an ORIGINAL blog post for the ${SITE_NAME} blog.
 
 Modes:
-- "rewrite": Rewrite the reference article in BeanieXchange's voice — same core facts and topic, restructured and reworded into fresh, original prose. Do NOT copy sentences verbatim. Improve clarity and flow.
-- "fresh": Use the reference only as inspiration/source material and write a new article on the same subject from BeanieXchange's perspective.
+- "rewrite": Rewrite the reference article in ${SITE_NAME}'s voice — same core facts and topic, restructured and reworded into fresh, original prose. Do NOT copy sentences verbatim. Improve clarity and flow.
+- "fresh": Use the reference only as inspiration/source material and write a new article on the same subject from ${SITE_NAME}'s perspective.
 
 Voice & rules:
-- Warm, knowledgeable, collector-friendly. Helpful, never hypey. No emoji. No ALL CAPS.
-- Write for Beanie Baby collectors. Where natural and TRUE, relate the topic to collecting, authentication, value, or the BX marketplace/registry — but never fabricate facts, prices, or claims not supported by the reference.
+- Warm, practical, knowledgeable. Helpful, never hypey. No emoji. No ALL CAPS.
+- Write for people who buy and sell secondhand: thrifters, vintage hunters, collectors, and anyone clearing out a closet. Where natural and TRUE, relate the topic to pricing, photographing, describing, shipping, or shopping for pre-owned items — but never fabricate facts, prices, or claims not supported by the reference.
 - Do not invent quotes, statistics, or sources. If the reference lacks a detail, omit it.
 - Never include affiliate junk, "click here", or the reference site's own navigation/boilerplate.
 
@@ -88,8 +89,7 @@ export async function POST(req: Request) {
     const ref = await fetchPublicUrl(sourceUrl, {
       headers: {
         // Some sites 403 the default fetch UA; present a normal browser UA.
-        "User-Agent":
-          "Mozilla/5.0 (compatible; BeanieXchangeBot/1.0; +https://beaniexchange.com)",
+        "User-Agent": `Mozilla/5.0 (compatible; ThisnthatBot/1.0; +${SITE_URL})`,
         Accept: "text/html,application/xhtml+xml",
       },
       timeoutMs: 12_000,

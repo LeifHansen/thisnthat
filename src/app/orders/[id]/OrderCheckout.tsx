@@ -13,8 +13,8 @@ import { stripeFor } from "@/lib/stripeClient";
 /**
  * Pay for a single existing order (e.g. one created by accepting an offer).
  * Fetches a client secret from /api/orders/[id]/pay, then confirms payment via
- * Stripe Elements. On success the order moves to escrow via the webhook, so we
- * refresh the page to pick up the new status.
+ * Stripe Elements. On success the webhook moves the order to awaiting
+ * shipment, so we refresh the page to pick up the new status.
  */
 export function OrderCheckout({
   orderId,
@@ -75,8 +75,8 @@ export function OrderCheckout({
       <div className="tnt-panel p-5 space-y-2">
         <h2 className="text-ink">Payment authorized ✓</h2>
         <p className="text-muted text-sm">
-          Your card is authorized and the funds are held in escrow. Updating
-          your order status…
+          Your card is authorized and your payment is held until you confirm
+          delivery. Updating your order status…
         </p>
       </div>
     );
@@ -101,8 +101,8 @@ export function OrderCheckout({
       <h2 className="text-ink">Payment</h2>
       <p className="text-muted text-sm">
         Your offer was accepted at this price. Authorize payment to reserve the
-        beanie — funds are held in escrow and released to the seller only when
-        you confirm the item arrived as described.
+        item — your payment is held until you confirm delivery, and the seller
+        is paid only when the item arrives as described.
       </p>
       {err && <p className="text-red-600 text-sm">{err}</p>}
       {!stripePromise ? (

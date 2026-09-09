@@ -1,24 +1,19 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/db";
-import { SHOP_COLLECTIONS, collectionHref } from "@/lib/collections";
+import { CATEGORIES } from "@/lib/categories";
+import { SITE_URL } from "@/lib/site";
 
-const SITE_URL = "https://beaniexchange.com";
+// Regenerate hourly rather than baking the listing set in at build time.
+export const revalidate = 3600;
 
-const STATIC_ROUTES: { path: string; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]; priority: number }[] = [
+type Freq = MetadataRoute.Sitemap[number]["changeFrequency"];
+
+const STATIC_ROUTES: { path: string; changeFrequency: Freq; priority: number }[] = [
   { path: "/", changeFrequency: "daily", priority: 1.0 },
   { path: "/browse", changeFrequency: "hourly", priority: 0.9 },
-  { path: "/database", changeFrequency: "weekly", priority: 0.8 },
-  { path: "/price-trends", changeFrequency: "daily", priority: 0.8 },
-  { path: "/beanie-info", changeFrequency: "monthly", priority: 0.7 },
-  { path: "/beanie-info/error-tags", changeFrequency: "monthly", priority: 0.7 },
-  { path: "/authenticate", changeFrequency: "weekly", priority: 0.9 },
-  { path: "/authentication-process", changeFrequency: "monthly", priority: 0.8 },
-  { path: "/rarity-guide", changeFrequency: "monthly", priority: 0.8 },
-  // Verify-cert / BX Registry — disabled with in-house authentication:
-  // { path: "/registry", changeFrequency: "daily", priority: 0.8 },
-  { path: "/forum", changeFrequency: "hourly", priority: 0.8 },
+  { path: "/browse?type=lots", changeFrequency: "hourly", priority: 0.8 },
+  { path: "/sell", changeFrequency: "monthly", priority: 0.7 },
   { path: "/blog", changeFrequency: "daily", priority: 0.7 },
-  { path: "/sell", changeFrequency: "monthly", priority: 0.6 },
   { path: "/terms", changeFrequency: "yearly", priority: 0.2 },
   { path: "/privacy", changeFrequency: "yearly", priority: 0.2 },
   { path: "/returns", changeFrequency: "yearly", priority: 0.2 },
@@ -34,23 +29,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: r.priority,
   }));
 
-  // Curated shop-collection pages (/browse?collection=…). "all" is /browse,
-  // which is already in STATIC_ROUTES.
-  const collectionEntries: MetadataRoute.Sitemap = SHOP_COLLECTIONS.filter(
-    (c) => c.key !== "all",
-  ).map((c) => ({
-    url: `${SITE_URL}${collectionHref(c)}`,
+  const categoryEntries: MetadataRoute.Sitemap = CATEGORIES.map((c) => ({
+    url: `${SITE_URL}/browse?category=${c.slug}`,
     lastModified: now,
     changeFrequency: "daily",
     priority: 0.8,
   }));
 
-  // Public listings (ACTIVE + SOLD so historical-value pages stay indexable).
-  // Wrapped in try/catch so missing DB at build time can't break the sitemap.
+  // Every DB read is wrapped so an unreachable database (e.g. at build time)
+  // degrades to the static entries instead of failing the whole sitemap.
   let listings: { id: string; updatedAt: Date }[] = [];
   try {
     listings = await prisma.listing.findMany({
-      where: { status: { in: ["ACTIVE", "SOLD"] } },
+      where: { status: "ACTIVE" },
       select: { id: true, updatedAt: true },
       orderBy: { updatedAt: "desc" },
       take: 5000,
@@ -65,35 +56,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  // Forum categories + threads
-  let forumCats: { slug: string; createdAt: Date }[] = [];
-  let forumThreads: { id: string; updatedAt: Date }[] = [];
-  try {
-    forumCats = await prisma.forumCategory.findMany({
-      select: { slug: true, createdAt: true },
-    });
-    forumThreads = await prisma.forumThread.findMany({
-      select: { id: true, updatedAt: true },
-      orderBy: { updatedAt: "desc" },
-      take: 5000,
-    });
-  } catch {
-    /* DB unreachable at build time — keep static entries. */
-  }
-  const forumCatEntries: MetadataRoute.Sitemap = forumCats.map((c) => ({
-    url: `${SITE_URL}/forum/${c.slug}`,
-    lastModified: c.createdAt,
-    changeFrequency: "daily",
-    priority: 0.6,
-  }));
-  const forumThreadEntries: MetadataRoute.Sitemap = forumThreads.map((t) => ({
-    url: `${SITE_URL}/forum/thread/${t.id}`,
-    lastModified: t.updatedAt,
-    changeFrequency: "weekly",
-    priority: 0.5,
-  }));
-
-  // Published blog posts
   let blogPosts: { slug: string; updatedAt: Date }[] = [];
   try {
     blogPosts = await prisma.blogPost.findMany({
@@ -103,7 +65,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       take: 5000,
     });
   } catch {
-    /* DB unreachable at build time — keep static entries. */
+    blogPosts = [];
   }
   const blogEntries: MetadataRoute.Sitemap = blogPosts.map((b) => ({
     url: `${SITE_URL}/blog/${b.slug}`,
@@ -112,12 +74,34 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
+  // Public seller profiles: accounts in good standing with something for sale.
+  let sellers: { id: string; updatedAt: Date }[] = [];
+  try {
+    sellers = await prisma.user.findMany({
+      where: {
+        suspended: false,
+        deletedAt: null,
+        listings: { some: { status: "ACTIVE" } },
+      },
+      select: { id: true, updatedAt: true },
+      orderBy: { updatedAt: "desc" },
+      take: 2000,
+    });
+  } catch {
+    sellers = [];
+  }
+  const sellerEntries: MetadataRoute.Sitemap = sellers.map((u) => ({
+    url: `${SITE_URL}/u/${u.id}`,
+    lastModified: u.updatedAt,
+    changeFrequency: "weekly",
+    priority: 0.5,
+  }));
+
   return [
     ...staticEntries,
-    ...collectionEntries,
+    ...categoryEntries,
     ...listingEntries,
-    ...forumCatEntries,
-    ...forumThreadEntries,
     ...blogEntries,
+    ...sellerEntries,
   ];
 }

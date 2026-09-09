@@ -26,8 +26,8 @@ export default async function DashboardPage({
   return (
     <div className="space-y-6">
       {/* Admin lives as a sub-tab of the dashboard for the superadmin
-          (admin@beaniexchange.com) only. Other admins (e.g. HQ) reach the
-          standalone /admin section via the header Admin pill. */}
+          (SUPERADMIN_EMAIL) only. Other admins reach the standalone /admin
+          section via the header Admin pill. */}
       {superadmin && (
         <div className="flex flex-wrap gap-1.5 rounded-xl bg-[var(--tnt-surface)] border border-[var(--tnt-line)] p-1.5">
           <DashTab href="/dashboard" label="My Account" active={!adminTab} />

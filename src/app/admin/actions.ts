@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { requireSuperadmin, isSuperadmin } from "@/lib/guards";
+import { deleteListing } from "@/lib/actions";
+import { requireAdmin, requireSuperadmin, isSuperadmin } from "@/lib/guards";
 
 function backTo(kind: "ok" | "error", msg: string): never {
   redirect(`/admin/users?${kind}=${encodeURIComponent(msg)}`);
@@ -54,10 +55,11 @@ export async function setUserSuspended(formData: FormData) {
 }
 
 /**
- * Hard-delete a user. Superadmin only. Refuses accounts with financial history
- * (orders, listings, authentication requests, registry entries) to preserve
- * integrity — suspend those instead. For empty/spam accounts, clears lightweight
- * child records then deletes.
+ * Hard-delete a user. Superadmin only. Refuses accounts with marketplace
+ * history (orders, listings, offers, reviews, messages) to preserve the
+ * counterparty's records — suspend those instead. For empty/spam accounts,
+ * clears the lightweight child records then deletes; likes and follows
+ * cascade on their own.
  */
 export async function deleteUser(formData: FormData) {
   await requireSuperadmin();
@@ -71,8 +73,9 @@ export async function deleteUser(formData: FormData) {
           buyerOrders: true,
           sellerOrders: true,
           listings: true,
-          authRequests: true,
-          registry: true,
+          offers: true,
+          productReviews: true,
+          sentMessages: true,
         },
       },
     },
@@ -81,23 +84,26 @@ export async function deleteUser(formData: FormData) {
   if (isSuperadmin(target)) backTo("error", "Can't delete the superadmin.");
 
   const c = target._count;
-  if (c.buyerOrders || c.sellerOrders || c.listings || c.authRequests || c.registry) {
+  if (
+    c.buyerOrders ||
+    c.sellerOrders ||
+    c.listings ||
+    c.offers ||
+    c.productReviews ||
+    c.sentMessages
+  ) {
     backTo(
       "error",
-      `${target.name} has marketplace history (orders/listings/auth) — suspend instead of deleting to preserve records.`,
+      `${target.name} has marketplace history (orders/listings/offers/reviews/messages) — suspend instead of deleting to preserve records.`,
     );
   }
 
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.forumVote.deleteMany({ where: { userId } });
-      await tx.forumPost.deleteMany({ where: { authorId: userId } });
-      await tx.forumThread.deleteMany({ where: { authorId: userId } });
-      await tx.offer.deleteMany({ where: { buyerId: userId } });
-      await tx.tradeOffer.deleteMany({
-        where: { OR: [{ proposerId: userId }, { ownerId: userId }] },
-      });
-      await tx.message.deleteMany({ where: { senderId: userId } });
+      // This account never sent a message (checked above), so the only thing
+      // in these threads is the other party's side of an unanswered
+      // conversation — it goes with the account rather than pointing at a
+      // user who no longer exists.
       await tx.conversation.deleteMany({
         where: { OR: [{ userAId: userId }, { userBId: userId }] },
       });
@@ -110,4 +116,59 @@ export async function deleteUser(formData: FormData) {
 
   revalidatePath("/admin/users");
   backTo("ok", `${target.name} deleted.`);
+}
+
+// --- Listing moderation --------------------------------------------------
+// Both return a result instead of redirecting so the listings table can act
+// on a row in place (ListingRowActions) and show the error next to it.
+
+// Same shape as DeleteListingResult so removeListing can pass it straight through.
+export type ListingActionResult = { ok: boolean; error?: string };
+
+/**
+ * Pull a listing from the marketplace. Any admin. Delegates to the shared
+ * soft-delete (deleteListing sets REMOVED and leaves orders/offers intact).
+ */
+export async function removeListing(formData: FormData): Promise<ListingActionResult> {
+  await requireAdmin();
+  const res = await deleteListing(formData);
+  if (res.ok) revalidatePath("/admin/listings");
+  return res;
+}
+
+/**
+ * Put a REMOVED listing back on sale. Any admin. Refuses when the seller can't
+ * actually fulfil it — a suspended or deleted account, or no units left.
+ */
+export async function restoreListing(formData: FormData): Promise<ListingActionResult> {
+  await requireAdmin();
+  const id = String(formData.get("listingId") ?? "");
+  if (!id) return { ok: false, error: "Missing listing." };
+
+  const listing = await prisma.listing.findUnique({
+    where: { id },
+    select: {
+      status: true,
+      quantity: true,
+      seller: { select: { suspended: true, deletedAt: true } },
+    },
+  });
+  if (!listing) return { ok: false, error: "Listing not found." };
+  if (listing.status !== "REMOVED") {
+    return { ok: false, error: "Only removed listings can be restored." };
+  }
+  if (listing.seller.deletedAt) {
+    return { ok: false, error: "The seller deleted their account." };
+  }
+  if (listing.seller.suspended) {
+    return { ok: false, error: "The seller is suspended — reinstate them first." };
+  }
+  if (listing.quantity < 1) {
+    return { ok: false, error: "No units left to sell." };
+  }
+
+  await prisma.listing.update({ where: { id }, data: { status: "ACTIVE" } });
+  revalidatePath("/admin/listings");
+  revalidatePath(`/listings/${id}`);
+  return { ok: true };
 }

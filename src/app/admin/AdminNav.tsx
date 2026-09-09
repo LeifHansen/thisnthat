@@ -7,10 +7,11 @@ type Tab = { href: string; label: string; badge?: number };
 
 export function AdminNav({
   isSuperadmin,
-  queueCount = 0,
+  ordersCount = 0,
 }: {
   isSuperadmin: boolean;
-  queueCount?: number;
+  /** Orders needing attention — shown as a badge on the Orders tab. */
+  ordersCount?: number;
 }) {
   const pathname = usePathname();
   // The superadmin's Overview lives in their dashboard Admin tab; HQ admins use
@@ -18,10 +19,11 @@ export function AdminNav({
   const overviewHref = isSuperadmin ? "/dashboard?tab=admin" : "/admin";
   const tabs: Tab[] = [
     { href: overviewHref, label: "Overview" },
-    { href: "/admin/queue", label: "Queue", badge: queueCount },
     { href: "/admin/listings", label: "Listings" },
+    { href: "/admin/orders", label: "Orders", badge: ordersCount },
+    // Only the superadmin can manage accounts (roles, suspension, deletion).
     ...(isSuperadmin ? [{ href: "/admin/users", label: "Users" } as Tab] : []),
-    { href: "/admin/blog", label: "✨ Blog" },
+    { href: "/admin/blog", label: "Blog" },
   ];
 
   return (

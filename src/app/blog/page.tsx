@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/db";
+import { SITE_NAME } from "@/lib/site";
 
 // ISR: blog content is public and non-personalized. saveBlogPost /
 // toggleBlogPublish / deleteBlogPost call revalidatePath("/blog"), so new or
@@ -9,18 +10,19 @@ import { prisma } from "@/lib/db";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Beanie Baby Blog — News, Value Guides & Collecting Tips",
-  description:
-    "The Beanie Xchange blog: Beanie Baby value guides, authentication tips, rare finds, market news, and collecting how-tos for Ty Beanie Baby collectors.",
+  title: "Blog — Resale Tips, Thrift Finds & Selling Guides",
+  description: `The ${SITE_NAME} blog: how to price and photograph what you sell, thrift and vintage finds, secondhand shopping guides, and stories from the resale community.`,
   alternates: { canonical: "/blog" },
   keywords: [
-    "Beanie Baby blog",
-    "Beanie Baby news",
-    "Beanie Baby value guide",
-    "Beanie Baby collecting tips",
-    "rare Beanie Babies",
+    "resale tips",
+    "thrift finds",
+    "vintage guide",
+    "how to sell secondhand",
+    "secondhand shopping",
   ],
 };
+
+const DEFAULT_AUTHOR = `${SITE_NAME} Team`;
 
 function formatDate(d: Date) {
   return d.toLocaleDateString("en-US", {
@@ -65,19 +67,25 @@ export default async function BlogIndex() {
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
-      <header className="space-y-2 text-center">
-        <Image
-          src="/blog-hero-image.webp"
-          alt="The Beanie Xchange Blog — Beanie Baby news, value guides, and collecting tips."
-          width={1983}
-          height={793}
-          priority
-          sizes="(max-width:1024px) 100vw, 56rem"
-          className="w-full h-auto rounded-xl"
-        />
-        <h1 className="sr-only">
-          Beanie Baby news, value guides &amp; collecting tips
+      {/* No static hero asset: a gradient banner keeps the header light and
+          means the page never depends on a file in /public. */}
+      <header
+        className="rounded-xl px-6 py-10 sm:py-14 text-center space-y-3"
+        style={{
+          background:
+            "linear-gradient(135deg, var(--tnt-surface) 0%, color-mix(in srgb, var(--tnt-blue-bright) 28%, var(--tnt-surface)) 55%, color-mix(in srgb, var(--tnt-green-bright) 28%, var(--tnt-surface)) 100%)",
+        }}
+      >
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          The {SITE_NAME} blog
+        </p>
+        <h1 className="font-display text-3xl sm:text-4xl !text-ink">
+          Resale tips, thrift finds &amp; selling guides
         </h1>
+        <p className="text-muted max-w-xl mx-auto">
+          How to price, photograph and ship what you sell, what to look for
+          when you buy secondhand, and stories from people who do both.
+        </p>
       </header>
 
       {posts.length === 0 ? (
@@ -104,7 +112,7 @@ export default async function BlogIndex() {
             )}
             <div className="p-6 space-y-2">
               <p className="text-xs text-muted">
-                {featured.authorDisplayName ?? "BeanieX Team"} ·{" "}
+                {featured.authorDisplayName ?? DEFAULT_AUTHOR} ·{" "}
                 {formatDate(featured.publishedAt ?? featured.createdAt)}
               </p>
               <h2 className="font-display text-2xl">{featured.title}</h2>

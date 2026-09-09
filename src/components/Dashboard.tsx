@@ -1,11 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { ListingStatus, OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { formatCents, authServiceLabel } from "@/lib/fees";
+import { formatCents } from "@/lib/fees";
 import { statusLabel } from "@/lib/orderState";
 import { ConnectButton } from "@/components/ConnectButton";
+import { ConditionBadge } from "@/components/ConditionBadge";
 import { getPayoutState } from "@/lib/payout";
-import { reconcileStuckAuthRequests } from "@/lib/authPayment";
 import { CoinIcon } from "@/components/BrandIcons";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/FollowButton";
@@ -42,7 +43,6 @@ export async function Dashboard({
     listings,
     buying,
     selling,
-    authReqsFetched,
     offersReceived,
     offersSent,
     likedListings,
@@ -59,23 +59,23 @@ export async function Dashboard({
       prisma.listing.findMany({
         // REMOVED = seller-deleted; hidden from the manager (records kept).
         where: { sellerId: userId, status: { not: "REMOVED" } },
+        include: { category: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
         take: 60,
       }),
       prisma.order.findMany({
         where: { buyerId: userId },
-        include: { listing: { select: { title: true } } },
+        include: {
+          listing: { select: { title: true } },
+          // Whether the buyer has already reviewed a completed purchase.
+          review: { select: { id: true } },
+        },
         orderBy: { createdAt: "desc" },
         take: 25,
       }),
       prisma.order.findMany({
         where: { sellerId: userId },
         include: { listing: { select: { title: true } } },
-        orderBy: { createdAt: "desc" },
-        take: 25,
-      }),
-      prisma.authenticationRequest.findMany({
-        where: { userId },
         orderBy: { createdAt: "desc" },
         take: 25,
       }),
@@ -146,30 +146,6 @@ export async function Dashboard({
       }),
     ]);
 
-  // A paid authentication whose webhook never landed shows here stuck at
-  // REQUESTED ("payment not completed") even though the charge succeeded.
-  // Reconcile just those rows against Stripe so the list reflects reality —
-  // no Stripe calls in the common case of nothing stuck.
-  let authReqs = authReqsFetched;
-  const stuckIds = authReqs
-    .filter(
-      (r) =>
-        (r.status === "REQUESTED" || r.status === "PAID") &&
-        r.stripePaymentIntentId,
-    )
-    .map((r) => r.id);
-  if (stuckIds.length > 0) {
-    const advanced = await reconcileStuckAuthRequests({
-      id: { in: stuckIds },
-    });
-    if (advanced > 0) {
-      authReqs = await prisma.authenticationRequest.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-      });
-    }
-  }
-
   // Real Stripe onboarding state (not just "an account exists") for the card.
   const payout = await getPayoutState(me);
 
@@ -190,8 +166,8 @@ export async function Dashboard({
           </div>
         </div>
         <div className="flex gap-3 flex-wrap">
-          <Link href={listingsCount === 0 ? "/sell/first" : "/sell"} className="tnt-btn">
-            Sell a Beanie
+          <Link href="/sell" className="tnt-btn">
+            Sell an item
           </Link>
           <Link href="/dashboard/profile" className="tnt-btn tnt-btn--ghost">
             Edit Profile
@@ -216,18 +192,18 @@ export async function Dashboard({
         >
           <div className="flex items-center gap-4">
             <span className="text-4xl" aria-hidden="true">
-              🧸
+              🏷️
             </span>
             <div className="space-y-0.5">
-              <h2 className="text-lg font-bold">Add your first listing</h2>
+              <h2 className="text-lg font-bold">List your first item</h2>
               <p className="text-muted text-sm">
-                A guided wizard walks you through it in about two minutes —
-                photos in, AI drafts the rest, you set the price.
+                It takes a couple of minutes — add photos, describe the item,
+                set your price. Your payment is protected on every sale.
               </p>
             </div>
           </div>
-          <Link href="/sell/first" className="tnt-btn shrink-0">
-            Start the wizard →
+          <Link href="/sell" className="tnt-btn shrink-0">
+            Start listing →
           </Link>
         </section>
       )}
@@ -316,12 +292,12 @@ export async function Dashboard({
 
         <p className="text-muted text-sm">
           {payout.status === "enabled"
-            ? "Payout account connected. Escrow releases here when the buyer confirms receipt."
+            ? "Payout account connected. Each sale is paid out here once the item is delivered or the buyer confirms receipt."
             : payout.status === "pending"
-              ? "You've finished your side of setup — Stripe is verifying your details. This usually takes a few minutes, and nothing more is needed from you. Escrow will release here once it clears."
+              ? "You've finished your side of setup — Stripe is verifying your details. This usually takes a few minutes, and nothing more is needed from you. Sales will pay out here once it clears."
               : payout.status === "incomplete"
                 ? "Your payout account needs a few more details before you can receive funds. Finish setup to start getting paid."
-                : "Connect a Stripe payout account to receive funds from your sales."}
+                : "Set up seller payouts to receive funds from your sales. Buyers pay the platform; you're paid by transfer once each item is delivered."}
         </p>
 
         {/* Naming what Stripe is waiting on turns "a few more details" into
@@ -336,7 +312,7 @@ export async function Dashboard({
       </section>
 
       {(offersReceived.length > 0 || offersSent.length > 0) && (
-        <section className="space-y-3">
+        <section id="offers" className="space-y-3 scroll-mt-24">
           <h2 className="text-lg">Offers</h2>
 
           {offersReceived.length > 0 && (
@@ -473,50 +449,6 @@ export async function Dashboard({
         </section>
       )}
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg">Authentication</h2>
-          <Link
-            href="/authenticate"
-            className="text-sm !text-[var(--tnt-green)] font-semibold"
-          >
-            + Authenticate an item
-          </Link>
-        </div>
-        {authReqs.length === 0 ? (
-          <p className="text-muted">
-            No authentication requests yet.{" "}
-            <Link href="/authenticate" className="!text-[var(--tnt-green)]">
-              Submit one →
-            </Link>
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {authReqs.map((r) => (
-              <Link
-                key={r.id}
-                href={`/authenticate/${r.id}`}
-                className="tnt-panel px-4 py-3 flex justify-between items-center !text-ink hover:border-[var(--tnt-line-strong)]"
-              >
-                <span>
-                  {r.beanieName}
-                  <span className="text-muted text-sm">
-                    {" "}
-                    · {authServiceLabel(r.serviceLevel, r.provider, r.tier)}
-                  </span>
-                </span>
-                <span className="text-sm font-semibold">
-                  {formatCents(r.totalCents)} ·{" "}
-                  <span className="text-muted font-normal">
-                    {r.status.replace(/_/g, " ")}
-                  </span>
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
       <section id="listings" className="space-y-3 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-lg">My listings</h2>
@@ -524,14 +456,14 @@ export async function Dashboard({
             href="/sell"
             className="text-sm !text-[var(--tnt-green)] font-semibold"
           >
-            + List a Beanie
+            + List an item
           </Link>
         </div>
         {listings.length === 0 ? (
           <p className="text-muted">
             None yet —{" "}
-            <Link href="/sell/first" className="!text-[var(--tnt-green)]">
-              add your first listing
+            <Link href="/sell" className="!text-[var(--tnt-green)]">
+              list your first item
             </Link>
             .
           </p>
@@ -567,11 +499,22 @@ export async function Dashboard({
                       </span>
                     )}
                   </span>
-                  <span className="flex-1 min-w-0 truncate">{l.title}</span>
+                  <span className="flex-1 min-w-0 space-y-0.5">
+                    <span className="block truncate">{l.title}</span>
+                    <span className="flex items-center gap-1.5 flex-wrap">
+                      <ConditionBadge condition={l.condition} />
+                      <span className="text-muted text-xs truncate">
+                        {l.category.name}
+                        {l.isLot ? " · Lot" : ""}
+                      </span>
+                    </span>
+                  </span>
                 </Link>
                 <span className="text-sm font-semibold whitespace-nowrap">
                   {formatCents(l.priceCents)} ·{" "}
-                  <span className="text-muted font-normal">{l.status}</span>
+                  <span className="text-muted font-normal">
+                    {listingStatusLabel(l.status)}
+                  </span>
                 </span>
                 {l.status !== "SOLD" && (
                   <Link
@@ -649,7 +592,7 @@ export async function Dashboard({
 
       <section id="purchases" className="space-y-3 scroll-mt-24">
         <h2 className="text-lg">Purchases</h2>
-        <OrderList orders={buying} empty="No purchases yet." />
+        <OrderList orders={buying} empty="No purchases yet." role="buyer" />
         {buyingCount > buying.length && (
           <p className="text-muted text-xs">
             Showing your {buying.length} most recent of {buyingCount} purchases.
@@ -659,7 +602,7 @@ export async function Dashboard({
 
       <section id="sales" className="space-y-3 scroll-mt-24">
         <h2 className="text-lg">Sales</h2>
-        <OrderList orders={selling} empty="No sales yet." showProceeds />
+        <OrderList orders={selling} empty="No sales yet." role="seller" />
         {sellingCount > selling.length && (
           <p className="text-muted text-xs">
             Showing your {selling.length} most recent of {sellingCount} sales.
@@ -691,47 +634,84 @@ function requirementLabel(key: string): string {
   return known[key] ?? key.split(".").pop()!.replace(/_/g, " ");
 }
 
+const LISTING_STATUS_LABEL: Record<ListingStatus, string> = {
+  DRAFT: "Draft",
+  ACTIVE: "Active",
+  SOLD: "Sold",
+  REMOVED: "Removed",
+};
+
+function listingStatusLabel(status: ListingStatus): string {
+  return LISTING_STATUS_LABEL[status] ?? status;
+}
+
+/**
+ * What the viewer should do next on an order, if anything. The forms
+ * themselves live on the order page (mark-shipped needs carrier + tracking;
+ * confirm-receipt pays the seller), so the row just names the step and links
+ * through.
+ */
+function nextStep(
+  role: "buyer" | "seller",
+  status: OrderStatus,
+  reviewed: boolean,
+): string | null {
+  if (role === "seller") {
+    return status === "AWAITING_SHIP_TO_BUYER" ? "Mark shipped →" : null;
+  }
+  if (status === "PENDING_PAYMENT") return "Pay now →";
+  if (status === "SHIPPED_TO_BUYER") return "Confirm receipt →";
+  if (status === "COMPLETED" && !reviewed) return "Leave a review →";
+  return null;
+}
+
 function OrderList({
   orders,
   empty,
-  showProceeds = false,
+  role,
 }: {
   orders: {
     id: string;
-    status: string;
+    status: OrderStatus;
     itemCents: number;
     platformFeeCents: number;
     totalCents: number;
     listing: { title: string };
+    review?: { id: string } | null;
   }[];
   empty: string;
   /** Sales list: show the seller's net payout (item − fee) instead of the
-   *  buyer's total. */
-  showProceeds?: boolean;
+   *  buyer's total, and seller-side next steps. */
+  role: "buyer" | "seller";
 }) {
   if (orders.length === 0) return <p className="text-muted">{empty}</p>;
+  const showProceeds = role === "seller";
   return (
     <div className="space-y-2">
       {orders.map((o) => {
         const amount = showProceeds
           ? o.itemCents - o.platformFeeCents
           : o.totalCents;
+        const step = nextStep(role, o.status, !!o.review);
         return (
           <Link
             key={o.id}
             href={`/orders/${o.id}`}
-            className="tnt-panel px-4 py-3 flex justify-between items-center !text-ink hover:border-[var(--tnt-line-strong)]"
+            className="tnt-panel px-4 py-3 flex justify-between items-center gap-3 flex-wrap !text-ink hover:border-[var(--tnt-line-strong)]"
           >
-            <span>{o.listing.title}</span>
-            <span className="text-sm font-semibold">
+            <span className="flex-1 min-w-0 truncate">{o.listing.title}</span>
+            <span className="text-sm font-semibold whitespace-nowrap">
               {formatCents(amount)}
               {showProceeds && (
                 <span className="text-muted font-normal"> payout</span>
               )}{" "}
               ·{" "}
               <span className="text-muted font-normal">
-                {statusLabel(o.status as never)}
+                {statusLabel(o.status)}
               </span>
+              {step && (
+                <span className="text-[var(--tnt-green)]"> · {step}</span>
+              )}
             </span>
           </Link>
         );

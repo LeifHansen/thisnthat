@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { consumeHandoffToken } from "@/lib/mobileAuth";
+import { SITE_NAME } from "@/lib/site";
 
 // Compared against when the email is unknown so login timing doesn't reveal
 // whether an email is registered (a real bcrypt hash of a random string).
@@ -71,7 +72,7 @@ const nextAuth = NextAuth({
     // token, and it can be redeemed exactly once.
     Credentials({
       id: "mobile-handoff",
-      name: "Beanie Xchange app",
+      name: `${SITE_NAME} app`,
       credentials: { token: { label: "Hand-off token", type: "text" } },
       async authorize(creds) {
         const claims = consumeHandoffToken(String(creds?.token ?? ""));

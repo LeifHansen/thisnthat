@@ -1,12 +1,14 @@
 import Link from "next/link";
+import { SITE_NAME } from "@/lib/site";
 import { AdminNav } from "./AdminNav";
 
 export function AdminHeader({
   isSuperadmin,
-  queueCount = 0,
+  ordersCount = 0,
 }: {
   isSuperadmin: boolean;
-  queueCount?: number;
+  /** Orders needing attention — the badge on the Orders tab. */
+  ordersCount?: number;
 }) {
   return (
     <div className="space-y-3">
@@ -15,7 +17,7 @@ export function AdminHeader({
           <span className="rounded-full bg-[var(--tnt-red)] px-2.5 py-1 text-xs font-bold">
             {isSuperadmin ? "SUPERADMIN" : "ADMIN"}
           </span>
-          <span className="text-sm font-semibold">Admin Dashboard</span>
+          <span className="text-sm font-semibold">{SITE_NAME} Admin</span>
         </div>
         <Link
           href="/dashboard"
@@ -24,7 +26,7 @@ export function AdminHeader({
           ← Back to my account
         </Link>
       </div>
-      <AdminNav isSuperadmin={isSuperadmin} queueCount={queueCount} />
+      <AdminNav isSuperadmin={isSuperadmin} ordersCount={ordersCount} />
     </div>
   );
 }

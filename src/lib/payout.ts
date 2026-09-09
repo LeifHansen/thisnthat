@@ -248,10 +248,16 @@ export async function resolveConnectAccount(
 }
 
 /**
- * Capture the escrowed sale PaymentIntent and transfer the item price to the
- * seller's connected account (platform keeps the marketplace fee + shipping).
+ * Capture the held sale PaymentIntent and transfer the seller's proceeds to
+ * their connected account (platform keeps the platform fee + shipping).
  * If the seller hasn't completed Stripe Connect onboarding, funds are captured
  * to the platform and the transfer is skipped.
+ *
+ * Fee math: `platformFeeCents` on the order row was computed by
+ * computeSaleFees (src/lib/fees.ts) at checkout, and the seller's proceeds
+ * are `itemCents - platformFeeCents` exactly as SaleFeeBreakdown defines
+ * them. The stored figure is used rather than recomputed so a later change to
+ * PLATFORM_FEE_PCT can never alter what an already-placed order pays out.
  *
  * Returns whether the seller leg actually landed. Capture and payout can
  * succeed independently, and the caller must not tell a seller they were paid
@@ -348,8 +354,8 @@ export async function captureAndPay(orderId: string): Promise<{ paidOut: boolean
 }
 
 /**
- * Release escrow for a shipped order: mark it complete, capture the buyer's
- * payment, and transfer the seller's proceeds.
+ * Release the held payment for a shipped order: mark it complete, capture the
+ * buyer's payment, and transfer the seller's proceeds.
  *
  * Two independent things trigger this — the carrier reporting the parcel
  * delivered, and the buyer pressing "confirm receipt" — so the status

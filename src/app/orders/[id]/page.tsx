@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { formatCents, PLATFORM_FEE_LABEL } from "@/lib/fees";
 import { guestTokenMatches, statusLabel } from "@/lib/orderState";
+import { displayNameOf } from "@/lib/users";
 import { Timeline } from "@/components/Timeline";
-import { AuthBadge } from "@/components/AuthBadge";
+import { ConditionBadge } from "@/components/ConditionBadge";
 import {
   sellerMarkShipped,
   buyerConfirmReceipt,
@@ -39,7 +41,7 @@ export default async function OrderPage({
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      listing: true,
+      listing: { include: { category: { select: { name: true } } } },
       seller: true,
       buyer: true,
       shipmentEvents: { orderBy: { createdAt: "desc" } },
@@ -75,6 +77,15 @@ export default async function OrderPage({
     : isAdmin && !TERMINAL.includes(order.status);
   const hasShipped = order.status === "SHIPPED_TO_BUYER";
 
+  // Whether a buyer's payment is currently held (authorized, not yet captured
+  // or undone) — drives the trust line under the totals.
+  const paymentHeld =
+    order.status === "PAID_ESCROW" ||
+    order.status === "AWAITING_SHIP_TO_BUYER" ||
+    order.status === "SHIPPED_TO_BUYER";
+
+  const sellerName = displayNameOf(order.seller);
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div className="space-y-1">
@@ -109,6 +120,8 @@ export default async function OrderPage({
                 <p className="text-muted text-xs pt-1">
                   The buyer separately paid{" "}
                   {formatCents(order.shipToBuyerCents)} shipping.
+                  {paymentHeld &&
+                    " Their payment is held and released to you once the item is delivered or they confirm receipt."}
                 </p>
               </>
             ) : (
@@ -119,6 +132,11 @@ export default async function OrderPage({
                   <span>Total</span>
                   <span>{formatCents(order.totalCents)}</span>
                 </div>
+                {paymentHeld && (
+                  <p className="text-muted text-xs pt-1">
+                    Your payment is held until you confirm delivery.
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -138,29 +156,68 @@ export default async function OrderPage({
       </div>
 
       <div className="tnt-panel p-5 space-y-2">
-        <h2 className="text-ink">Authenticity</h2>
-        <AuthBadge
-          authType={order.listing.authType}
-          registrationNumber={order.listing.registrationNumber}
-          grade={order.listing.grade}
-          size="lg"
-        />
-        {order.listing.bxCertId && (
-          <p className="text-muted text-sm">
-            Certificate {order.listing.bxCertId}
-          </p>
-        )}
+        <h2 className="text-ink">Item</h2>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href={`/listings/${order.listing.id}`}
+            className="font-semibold !text-ink hover:opacity-80"
+          >
+            {order.listing.title}
+          </Link>
+          <ConditionBadge condition={order.listing.condition} />
+          <span className="text-muted text-sm">{order.listing.category.name}</span>
+        </div>
+        <p className="text-muted text-sm">
+          {isSeller ? (
+            <>Sold by you.</>
+          ) : (
+            <>
+              Sold by{" "}
+              <Link href={`/u/${order.seller.id}`} className="!text-ink font-semibold">
+                {sellerName}
+              </Link>
+              .
+            </>
+          )}
+        </p>
       </div>
 
       {order.shipmentEvents.length > 0 && (
-        <div className="tnt-panel p-5 space-y-1 text-sm">
-          <h2 className="text-ink">Shipments</h2>
-          {order.shipmentEvents.map((s) => (
-            <p key={s.id} className="text-muted">
-              {s.leg.replace(/_/g, " ")} · {s.carrier || "carrier?"} ·{" "}
-              {s.trackingNumber || "no tracking"}
-            </p>
-          ))}
+        <div className="tnt-panel p-5 space-y-2 text-sm">
+          <h2 className="text-ink">Shipment</h2>
+          <ul className="space-y-1">
+            {order.shipmentEvents.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5"
+              >
+                <span className="text-muted">
+                  <span className="font-semibold text-ink">
+                    {s.status.replace(/_/g, " ")}
+                  </span>{" "}
+                  · {s.carrier || "carrier not set"} ·{" "}
+                  {s.trackingNumber || "no tracking number"}
+                  {s.labelUrl && (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <a
+                        href={s.labelUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="!text-[var(--tnt-green)] font-semibold"
+                      >
+                        Label
+                      </a>
+                    </>
+                  )}
+                </span>
+                <span className="text-muted text-xs">
+                  {s.createdAt.toISOString().slice(0, 10)}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -176,10 +233,15 @@ export default async function OrderPage({
       {sellerNeedsToShip && (
         <div className="tnt-panel p-5 space-y-3">
           <h2 className="text-ink">Ship to the buyer</h2>
+          <p className="text-muted text-sm">
+            Enter the carrier and tracking number once the parcel is on its
+            way. Delivery scans release your payout automatically; the buyer
+            can also confirm receipt.
+          </p>
           <form action={sellerMarkShipped} className="space-y-2">
             <input type="hidden" name="orderId" value={order.id} />
-            {/* Required: "shipped" unlocks the buyer's escrow release, so it
-                must carry real shipping evidence (enforced server-side too). */}
+            {/* Required: "shipped" unlocks the buyer's confirm-receipt button,
+                so it must carry real shipping evidence (enforced server-side too). */}
             <input
               className="tnt-input"
               name="carrier"
@@ -201,16 +263,17 @@ export default async function OrderPage({
 
       {canConfirm && order.status === "SHIPPED_TO_BUYER" && (
         <form action={buyerConfirmReceipt} className="tnt-panel p-5 space-y-2">
-          <h2 className="text-ink">Received your beanie?</h2>
+          <h2 className="text-ink">Received your item?</h2>
           <p className="text-muted text-sm">
-            Confirming releases the escrowed funds to the seller.
+            Your payment is held until you confirm delivery. Confirming pays
+            the seller.
           </p>
           <input type="hidden" name="orderId" value={order.id} />
           {isGuestBuyer && (
             <input type="hidden" name="token" value={order.guestToken ?? ""} />
           )}
           <button className="tnt-btn w-full" type="submit">
-            Confirm Receipt &amp; Release Funds
+            Confirm Receipt &amp; Pay the Seller
           </button>
         </form>
       )}
@@ -223,7 +286,7 @@ export default async function OrderPage({
           <p className="text-muted text-sm mt-2">
             {hasShipped
               ? "This order has already shipped — only cancel once you've sorted out where the item is. The buyer gets their money back either way: we release the payment hold, or refund it if it has already been taken."
-              : "The buyer's payment is held but not taken. Cancelling releases that hold — so they're never charged — and puts the beanie back on the market."}
+              : "The buyer's payment is held but not taken. Cancelling releases that hold — so they're never charged — and puts the item back on the market."}
           </p>
           <form action={cancelAndRefundOrder} className="pt-1">
             <input type="hidden" name="orderId" value={order.id} />
@@ -255,13 +318,13 @@ export default async function OrderPage({
               <p className="text-sm whitespace-pre-wrap">{order.review.body}</p>
             )}
             <p className="text-muted text-xs">
-              Thanks — your review appears on {order.listing.beanieName} listings.
+              Thanks — your review appears on {sellerName}&apos;s profile.
             </p>
           </div>
         ) : (
           <ReviewForm
             orderId={order.id}
-            beanieName={order.listing.beanieName}
+            itemTitle={order.listing.title}
             submitReview={submitReview}
           />
         )

@@ -3,8 +3,9 @@ name: CI
 on:
   push:
     branches: [main]
+  # No branch filter: the repository's default branch is not `main`, so a
+  # filter on the PR base would skip every PR. Run for all of them.
   pull_request:
-    branches: [main]
 
 jobs:
   verify:
@@ -30,7 +31,7 @@ jobs:
         run: npx prisma generate
 
       - name: Typecheck
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Lint
         run: npx eslint src --quiet

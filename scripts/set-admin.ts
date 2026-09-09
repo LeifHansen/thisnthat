@@ -2,8 +2,9 @@
 //
 //   npx tsx scripts/set-admin.ts <email> [--revoke]
 //
-// Idempotent. Prints the before/after role. Used to provision the
-// superadmin dashboard (role ADMIN unlocks /admin).
+// Idempotent. Prints the before/after role. Role ADMIN unlocks /admin; the
+// single superadmin (user management) is whichever account SUPERADMIN_EMAIL
+// names — default admin@thisnthat.com — and must also hold ADMIN.
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();

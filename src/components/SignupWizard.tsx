@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { SITE_NAME } from "@/lib/site";
 
 type Form = {
   name: string;
@@ -26,7 +27,7 @@ export function SignupWizard() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   // On the final step the account exists and the session is live — the wizard
-  // is spent, and it shows a "list your first beanie" prompt instead of a form.
+  // is spent, and it shows a "list your first item" prompt instead of a form.
   const created = step === STEPS.length - 1;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -88,7 +89,7 @@ export function SignupWizard() {
         router.push("/auth/signin?registered=1");
         return;
       }
-      // Signed in — land on the final step: a nudge to list a first beanie.
+      // Signed in — land on the final step: a nudge to list a first item.
       setStep(STEPS.length - 1);
       setBusy(false);
     } catch (e) {
@@ -101,12 +102,12 @@ export function SignupWizard() {
     <div className="max-w-lg mx-auto space-y-6">
       <div className="space-y-2 text-center">
         <h1 className="text-ink text-3xl">
-          {created ? "Welcome to Beanie Xchange!" : "Create your account"}
+          {created ? `Welcome to ${SITE_NAME}!` : "Create your account"}
         </h1>
         <p className="text-muted text-sm">
           {created
             ? "Your account is ready and you're signed in."
-            : "Join Beanie Xchange to buy and sell authenticated beanies."}
+            : `Join ${SITE_NAME} to buy and sell almost anything.`}
         </p>
       </div>
 
@@ -148,7 +149,7 @@ export function SignupWizard() {
                 className="tnt-input"
                 value={f.name}
                 onChange={(e) => set("name", e.target.value)}
-                placeholder="Jane Collector"
+                placeholder="Jane Doe"
               />
             </Field>
             <Field label="Email">
@@ -282,27 +283,27 @@ export function SignupWizard() {
         {created && (
           <div className="text-center space-y-4 py-2">
             <p className="text-4xl" aria-hidden="true">
-              🧸
+              🏷️
             </p>
             <div className="space-y-1">
               <p className="text-ink font-semibold text-lg">
                 Ready to make your first sale?
               </p>
               <p className="text-muted text-sm">
-                Listing a beanie takes about two minutes — add photos, let AI
-                draft the details, set your price. You can also do this any
-                time from your dashboard.
+                Listing an item takes a couple of minutes — add photos,
+                describe it, set your price. You can also do this any time
+                from your dashboard.
               </p>
             </div>
             {/* replace: the wizard is spent, so Back should leave signup
                 behind instead of resurrecting the form for a signed-in user. */}
             <div className="flex flex-col gap-2">
-              <Link href="/sell/first" replace className="tnt-btn w-full">
-                List your first beanie →
+              <Link href="/sell" replace className="tnt-btn w-full">
+                List your first item →
               </Link>
               <Link
                 href={`/dashboard?toast=${encodeURIComponent(
-                  "Welcome to Beanie Xchange — you're signed in.",
+                  `Welcome to ${SITE_NAME} — you're signed in.`,
                 )}`}
                 replace
                 className="tnt-btn tnt-btn--ghost w-full"

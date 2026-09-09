@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { createListingForSeller, parseMinAutoAcceptCents } from "@/lib/createListing";
+import {
+  createListingForSeller,
+  parseMinAutoAcceptCents,
+  ListingInputError,
+} from "@/lib/createListing";
 import { getMobileUser } from "@/lib/mobileAuth";
 import { rateLimit } from "@/lib/rateLimit";
 import { firstError, listingSchema } from "@/lib/validation";
@@ -11,6 +15,12 @@ import { firstError, listingSchema } from "@/lib/validation";
 // an endpoint Next generates. So this is the same work over JSON: same
 // listingSchema, same createListingForSeller, so the two can't drift into
 // publishing different rows.
+//
+// Body (JSON), mirroring the web form field for field:
+//   { title, categorySlug, brand?, itemName?, condition, attributes?: {[key]: string},
+//     description?, price (dollars), quantity?, photos?: string[],
+//     minAutoAccept? (dollars), intent?: "draft" | "post" }
+// Responds 201 { id }.
 
 export const dynamic = "force-dynamic";
 
@@ -26,15 +36,38 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-  const parsed = listingSchema.safeParse(body);
+  const parsed = listingSchema.safeParse({
+    title: body.title,
+    categorySlug: body.categorySlug,
+    brand: body.brand ?? "",
+    itemName: body.itemName ?? "",
+    description: body.description ?? "",
+    condition: body.condition,
+    attributes: body.attributes ?? {},
+    price: body.price,
+    quantity: body.quantity || undefined,
+    photos: body.photos ?? [],
+  });
   if (!parsed.success) {
     return NextResponse.json({ error: firstError(parsed.error) }, { status: 400 });
   }
 
-  const listing = await createListingForSeller(seller, parsed.data, {
-    status: body.draft === true ? "DRAFT" : "ACTIVE",
-    minAutoAcceptCents: parseMinAutoAcceptCents(body.minAutoAccept),
-  });
+  // `intent` matches the web form; `draft: true` is the older app field and
+  // means the same thing.
+  const intent = body.intent === "draft" || body.draft === true ? "draft" : "post";
+
+  let listing: { id: string };
+  try {
+    listing = await createListingForSeller(seller, parsed.data, {
+      status: intent === "draft" ? "DRAFT" : "ACTIVE",
+      minAutoAcceptCents: parseMinAutoAcceptCents(body.minAutoAccept),
+    });
+  } catch (e) {
+    if (e instanceof ListingInputError) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
+    throw e;
+  }
 
   return NextResponse.json({ id: listing.id }, { status: 201 });
 }

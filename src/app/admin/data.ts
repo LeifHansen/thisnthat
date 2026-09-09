@@ -1,81 +1,118 @@
+import type { ListingStatus, OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { reconcileStuckAuthRequests } from "@/lib/authPayment";
 
-// Order statuses where money has been captured into escrow (or beyond) — used
-// for GMV and platform-fee revenue so pending/cancelled carts don't inflate it.
-const CAPTURED = [
+// Display order for the status filters and the overview breakdowns. Prisma
+// exports the enums as unordered objects, so the order is pinned here.
+export const LISTING_STATUSES: readonly ListingStatus[] = [
+  "ACTIVE",
+  "DRAFT",
+  "SOLD",
+  "REMOVED",
+];
+
+export const ORDER_STATUSES: readonly OrderStatus[] = [
+  "PENDING_PAYMENT",
   "PAID_ESCROW",
   "AWAITING_SHIP_TO_BUYER",
   "SHIPPED_TO_BUYER",
   "COMPLETED",
-] as const;
+  "REFUNDED",
+  "CANCELLED",
+];
 
-// Authentication submissions whose payment was collected — anything past the
-// unpaid REQUESTED state, terminal or not (a FAILED authentication was still
-// a paid service).
-const AUTH_PAID = [
-  "PAID",
-  "AWAITING_INBOUND",
-  "AT_CENTER",
-  "IN_REVIEW",
-  "PASSED",
-  "FAILED",
-  "RETURNED",
-] as const;
+// Order statuses where the buyer's money has been captured — held in escrow
+// or already paid out. Pending carts and cancellations are excluded so they
+// can't inflate the paid-order count.
+export const CAPTURED_STATUSES: readonly OrderStatus[] = [
+  "PAID_ESCROW",
+  "AWAITING_SHIP_TO_BUYER",
+  "SHIPPED_TO_BUYER",
+  "COMPLETED",
+];
 
-const QUEUE_ACTIONABLE = ["AWAITING_INBOUND", "AT_CENTER", "IN_REVIEW"] as const;
+// Captured but not settled: the money is still in escrow and the item is
+// still with the seller or in transit.
+export const IN_FLIGHT_STATUSES: readonly OrderStatus[] = [
+  "PAID_ESCROW",
+  "AWAITING_SHIP_TO_BUYER",
+  "SHIPPED_TO_BUYER",
+];
 
-/** Work awaiting an admin, split by the queue it belongs to. */
+// A paid order the seller still hasn't shipped after this many days is the
+// one thing on the marketplace that needs an admin to step in (nudge the
+// seller, or cancel and refund the buyer). It's what the Orders nav badge
+// counts.
+export const STUCK_AFTER_DAYS = 7;
+
+const UNSHIPPED: readonly OrderStatus[] = ["PAID_ESCROW", "AWAITING_SHIP_TO_BUYER"];
+
+export function stuckCutoff(now = new Date()): Date {
+  return new Date(now.getTime() - STUCK_AFTER_DAYS * 24 * 60 * 60 * 1000);
+}
+
+/** Work awaiting an admin on the Orders queue. */
 export type QueueCounts = {
-  /** Paid authentication submissions in an actionable state. */
-  auth: number;
-  /** New-beanie submissions awaiting a catalogue decision. */
-  database: number;
-  /** Both queues together — what the Queue nav badge shows. */
+  /** Paid orders the seller hasn't shipped within STUCK_AFTER_DAYS. */
+  stuck: number;
+  /** Every order between payment and completion. */
+  inFlight: number;
+  /** What the Orders nav badge shows. */
   total: number;
 };
 
-/**
- * The two admin queues share the /admin/queue page but are separate piles of
- * work, so they're counted separately — the overview gives each its own tile.
- */
 export async function loadQueueCounts(): Promise<QueueCounts> {
   try {
-    const [auth, database] = await Promise.all([
-      prisma.authenticationRequest.count({
-        where: { status: { in: [...QUEUE_ACTIONABLE] } },
+    const [stuck, inFlight] = await Promise.all([
+      prisma.order.count({
+        where: {
+          status: { in: [...UNSHIPPED] },
+          createdAt: { lt: stuckCutoff() },
+        },
       }),
-      prisma.beanieSubmission.count({ where: { status: "PENDING" } }),
+      prisma.order.count({ where: { status: { in: [...IN_FLIGHT_STATUSES] } } }),
     ]);
-    return { auth, database, total: auth + database };
+    return { stuck, inFlight, total: stuck };
   } catch {
-    return { auth: 0, database: 0, total: 0 };
+    return { stuck: 0, inFlight: 0, total: 0 };
   }
 }
 
-/** Total work items awaiting an admin: auth requests + new-beanie submissions. */
+/** The Orders nav badge: orders that need an admin's attention. */
 export async function loadQueueCount(): Promise<number> {
   return (await loadQueueCounts()).total;
 }
 
+export type CategoryCount = {
+  id: string;
+  slug: string;
+  name: string;
+  active: number;
+  total: number;
+};
+
 export type Kpis = {
   users: number;
+  /** Accounts created in the last 7 days. */
+  newUsers7d: number;
   admins: number;
   suspended: number;
-  activeListings: number;
+  listingsByStatus: Record<ListingStatus, number>;
   totalListings: number;
+  ordersByStatus: Record<OrderStatus, number>;
   totalOrders: number;
+  /** Orders whose payment was captured (in escrow or paid out). */
   paidOrders: number;
   completedOrders: number;
+  /** Item value of COMPLETED orders — what has actually changed hands. */
   gmvCents: number;
+  /** The platform's cut (PLATFORM_FEE_PCT of the item price) over COMPLETED orders. */
   revenueCents: number;
-  authPending: number;
-  /** Paid authentication submissions (all-time) and their service-fee take. */
-  authPaidCount: number;
-  authRevenueCents: number;
-  registry: number;
-  /** All-time clicks on the tracked True Blue egress link (/out/true-blue). */
-  trueBlueClicks: number;
+  /** Item value currently held in escrow: paid, not yet completed. */
+  escrowCents: number;
+  /** Open offers a seller still has to answer. */
+  pendingOffers: number;
+  /** Direct messages nobody has read yet. */
+  unreadMessages: number;
   /**
    * Stripe Connect funnel. `payoutStarted` counts sellers who have an Express
    * account at all — it is written the instant they click the button, so it
@@ -87,6 +124,8 @@ export type Kpis = {
   sellers: number;
   payoutStarted: number;
   payoutEnabled: number;
+  /** Listing counts per category, in the category tree's display order. */
+  categories: CategoryCount[];
 };
 
 export type Trends = {
@@ -94,9 +133,11 @@ export type Trends = {
   weeks: string[];
   newUsers: number[];
   newListings: number[];
+  /** Orders placed that week whose payment was captured. */
   paidOrders: number[];
+  /** Item value of those paid orders. */
   gmvCents: number[];
-  authPaid: number[];
+  newOffers: number[];
   /** Sellers whose payouts went live that week (stripePayoutsEnabledAt). */
   payoutEnabled: number[];
 };
@@ -129,7 +170,7 @@ export async function loadTrends(weeksBack = 12): Promise<Trends | null> {
       weeks.push(d.toISOString().slice(0, 10));
     }
 
-    const [users, listings, orders, auth, payouts] = await Promise.all([
+    const [users, listings, orders, offers, payouts] = await Promise.all([
       prisma.$queryRaw<WeekRow[]>`
         SELECT date_trunc('week', "createdAt") AS wk, count(*)::int AS n
         FROM "User" WHERE "createdAt" >= ${start}
@@ -147,8 +188,7 @@ export async function loadTrends(weeksBack = 12): Promise<Trends | null> {
         GROUP BY 1`,
       prisma.$queryRaw<WeekRow[]>`
         SELECT date_trunc('week', "createdAt") AS wk, count(*)::int AS n
-        FROM "AuthenticationRequest"
-        WHERE "createdAt" >= ${start} AND status::text <> 'REQUESTED'
+        FROM "Offer" WHERE "createdAt" >= ${start}
         GROUP BY 1`,
       // Sellers who finished Stripe onboarding, by the week it went live.
       // Only stamped from the deploy that added the column onward, so early
@@ -173,7 +213,7 @@ export async function loadTrends(weeksBack = 12): Promise<Trends | null> {
       newListings: fill(listings, (r) => r.n),
       paidOrders: fill(orders, (r) => r.n),
       gmvCents: fill(orders, (r) => r.cents ?? 0),
-      authPaid: fill(auth, (r) => r.n),
+      newOffers: fill(offers, (r) => r.n),
       payoutEnabled: fill(payouts, (r) => r.n),
     };
   } catch (e) {
@@ -182,82 +222,121 @@ export async function loadTrends(weeksBack = 12): Promise<Trends | null> {
   }
 }
 
+function zeroed<K extends string>(keys: readonly K[]): Record<K, number> {
+  return Object.fromEntries(keys.map((k) => [k, 0])) as Record<K, number>;
+}
+
 export async function loadKpis(): Promise<Kpis> {
-  // A paid authentication whose webhook was missed sits at REQUESTED and
-  // would be invisible in every figure below. The queue page reconciles on
-  // open, but the report snapshot is often the only page an operator checks —
-  // reconcile here too (best-effort, cheap when nothing is stuck).
-  await reconcileStuckAuthRequests();
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   const [
     users,
+    newUsers7d,
     admins,
     suspended,
-    activeListings,
-    totalListings,
-    totalOrders,
-    paidOrders,
-    completedOrders,
-    money,
-    authPending,
-    authMoney,
-    registry,
-    trueBlueClicks,
+    listingGroups,
+    orderGroups,
+    pendingOffers,
+    unreadMessages,
     sellers,
     payoutStarted,
     payoutEnabled,
+    categoryRows,
+    categoryGroups,
   ] = await Promise.all([
     prisma.user.count(),
+    prisma.user.count({ where: { createdAt: { gte: weekAgo } } }),
     prisma.user.count({ where: { role: "ADMIN" } }),
     prisma.user.count({ where: { suspended: true } }),
-    prisma.listing.count({ where: { status: "ACTIVE" } }),
-    prisma.listing.count(),
-    prisma.order.count(),
-    prisma.order.count({ where: { status: { in: [...CAPTURED] } } }),
-    prisma.order.count({ where: { status: "COMPLETED" } }),
-    prisma.order.aggregate({
-      where: { status: { in: [...CAPTURED] } },
+    prisma.listing.groupBy({ by: ["status"], _count: { _all: true } }),
+    // One pass over Order gives the per-status counts and the money totals;
+    // GMV/fees/escrow are then just sums over the relevant statuses.
+    prisma.order.groupBy({
+      by: ["status"],
+      _count: { _all: true },
       _sum: { itemCents: true, platformFeeCents: true },
     }),
-    prisma.authenticationRequest.count({
-      where: { status: { in: [...QUEUE_ACTIONABLE] } },
-    }),
-    // Authentication is a revenue line of its own — these sales never touch
-    // the Order table, so without this the report reads $0 after an auth sale.
-    prisma.authenticationRequest.aggregate({
-      where: { status: { in: [...AUTH_PAID] } },
-      _sum: { serviceFeeCents: true },
-      _count: true,
-    }),
-    prisma.registryEntry.count(),
-    prisma.outboundClick.count({ where: { target: "true-blue" } }),
+    // expireStaleOffers() sweeps lazily, so exclude anything already past its
+    // expiry even if the row still says PENDING.
+    prisma.offer.count({ where: { status: "PENDING", expiresAt: { gt: now } } }),
+    prisma.message.count({ where: { readAt: null } }),
     // Anyone who has ever put up a listing — the population that has a reason
     // to connect payouts, and so the only honest denominator for the rate.
     prisma.user.count({
       where: { listings: { some: { status: { not: "REMOVED" } } } },
     }),
-    prisma.user.count({ where: { stripeConnectId: { not: null } } }),
+    // stripeConnectStartedAt is the intended marker, but accounts provisioned
+    // before it existed only carry the Connect id — count either.
+    prisma.user.count({
+      where: {
+        OR: [
+          { stripeConnectStartedAt: { not: null } },
+          { stripeConnectId: { not: null } },
+        ],
+      },
+    }),
     prisma.user.count({ where: { stripePayoutsEnabledAt: { not: null } } }),
+    prisma.category.findMany({
+      orderBy: [{ position: "asc" }, { name: "asc" }],
+      select: { id: true, slug: true, name: true },
+    }),
+    prisma.listing.groupBy({
+      by: ["categoryId", "status"],
+      _count: { _all: true },
+    }),
   ]);
+
+  const listingsByStatus = zeroed(LISTING_STATUSES);
+  for (const g of listingGroups) listingsByStatus[g.status] = g._count._all;
+
+  const ordersByStatus = zeroed(ORDER_STATUSES);
+  let gmvCents = 0;
+  let revenueCents = 0;
+  let escrowCents = 0;
+  let paidOrders = 0;
+  for (const g of orderGroups) {
+    ordersByStatus[g.status] = g._count._all;
+    if (g.status === "COMPLETED") {
+      gmvCents += g._sum.itemCents ?? 0;
+      revenueCents += g._sum.platformFeeCents ?? 0;
+    } else if (IN_FLIGHT_STATUSES.includes(g.status)) {
+      escrowCents += g._sum.itemCents ?? 0;
+    }
+    if (CAPTURED_STATUSES.includes(g.status)) paidOrders += g._count._all;
+  }
+
+  const perCategory = new Map<string, { active: number; total: number }>();
+  for (const g of categoryGroups) {
+    const c = perCategory.get(g.categoryId) ?? { active: 0, total: 0 };
+    c.total += g._count._all;
+    if (g.status === "ACTIVE") c.active += g._count._all;
+    perCategory.set(g.categoryId, c);
+  }
+  const categories: CategoryCount[] = categoryRows.map((c) => ({
+    ...c,
+    ...(perCategory.get(c.id) ?? { active: 0, total: 0 }),
+  }));
 
   return {
     users,
+    newUsers7d,
     admins,
     suspended,
-    activeListings,
-    totalListings,
-    totalOrders,
+    listingsByStatus,
+    totalListings: Object.values(listingsByStatus).reduce((s, n) => s + n, 0),
+    ordersByStatus,
+    totalOrders: Object.values(ordersByStatus).reduce((s, n) => s + n, 0),
     paidOrders,
-    completedOrders,
-    gmvCents: money._sum.itemCents ?? 0,
-    revenueCents: money._sum.platformFeeCents ?? 0,
-    authPending,
-    authPaidCount: authMoney._count,
-    authRevenueCents: authMoney._sum.serviceFeeCents ?? 0,
-    registry,
-    trueBlueClicks,
+    completedOrders: ordersByStatus.COMPLETED,
+    gmvCents,
+    revenueCents,
+    escrowCents,
+    pendingOffers,
+    unreadMessages,
     sellers,
     payoutStarted,
     payoutEnabled,
+    categories,
   };
 }

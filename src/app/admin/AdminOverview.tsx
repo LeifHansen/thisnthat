@@ -1,13 +1,20 @@
 import Link from "next/link";
-import { formatCents } from "@/lib/fees";
-import type { Kpis, QueueCounts } from "./data";
+import { formatCents, PLATFORM_FEE_LABEL } from "@/lib/fees";
+import { statusLabel } from "@/lib/orderState";
+import {
+  ORDER_STATUSES,
+  STUCK_AFTER_DAYS,
+  type Kpis,
+  type QueueCounts,
+} from "./data";
 
 /**
- * The admin "report snapshot" — a single colored KPI grid. Shared by the
+ * The admin "report snapshot" — a single colored KPI grid plus two
+ * breakdowns (orders by status, listings by category). Shared by the
  * standalone /admin overview page and the superadmin's dashboard Admin tab.
  *
- * Tiles that map onto an admin workspace (users, listings, the two queues)
- * are themselves the links to that workspace, so there's one tile per concept
+ * Tiles that map onto an admin workspace (users, listings, orders) are
+ * themselves the links to that workspace, so there's one tile per concept
  * instead of a static stat plus a duplicate quick-link.
  */
 
@@ -22,6 +29,10 @@ const TONES: Record<Tone, { bg: string; fg: string; ring: string }> = {
   pink: { bg: "var(--tnt-red-soft)", fg: "var(--tnt-red)", ring: "var(--tnt-red)" },
   amber: { bg: "#fbf1d6", fg: "#a9790f", ring: "var(--tnt-yellow)" },
 };
+
+function plural(n: number, word: string): string {
+  return `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`;
+}
 
 export function AdminOverview({
   kpis,
@@ -50,117 +61,164 @@ export function AdminOverview({
           this environment.
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          <Tile tone="green" label="GMV (captured)" value={formatCents(kpis.gmvCents)} />
-          {/* Marketplace fees + authentication service fees — auth sales
-              never touch the Order table, so they'd otherwise read as $0. */}
-          <Tile
-            tone="amber"
-            label="Platform revenue"
-            value={formatCents(kpis.revenueCents + kpis.authRevenueCents)}
-            sub={`${formatCents(kpis.revenueCents)} marketplace · ${formatCents(kpis.authRevenueCents)} auth`}
-          />
-          <Tile tone="blue" label="Paid orders" value={kpis.paidOrders.toLocaleString()} />
-          <Tile
-            tone="pink"
-            label="Auth sales"
-            value={formatCents(kpis.authRevenueCents)}
-            sub={`${kpis.authPaidCount.toLocaleString()} paid submission${
-              kpis.authPaidCount === 1 ? "" : "s"
-            }`}
-            href="/admin/queue"
-          />
-          <Tile
-            tone="green"
-            label="Completed orders"
-            value={kpis.completedOrders.toLocaleString()}
-          />
-          <Tile
-            tone="purple"
-            label="Users"
-            value={kpis.users.toLocaleString()}
-            sub={`${kpis.admins} admin${kpis.admins === 1 ? "" : "s"}${
-              kpis.suspended ? ` · ${kpis.suspended} suspended` : ""
-            }`}
-            href={superadmin ? "/admin/users" : undefined}
-          />
-          <Tile
-            tone="blue"
-            label="Active listings"
-            value={kpis.activeListings.toLocaleString()}
-            sub={`${kpis.totalListings.toLocaleString()} all-time`}
-            href="/admin/listings"
-          />
-          {/* The queue page holds two independent piles of work — paid
-              authentication submissions and new beanies awaiting a catalogue
-              decision — so each gets its own tile and deep-links to its
-              section instead of sharing one ambiguous count. */}
-          <Tile
-            tone="pink"
-            label="Auth queue"
-            value={queue.auth.toLocaleString()}
-            sub="submissions awaiting action"
-            href="/admin/queue#auth-queue"
-            badge={queue.auth}
-          />
-          <Tile
-            tone="amber"
-            label="Database queue"
-            value={queue.database.toLocaleString()}
-            sub="new beanies to review"
-            href="/admin/queue#database-queue"
-            badge={queue.database}
-          />
-          {/* The Stripe Connect funnel, as a rate rather than a count. A seller
-              can't be paid without finishing onboarding, and the two numbers
-              answer different questions: a low "started" means nobody is
-              finding the prompt, while a wide started→live gap means they are
-              finding it and abandoning Stripe's form. Both were previously
-              invisible — the only signal anywhere was a per-row badge on the
-              users table. */}
-          <Tile
-            tone="green"
-            label="Seller payouts live"
-            value={
-              kpis.sellers > 0
-                ? `${Math.round((kpis.payoutEnabled / kpis.sellers) * 100)}%`
-                : "—"
-            }
-            sub={`${kpis.payoutEnabled.toLocaleString()} of ${kpis.sellers.toLocaleString()} seller${
-              kpis.sellers === 1 ? "" : "s"
-            }`}
-          />
-          <Tile
-            tone="pink"
-            label="Payout setup started"
-            value={kpis.payoutStarted.toLocaleString()}
-            sub={
-              kpis.payoutStarted > kpis.payoutEnabled
-                ? `${(kpis.payoutStarted - kpis.payoutEnabled).toLocaleString()} not finished`
-                : "all finished"
-            }
-          />
-          <Tile
-            tone="amber"
-            label="Registry entries"
-            value={kpis.registry.toLocaleString()}
-          />
-          {superadmin && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <Tile
+              tone="green"
+              label="GMV (completed)"
+              value={formatCents(kpis.gmvCents)}
+              sub={`${formatCents(kpis.escrowCents)} still in escrow`}
+            />
+            <Tile
+              tone="amber"
+              label={`Platform fees (${PLATFORM_FEE_LABEL})`}
+              value={formatCents(kpis.revenueCents)}
+              sub="earned on completed orders"
+            />
             <Tile
               tone="blue"
-              label="True Blue link clicks"
-              value={kpis.trueBlueClicks.toLocaleString()}
-              sub="all-time outbound"
+              label="Orders"
+              value={kpis.totalOrders.toLocaleString()}
+              sub={`${kpis.paidOrders.toLocaleString()} paid · ${kpis.completedOrders.toLocaleString()} completed`}
+              href="/admin/orders"
             />
-          )}
-          <Tile
-            tone="purple"
-            label="AI blog generator"
-            value="Write a post"
-            sub="Draft & publish editorial"
-            href="/admin/blog"
-          />
-        </div>
+            {/* The one pile of work an admin actually has: paid orders the
+                seller is sitting on. Deep-links to the same filter on the
+                Orders queue. */}
+            <Tile
+              tone="pink"
+              label="Stuck orders"
+              value={queue.stuck.toLocaleString()}
+              sub={`unshipped after ${STUCK_AFTER_DAYS} days · ${plural(queue.inFlight, "order")} in flight`}
+              href="/admin/orders?status=stuck"
+              badge={queue.stuck}
+            />
+            <Tile
+              tone="purple"
+              label="Users"
+              value={kpis.users.toLocaleString()}
+              sub={`${kpis.newUsers7d.toLocaleString()} new this week · ${plural(kpis.admins, "admin")}${
+                kpis.suspended ? ` · ${kpis.suspended} suspended` : ""
+              }`}
+              href={superadmin ? "/admin/users" : undefined}
+            />
+            <Tile
+              tone="blue"
+              label="Active listings"
+              value={kpis.listingsByStatus.ACTIVE.toLocaleString()}
+              sub={`${kpis.listingsByStatus.DRAFT.toLocaleString()} draft · ${kpis.listingsByStatus.SOLD.toLocaleString()} sold · ${kpis.listingsByStatus.REMOVED.toLocaleString()} removed`}
+              href="/admin/listings"
+            />
+            <Tile
+              tone="amber"
+              label="Pending offers"
+              value={kpis.pendingOffers.toLocaleString()}
+              sub="awaiting a seller's answer"
+            />
+            <Tile
+              tone="purple"
+              label="Unread messages"
+              value={kpis.unreadMessages.toLocaleString()}
+              sub="across all conversations"
+            />
+            {/* The Stripe Connect funnel, as a rate rather than a count. A seller
+                can't be paid without finishing onboarding, and the two numbers
+                answer different questions: a low "started" means nobody is
+                finding the prompt, while a wide started→live gap means they are
+                finding it and abandoning Stripe's form. */}
+            <Tile
+              tone="green"
+              label="Seller payouts live"
+              value={
+                kpis.sellers > 0
+                  ? `${Math.round((kpis.payoutEnabled / kpis.sellers) * 100)}%`
+                  : "—"
+              }
+              sub={`${kpis.payoutEnabled.toLocaleString()} of ${plural(kpis.sellers, "seller")}`}
+            />
+            <Tile
+              tone="pink"
+              label="Payout setup started"
+              value={kpis.payoutStarted.toLocaleString()}
+              sub={
+                kpis.payoutStarted > kpis.payoutEnabled
+                  ? `${(kpis.payoutStarted - kpis.payoutEnabled).toLocaleString()} not finished`
+                  : "all finished"
+              }
+            />
+            <Tile
+              tone="purple"
+              label="AI blog generator"
+              value="Write a post"
+              sub="Draft & publish editorial"
+              href="/admin/blog"
+            />
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-4">
+            <section className="tnt-panel p-4 space-y-2">
+              <h3 className="text-ink font-bold">Orders by status</h3>
+              <ul className="divide-y divide-[var(--tnt-line)] text-sm">
+                {ORDER_STATUSES.map((s) => (
+                  <li key={s} className="flex items-center justify-between gap-3 py-1.5">
+                    <Link
+                      href={`/admin/orders?status=${s}`}
+                      className="!text-ink hover:!text-[var(--tnt-red)] font-medium"
+                    >
+                      {statusLabel(s)}
+                      <span className="text-muted font-normal text-xs">
+                        {" "}
+                        · {s.replace(/_/g, " ")}
+                      </span>
+                    </Link>
+                    <span className="font-semibold tabular-nums">
+                      {kpis.ordersByStatus[s].toLocaleString()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="tnt-panel p-4 space-y-2">
+              <h3 className="text-ink font-bold">Listings by category</h3>
+              {kpis.categories.length === 0 ? (
+                <p className="text-muted text-sm">
+                  No categories seeded yet — run the Prisma seed.
+                </p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-muted text-xs uppercase tracking-wide border-b border-[var(--tnt-line)]">
+                      <th className="py-1.5 pr-3 font-semibold">Category</th>
+                      <th className="py-1.5 pr-3 font-semibold text-right">Active</th>
+                      <th className="py-1.5 font-semibold text-right">All-time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {kpis.categories.map((c) => (
+                      <tr key={c.id} className="border-b border-[var(--tnt-line)] last:border-0">
+                        <td className="py-1.5 pr-3">
+                          <Link
+                            href={`/admin/listings?category=${encodeURIComponent(c.slug)}`}
+                            className="!text-ink hover:!text-[var(--tnt-red)] font-medium"
+                          >
+                            {c.name}
+                          </Link>
+                        </td>
+                        <td className="py-1.5 pr-3 text-right font-semibold tabular-nums">
+                          {c.active.toLocaleString()}
+                        </td>
+                        <td className="py-1.5 text-right text-muted tabular-nums">
+                          {c.total.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </section>
+          </div>
+        </>
       )}
     </div>
   );

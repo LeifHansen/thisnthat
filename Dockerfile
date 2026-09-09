@@ -4,6 +4,8 @@ ARG NODE_VERSION=22.21.1
 FROM node:${NODE_VERSION}-slim AS base
 
 LABEL fly_launch_runtime="Next.js/Prisma"
+LABEL org.opencontainers.image.title="thisnthat"
+LABEL org.opencontainers.image.description="This'n'that resale marketplace (Next.js + Prisma)"
 
 WORKDIR /app
 ENV NODE_ENV="production"

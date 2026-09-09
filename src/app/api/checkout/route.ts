@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireStripe } from "@/lib/stripe";
 import { computeSaleFees } from "@/lib/fees";
 import { rateSaleShipping } from "@/lib/shipping";
+import { SITE_NAME } from "@/lib/site";
 import { cartCheckoutSchema, firstError } from "@/lib/validation";
 import { rateLimit } from "@/lib/rateLimit";
 import { sweepAbandonedReservations } from "@/lib/listings";
@@ -15,11 +16,13 @@ const guestToken = () => crypto.randomUUID().replace(/-/g, "");
  * (and, for guests, an email), and a Stripe PaymentMethod collected on the
  * client via the deferred Payment Element.
  *
- * Each listing becomes its own Order with its OWN manual-capture PaymentIntent,
- * authorized here server-side against the shared PaymentMethod. One PaymentIntent
- * per order is what keeps escrow honest across sellers: funds for each item are
- * captured only when THAT item's receipt is confirmed (see lib/payout.ts), so
- * confirming one item never releases another seller's held funds.
+ * Each listing becomes its own Order (with that listing's sellerId) and its
+ * OWN manual-capture PaymentIntent, authorized here server-side against the
+ * shared PaymentMethod. One PaymentIntent per order is what keeps the held
+ * payment honest across sellers in a multi-seller cart: funds for each item
+ * are captured only when THAT item is delivered or its receipt confirmed (see
+ * lib/payout.ts), so confirming one item never releases another seller's
+ * held funds. Every order ships direct, seller -> buyer.
  */
 export async function POST(req: Request) {
   const limited = rateLimit(req, "checkout", 20, 60_000);
@@ -183,7 +186,6 @@ export async function POST(req: Request) {
               platformFeeCents: fees.platformFeeCents,
               shipToBuyerCents: fees.shipToBuyerCents,
               totalCents: fees.totalCents,
-              fulfillmentPath: "DIRECT",
               status: "PENDING_PAYMENT",
               shipName: ship.name,
               shipLine1: ship.line1,
@@ -272,7 +274,7 @@ export async function POST(req: Request) {
           automatic_payment_methods: { enabled: true, allow_redirects: "never" },
           receipt_email: receiptEmail,
           metadata: { kind: "sale", orderId: order.id, cartId },
-          description: `Beanie Xchange order ${order.id}`,
+          description: `${SITE_NAME} order ${order.id}`,
         },
         // One authorization per order, ever — a network-level retry of this
         // call can't double-authorize the buyer's card.

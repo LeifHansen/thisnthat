@@ -49,7 +49,7 @@ export function UserRowActions({
         onSubmit={(e) => {
           if (
             !confirm(
-              `Permanently delete ${name}? This can't be undone. Accounts with orders/listings are protected and can't be deleted — suspend those instead.`,
+              `Permanently delete ${name}? This can't be undone. Accounts with orders, listings, offers, reviews or messages are protected and can't be deleted — suspend those instead.`,
             )
           ) {
             e.preventDefault();

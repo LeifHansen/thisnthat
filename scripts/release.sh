@@ -13,5 +13,7 @@
 node scripts/check-stripe-key.mjs || echo "stripe key check errored (non-fatal)"
 
 npx prisma migrate deploy || echo "release migrate failed; entrypoint will retry on boot"
+# Idempotent: syncs the category table from src/lib/categories.ts and (re)creates
+# the demo accounts. With NODE_ENV=production it seeds no demo listings.
 npx prisma db seed || echo "seed failed (non-fatal)"
 exit 0

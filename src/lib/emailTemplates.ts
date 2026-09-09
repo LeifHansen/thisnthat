@@ -1,4 +1,10 @@
-import { SITE_URL, SITE_NAME, absoluteUrl } from "@/lib/site";
+import {
+  SITE_URL,
+  SITE_NAME,
+  SITE_TAGLINE,
+  SUPPORT_EMAIL,
+  absoluteUrl,
+} from "@/lib/site";
 import { formatCents, PLATFORM_FEE_LABEL } from "@/lib/fees";
 
 // Brand tokens mirrored from globals.css (email clients need inline colors).
@@ -20,8 +26,8 @@ type LayoutOpts = {
 
 /**
  * Wrap body HTML in the branded shell: logo header, white card, optional CTA
- * button, and a footer with address + one-click unsubscribe. All styling is
- * inline; layout uses tables for Outlook/Gmail compatibility.
+ * button, and a footer with support contact + one-click unsubscribe. All
+ * styling is inline; layout uses tables for Outlook/Gmail compatibility.
  */
 export function layout(bodyHtml: string, opts: LayoutOpts = {}): string {
   const preheader = opts.preheader
@@ -43,7 +49,7 @@ export function layout(bodyHtml: string, opts: LayoutOpts = {}): string {
   const unsub = opts.unsubscribeUrl
     ? `<br/>You're receiving ${
         opts.unsubscribeLabel ?? "notifications"
-      } from ${SITE_NAME}. <a href="${opts.unsubscribeUrl}" style="color:${INK_SOFT};text-decoration:underline;">Manage or unsubscribe</a>.`
+      } from ${escapeHtml(SITE_NAME)}. <a href="${opts.unsubscribeUrl}" style="color:${INK_SOFT};text-decoration:underline;">Manage or unsubscribe</a>.`
     : "";
 
   return `<!doctype html>
@@ -57,7 +63,7 @@ ${preheader}
         <a href="${SITE_URL}" style="text-decoration:none;">
           <img src="${absoluteUrl(
             "/tnt-logo.png",
-          )}" width="56" height="56" alt="${SITE_NAME}" style="display:block;border:0;"/>
+          )}" width="56" height="56" alt="${escapeHtml(SITE_NAME)}" style="display:block;border:0;"/>
         </a>
       </td></tr>
       <tr><td style="background:${SURFACE};border:1px solid ${LINE};border-radius:16px;padding:28px 28px 24px;font-family:Arial,Helvetica,sans-serif;color:${INK};font-size:15px;line-height:1.55;">
@@ -65,7 +71,8 @@ ${preheader}
         ${cta}
       </td></tr>
       <tr><td style="padding:18px 8px 4px;font-family:Arial,Helvetica,sans-serif;color:${INK_SOFT};font-size:12px;line-height:1.5;text-align:center;">
-        ${SITE_NAME} — buy, sell &amp; authenticate Beanie Babies.${unsub}
+        ${escapeHtml(SITE_NAME)} — ${escapeHtml(SITE_TAGLINE)}<br/>
+        Questions? <a href="mailto:${SUPPORT_EMAIL}" style="color:${INK_SOFT};text-decoration:underline;">${escapeHtml(SUPPORT_EMAIL)}</a>${unsub}
       </td></tr>
     </table>
   </td></tr>
@@ -93,7 +100,7 @@ function muted(text: string): string {
   return `<p style="margin:0 0 8px;color:${INK_SOFT};font-size:13px;">${text}</p>`;
 }
 
-/** A small labeled line item (e.g. "Item: Princess" / "Price: $18.00"). */
+/** A small labeled line item (e.g. "Item: Denim jacket" / "Price: $18.00"). */
 function detail(label: string, value: string): string {
   return `<tr>
     <td style="padding:4px 12px 4px 0;color:${INK_SOFT};font-size:13px;white-space:nowrap;">${escapeHtml(
@@ -122,8 +129,8 @@ export function orderPaidBuyer(d: {
   orderId: string;
 }): BuiltEmail {
   const body =
-    h1("Order confirmed — you're covered by escrow") +
-    p(`Hi${d.buyerName ? " " + escapeHtml(d.buyerName.split(" ")[0]) : ""}, your payment is authorized and held safely in escrow. Funds only release to the seller after you confirm the item arrived and is authentic.`) +
+    h1("Order confirmed — your payment is protected") +
+    p(`Hi${d.buyerName ? " " + escapeHtml(d.buyerName.split(" ")[0]) : ""}, your payment is authorized and held by ${escapeHtml(SITE_NAME)}. The seller is only paid once your item is delivered or you confirm it arrived as described.`) +
     detailBlock([
       ["Item", d.itemTitle],
       ["Total", formatCents(d.priceCents)],
@@ -131,7 +138,7 @@ export function orderPaidBuyer(d: {
   return {
     subject: `Order confirmed: ${d.itemTitle}`,
     html: layout(body, {
-      preheader: "Your payment is held in escrow until you confirm delivery.",
+      preheader: "Your payment is held until you confirm delivery.",
       cta: { label: "View your order", url: absoluteUrl(`/orders/${d.orderId}`) },
     }),
   };
@@ -147,8 +154,8 @@ export function orderPaidSeller(d: {
   unsubscribeUrl?: string;
 }): BuiltEmail {
   const body =
-    h1("You sold a Beanie! 🎉") +
-    p(`${escapeHtml(d.itemTitle)} just sold. The buyer's payment is in escrow — ship it and you'll be paid once they confirm receipt.`) +
+    h1("You made a sale! 🎉") +
+    p(`${escapeHtml(d.itemTitle)} just sold. The buyer's payment is held — ship it and you'll be paid once the parcel is delivered or the buyer confirms receipt.`) +
     detailBlock([
       ["Item", d.itemTitle],
       ["Sale price", formatCents(d.priceCents)],
@@ -157,7 +164,7 @@ export function orderPaidSeller(d: {
   return {
     subject: `You sold: ${d.itemTitle}`,
     html: layout(body, {
-      preheader: "Ship it to get paid — funds are waiting in escrow.",
+      preheader: "Ship it to get paid — the buyer's payment is waiting.",
       cta: { label: "Ship this order", url: absoluteUrl(`/orders/${d.orderId}`) },
       unsubscribeUrl: d.unsubscribeUrl,
       unsubscribeLabel: "order notifications",
@@ -171,8 +178,8 @@ export function orderShippedBuyer(d: {
   unsubscribeUrl?: string;
 }): BuiltEmail {
   const body =
-    h1("Your Beanie is on its way 📦") +
-    p(`The seller has shipped <strong>${escapeHtml(d.itemTitle)}</strong>. When it arrives, confirm receipt from your order page so the seller gets paid — and so escrow protection stays on your side until then.`);
+    h1("Your item is on its way 📦") +
+    p(`The seller has shipped <strong>${escapeHtml(d.itemTitle)}</strong>. When it arrives, confirm receipt from your order page so the seller gets paid — your payment stays held until then.`);
   return {
     subject: `Shipped: ${d.itemTitle}`,
     html: layout(body, {
@@ -192,12 +199,12 @@ export function orderCompletedSeller(d: {
 }): BuiltEmail {
   const body =
     h1("You've been paid 💸") +
-    p(`The buyer confirmed receipt of <strong>${escapeHtml(d.itemTitle)}</strong>. Your payout is on its way to your connected account.`) +
+    p(`<strong>${escapeHtml(d.itemTitle)}</strong> was delivered. Your payout is on its way to your connected account.`) +
     detailBlock([["Payout", formatCents(d.payoutCents)]]);
   return {
     subject: `Paid out: ${d.itemTitle}`,
     html: layout(body, {
-      preheader: "Escrow released — your payout is processing.",
+      preheader: "Payment released — your payout is processing.",
       cta: { label: "View order", url: absoluteUrl(`/orders/${d.orderId}`) },
       unsubscribeUrl: d.unsubscribeUrl,
       unsubscribeLabel: "order notifications",
@@ -242,7 +249,7 @@ export function offerAcceptedBuyer(d: {
   return {
     subject: `Accepted: your offer on ${d.itemTitle}`,
     html: layout(body, {
-      preheader: "Check out now to secure your Beanie.",
+      preheader: "Check out now to secure your item.",
       cta: { label: "Complete checkout", url: absoluteUrl(`/listings/${d.listingId}`) },
       unsubscribeUrl: d.unsubscribeUrl,
       unsubscribeLabel: "offer notifications",
@@ -282,7 +289,7 @@ export function newMessage(d: {
     `<blockquote style="margin:0 0 12px;padding:10px 14px;border-left:3px solid ${PINK};background:#faf6f0;color:${INK};font-size:14px;">${escapeHtml(
       snippet,
     )}</blockquote>` +
-    muted("Reply from your BeanieXchange inbox.");
+    muted(`Reply from your ${escapeHtml(SITE_NAME)} inbox.`);
   return {
     subject: `${d.fromName} sent you a message`,
     html: layout(body, {
@@ -306,7 +313,7 @@ export function newFollower(d: {
   return {
     subject: `${d.followerName} is now following your store`,
     html: layout(body, {
-      preheader: "A collector is following your BeanieXchange store.",
+      preheader: `Someone is following your ${SITE_NAME} store.`,
       cta: { label: "View their profile", url: absoluteUrl(`/u/${d.followerId}`) },
       unsubscribeUrl: d.unsubscribeUrl,
       unsubscribeLabel: "follower notifications",
@@ -319,21 +326,21 @@ export function firstListingNudge(d: {
   unsubscribeUrl?: string;
 }): BuiltEmail {
   const body =
-    h1("Ready to sell your first beanie?") +
+    h1("Ready to list your first item?") +
     p(
-      `Hi${d.name ? " " + escapeHtml(d.name.split(" ")[0]) : ""}, your BeanieXchange account is set up — but your store is still empty. Our guided wizard walks you through your first listing in about two minutes: add photos, let AI draft the details, set your price.`,
+      `Hi${d.name ? " " + escapeHtml(d.name.split(" ")[0]) : ""}, your ${escapeHtml(SITE_NAME)} account is set up — but your store is still empty. Listing takes a couple of minutes: add photos, describe the item, set your price.`,
     ) +
     p(
-      "Payments are held in escrow until the buyer confirms delivery, so you're protected on every sale. Serious collectors are browsing every day.",
+      "Payments are held until the buyer confirms delivery, so you're protected on every sale. Buyers are browsing every day.",
     ) +
     muted(
       "Not selling? No problem — this is the only nudge we'll send about it.",
     );
   return {
-    subject: "Your BeanieXchange store is still empty 🧸",
+    subject: `Your ${SITE_NAME} store is still empty`,
     html: layout(body, {
-      preheader: "List your first beanie in about two minutes.",
-      cta: { label: "List your first beanie", url: absoluteUrl("/sell/first") },
+      preheader: "List your first item in a couple of minutes.",
+      cta: { label: "List your first item", url: absoluteUrl("/sell") },
       unsubscribeUrl: d.unsubscribeUrl,
       unsubscribeLabel: "tips & nudges",
     }),
@@ -360,7 +367,7 @@ export function orderRefundedBuyer(d: {
     ) +
     muted("Nothing further is needed from you.");
   return {
-    subject: "Your BeanieXchange order was cancelled",
+    subject: `Your ${SITE_NAME} order was cancelled`,
     html: layout(body, {
       preheader: d.wasCharged
         ? "Your refund is on its way."
@@ -370,45 +377,15 @@ export function orderRefundedBuyer(d: {
   };
 }
 
-export function authInboundLabelSubmitter(d: {
-  beanieName: string;
-  beanieCount: number;
-  labelUrl: string;
-  requestId: string;
-}): BuiltEmail {
-  const many = d.beanieCount > 1;
-  const body =
-    h1("Your prepaid shipping label is ready 📦") +
-    p(
-      `Your authentication payment covered postage to us, so here's your prepaid label — print it, attach it, and drop the parcel off. Nothing more to pay.`,
-    ) +
-    detailBlock([
-      [many ? "Beanies" : "Beanie", many ? `${d.beanieCount} in one parcel` : d.beanieName],
-      ["Postage", "Prepaid — included in what you paid"],
-    ]) +
-    muted(
-      many
-        ? "Send all the beanies in this submission together in one box — the label is sized for the whole batch."
-        : "Pack the beanie snugly; a padded mailer or small box is ideal.",
-    );
-  return {
-    subject: "Your prepaid label for BeanieXchange Authentication",
-    html: layout(body, {
-      preheader: "Print it, attach it, drop it off — postage already paid.",
-      cta: { label: "Print your shipping label", url: d.labelUrl },
-    }),
-  };
-}
-
 export function welcome(d: { name?: string | null }): BuiltEmail {
   const body =
-    h1("Welcome to BeanieXchange!") +
-    p(`Hi${d.name ? " " + escapeHtml(d.name.split(" ")[0]) : ""}, you're all set. Look up what your Beanies are worth in our free database, shop escrow-protected listings, and connect with fellow collectors.`) +
-    muted("Every purchase is escrow-protected, and authenticated Beanies carry a permanent BX Registry number.");
+    h1(`Welcome to ${SITE_NAME}!`) +
+    p(`Hi${d.name ? " " + escapeHtml(d.name.split(" ")[0]) : ""}, you're all set. Browse listings from sellers everywhere, make offers, and list anything you're ready to part with.`) +
+    muted("Every purchase is protected: your payment is held until you confirm delivery.");
   return {
-    subject: "Welcome to BeanieXchange 🧸",
+    subject: `Welcome to ${SITE_NAME}`,
     html: layout(body, {
-      preheader: "Your account is ready — start collecting.",
+      preheader: "Your account is ready — start browsing.",
       cta: { label: "Explore the marketplace", url: absoluteUrl("/browse") },
     }),
   };

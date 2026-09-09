@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 const key = process.env.STRIPE_SECRET_KEY;
 
@@ -15,7 +16,7 @@ const stripe = key
       // fails the build instead of shifting behaviour in production.
       apiVersion: "2026-04-22.dahlia",
       // Names this integration in Stripe's request logs and support tooling.
-      appInfo: { name: "Beanie Xchange", url: "https://beaniexchange.com" },
+      appInfo: { name: SITE_NAME, url: SITE_URL },
     })
   : (null as unknown as Stripe);
 

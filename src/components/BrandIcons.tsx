@@ -1,65 +1,95 @@
 /**
- * Beanie Xchange brand icon set — original SVGs.
- * Heart-tag (exchange), rainbow peace sign, "Beanie" coin, shopping basket.
+ * This'n'that icon set — original inline SVGs in the brand palette.
+ * Price tag (list it), shield (payment held), truck (shipped), coin
+ * (earnings), basket (cart).
  */
 
-const CREAM = "#fff8ec";
+const TERRACOTTA = "#d9553b";
+const TERRACOTTA_DARK = "#b8432c";
+const TEAL = "#1f7a8c";
+const MUSTARD = "#e8b43a";
+const MUSTARD_DARK = "#a3761a";
+const SAGE = "#7a9e7e";
+const INK = "#1f1a17";
+const PAPER = "#faf7f2";
 
-export function HeartTagIcon({ className = "" }: { className?: string }) {
+export function TagIcon({ className = "" }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 100 100"
       className={className}
       role="img"
-      aria-label="Trade"
+      aria-label="List it"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <path
-        d="M50 84 C 22 63, 16 40, 31 29 C 41 22, 50 28, 50 39 C 50 28, 59 22, 69 29 C 84 40, 78 63, 50 84 Z"
-        fill="#e23b30"
-        stroke="#b82c23"
-        strokeWidth="2"
-      />
-      <circle cx="50" cy="40" r="3.4" fill={CREAM} />
-      <g stroke={CREAM} strokeWidth="5" strokeLinecap="round">
-        <line x1="37" y1="50" x2="58" y2="50" />
-        <line x1="63" y1="61" x2="42" y2="61" />
+      <g transform="rotate(-32 50 50)">
+        <path
+          d="M18 50 L34 34 H78 Q84 34 84 40 V60 Q84 66 78 66 H34 Z"
+          fill={TEAL}
+          transform="translate(-6 -10)"
+        />
+        <path
+          d="M18 50 L34 34 H78 Q84 34 84 40 V60 Q84 66 78 66 H34 Z"
+          fill={TERRACOTTA}
+          stroke={PAPER}
+          strokeWidth="3"
+          strokeLinejoin="round"
+          transform="translate(6 10)"
+        />
+        <circle cx="36" cy="60" r="3.5" fill={PAPER} />
       </g>
-      <path d="M57 44 L66 50 L57 56 Z" fill={CREAM} />
-      <path d="M43 55 L34 61 L43 67 Z" fill={CREAM} />
     </svg>
   );
 }
 
-export function PeaceIcon({ className = "" }: { className?: string }) {
+export function ShieldIcon({ className = "" }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 100 100"
       className={className}
       role="img"
-      aria-label="Connect"
+      aria-label="Payment held safely"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <defs>
-        <linearGradient id="bxPeaceGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#e8413a" />
-          <stop offset="20%" stopColor="#ef8a2c" />
-          <stop offset="40%" stopColor="#f3c12f" />
-          <stop offset="60%" stopColor="#46a85a" />
-          <stop offset="80%" stopColor="#3b8ed0" />
-          <stop offset="100%" stopColor="#8a4fb0" />
-        </linearGradient>
-      </defs>
-      <g
-        stroke="url(#bxPeaceGrad)"
-        strokeWidth="9"
+      <path
+        d="M50 12 L82 24 V50 C82 68 68 82 50 90 C32 82 18 68 18 50 V24 Z"
+        fill={TEAL}
+      />
+      <path
+        d="M50 20 L74 29 V50 C74 63 64 74 50 81 C36 74 26 63 26 50 V29 Z"
+        fill="#2b93a6"
+      />
+      <path
+        d="M38 51 L47 60 L64 41"
         fill="none"
+        stroke={PAPER}
+        strokeWidth="7"
         strokeLinecap="round"
-      >
-        <circle cx="50" cy="50" r="38" />
-        <line x1="50" y1="12" x2="50" y2="88" />
-        <line x1="50" y1="50" x2="23" y2="77" />
-        <line x1="50" y1="50" x2="77" y2="77" />
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function TruckIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className={className}
+      role="img"
+      aria-label="Shipped"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect x="8" y="30" width="54" height="36" rx="5" fill={TERRACOTTA} />
+      <path d="M62 40 H78 L90 54 V66 H62 Z" fill={TERRACOTTA_DARK} />
+      <path d="M68 45 H76 L84 54 H68 Z" fill={PAPER} />
+      <circle cx="26" cy="70" r="8" fill={INK} />
+      <circle cx="26" cy="70" r="3.5" fill={PAPER} />
+      <circle cx="74" cy="70" r="8" fill={INK} />
+      <circle cx="74" cy="70" r="3.5" fill={PAPER} />
+      <g stroke={SAGE} strokeWidth="4" strokeLinecap="round">
+        <line x1="10" y1="76" x2="16" y2="76" />
+        <line x1="4" y1="84" x2="20" y2="84" />
       </g>
     </svg>
   );
@@ -71,30 +101,30 @@ export function CoinIcon({ className = "" }: { className?: string }) {
       viewBox="0 0 100 100"
       className={className}
       role="img"
-      aria-label="Beanie coin"
+      aria-label="Earnings"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <circle cx="50" cy="50" r="45" fill="#c2912f" />
-      <circle cx="50" cy="50" r="38" fill="#edc457" />
+      <circle cx="50" cy="50" r="45" fill={MUSTARD_DARK} />
+      <circle cx="50" cy="50" r="38" fill={MUSTARD} />
       <circle
         cx="50"
         cy="50"
         r="38"
         fill="none"
-        stroke="#d9a93e"
+        stroke="#d19f2a"
         strokeWidth="3"
       />
       <text
         x="50"
-        y="51"
+        y="52"
         textAnchor="middle"
         dominantBaseline="central"
-        fontFamily="var(--font-fredoka), sans-serif"
+        fontFamily="inherit"
         fontWeight="700"
-        fontSize="15"
+        fontSize="44"
         fill="#5a431c"
       >
-        Beanie
+        $
       </text>
     </svg>
   );
@@ -109,17 +139,17 @@ export function BasketIcon({ className = "" }: { className?: string }) {
       aria-label="Basket"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g fill="none" stroke="#5b5957" strokeWidth="7" strokeLinecap="round">
+      <g fill="none" stroke={INK} strokeWidth="7" strokeLinecap="round">
         <path d="M32 46 Q36 24 50 24" />
         <path d="M68 46 Q64 24 50 24" />
       </g>
-      <path d="M20 46 L80 46 L71 82 L29 82 Z" fill="#5b5957" />
-      <g stroke="#f4e9d4" strokeWidth="4" strokeLinecap="round">
+      <path d="M20 46 L80 46 L71 82 L29 82 Z" fill={INK} />
+      <g stroke={PAPER} strokeWidth="4" strokeLinecap="round">
         <line x1="38" y1="54" x2="41" y2="74" />
         <line x1="50" y1="54" x2="50" y2="74" />
         <line x1="62" y1="54" x2="59" y2="74" />
       </g>
-      <rect x="16" y="42" width="68" height="9" rx="4.5" fill="#46443f" />
+      <rect x="16" y="42" width="68" height="9" rx="4.5" fill={TERRACOTTA} />
     </svg>
   );
 }

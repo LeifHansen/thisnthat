@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { saveNotifyPrefsByToken } from "@/lib/notifyPrefs";
+import { SITE_NAME } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ const CATEGORIES: {
   { key: "notifyOrders", label: "Orders", blurb: "Sales, shipping, and payout updates" },
   { key: "notifyOffers", label: "Offers", blurb: "New offers and accept/decline decisions" },
   { key: "notifyMessages", label: "Messages", blurb: "When someone sends you a direct message" },
-  { key: "notifySocial", label: "Followers", blurb: "When a collector follows your store" },
+  { key: "notifySocial", label: "Followers", blurb: "When someone follows your store" },
   { key: "notifyTips", label: "Tips & nudges", blurb: "Occasional pointers to get more from your store" },
 ];
 
@@ -68,7 +69,7 @@ export default async function UnsubscribePage({
       <div className="space-y-1">
         <h1 className="text-2xl">Email notifications</h1>
         <p className="text-muted text-sm">
-          Choose which emails you&apos;d like to receive from BeanieXchange.
+          Choose which emails you&apos;d like to receive from {SITE_NAME}.
           Purchase receipts always send.
         </p>
       </div>

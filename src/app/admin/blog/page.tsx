@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { BlogGenerator } from "@/components/BlogGenerator";
 import { BlogManualEditor } from "@/components/BlogManualEditor";
 import { toggleBlogPublish, deleteBlogPost } from "@/lib/blog";
+import { SITE_NAME } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,7 @@ export default async function AdminBlogPage({
         <p className="text-muted text-sm">
           Paste a reference article link and an optional cover image. The AI
           fetches the article and writes — or rewrites — it into an original
-          BeanieXchange post. Review, edit, then publish.
+          post for the {SITE_NAME} blog. Review, edit, then publish.
         </p>
         <BlogGenerator />
       </section>

@@ -1,5 +1,5 @@
 {
-  "name": "beanie-xchange",
+  "name": "thisnthat",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,11 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed:dev": "tsx scripts/seed-dev.ts",
     "db:dev:setup": "bash scripts/dev-db-setup.sh",
-    "images:manifest": "tsx scripts/build-commons-manifest.ts",
-    "images:import": "tsx scripts/import-beanie-images.ts",
-    "sold:ingest": "tsx scripts/ingest-sold.ts"
+    "typecheck": "tsc --noEmit"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

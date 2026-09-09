@@ -133,13 +133,13 @@ export function BlogGenerator() {
           <input
             type="url"
             className="tnt-input"
-            placeholder="https://example.com/some-beanie-baby-article"
+            placeholder="https://example.com/some-article-about-resale"
             value={sourceUrl}
             onChange={(e) => setSourceUrl(e.target.value)}
           />
           <p className="text-xs text-muted">
             The AI fetches this article and writes (or rewrites) it as an
-            original BeanieXchange post.
+            original post for the blog.
           </p>
         </div>
 
@@ -244,7 +244,7 @@ export function BlogGenerator() {
           <input
             type="text"
             className="tnt-input"
-            placeholder="e.g. focus on value trends for first-gen tags"
+            placeholder="e.g. focus on how to photograph clothing for resale"
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
           />

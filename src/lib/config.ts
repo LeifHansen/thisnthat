@@ -1,8 +1,9 @@
-// Runtime inspection of the payment + shipping configuration. The app is
-// designed to boot without keys (build, non-payment pages) and to fall back to
-// flat-rate shipping when EasyPost is absent — both convenient in development,
-// both dangerous if they slip into production unnoticed. This module turns that
-// silent state into something the /api/health endpoint can fail loudly on.
+// Runtime inspection of the payment + shipping + email configuration. The app
+// is designed to boot without keys (build, non-payment pages) and to fall back
+// to flat-rate shipping when EasyPost is absent — convenient in development,
+// and the Stripe/SendGrid gaps are dangerous if they slip into production
+// unnoticed. This module turns that silent state into something the
+// /api/health endpoint can fail loudly on.
 //
 // Secrets are NEVER returned — only their *mode* (live / test / unset).
 
@@ -110,17 +111,20 @@ export function inspectConfig(): ConfigReport {
     );
   }
 
-  // --- Webhook secret: without it, paid orders/auth never advance ---
+  // --- Webhook secret: without it, paid orders never advance ---
   if (!stripeWebhook) {
     blocking(
-      "STRIPE_WEBHOOK_SECRET is not set — paid orders and auth requests will never advance past the initial state.",
+      "STRIPE_WEBHOOK_SECRET is not set — paid orders will never advance past the initial state.",
     );
   }
 
   // --- EasyPost ---
+  // Optional in every environment: without a key, checkout quotes the flat
+  // shipping rate and sellers enter tracking by hand (rateSaleShipping /
+  // buySaleLabel fall back cleanly). Worth knowing, never blocking.
   if (easypost === "unset") {
-    blocking(
-      "EASYPOST_API_KEY is not set — shipping uses flat estimates instead of live rates.",
+    warnings.push(
+      "EASYPOST_API_KEY is not set — shipping uses flat estimates instead of live rates, and labels can't be bought through the platform.",
     );
   } else if (easypost === "test" && isProd) {
     errors.push(

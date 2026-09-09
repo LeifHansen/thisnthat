@@ -1,34 +1,45 @@
 /**
- * Purge dummy/demo user accounts and everything they own.
+ * Purge the demo/dummy accounts and everything they own.
  *
  * Dry run (default): prints what WOULD be deleted, changes nothing.
  *   npx tsx scripts/purge-dummy-users.ts
  * Execute:
  *   npx tsx scripts/purge-dummy-users.ts --yes
+ * Extra accounts (comma-separated) can be added on top of the built-in list:
+ *   npx tsx scripts/purge-dummy-users.ts --emails=a@x.com,b@y.com --yes
  *
- * User relations do NOT cascade from User, so we delete dependent rows in
- * FK-safe order inside a transaction, then the users themselves.
+ * User relations do NOT cascade from User, so dependent rows are deleted in
+ * FK-safe order inside a transaction, then the users themselves:
+ *   productReview -> shipmentEvent -> offer -> order -> message ->
+ *   conversation -> listingLike -> follow -> listing (lotItem cascades) -> user
  */
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 const DUMMY_EMAILS = [
-  "admin@beaniex.com",
-  "seller@beaniex.com",
-  "buyer@beaniex.com",
-  "megan.r@beaniex.com",
-  "tom.c@beaniex.com",
-  "jenny.p@beaniex.com",
-  "dale.w@beaniex.com",
-  "priya.s@beaniex.com",
+  "admin@thisnthat.com",
+  "seller@thisnthat.com",
+  "buyer@thisnthat.com",
 ];
+
+function extraEmails(): string[] {
+  const arg = process.argv.find((a) => a.startsWith("--emails="));
+  if (!arg) return [];
+  return arg
+    .slice("--emails=".length)
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
 
 async function main() {
   const execute = process.argv.includes("--yes");
+  const emails = [...new Set([...DUMMY_EMAILS, ...extraEmails()])];
+
   const totalUsers = await prisma.user.count();
   const users = await prisma.user.findMany({
-    where: { email: { in: DUMMY_EMAILS } },
+    where: { email: { in: emails } },
     select: { id: true, email: true, name: true, role: true, suspended: true },
   });
 
@@ -43,53 +54,102 @@ async function main() {
   const ids = users.map((u) => u.id);
 
   // Listings owned by these users (needed to clean listing-scoped rows).
-  const listings = await prisma.listing.findMany({
-    where: { sellerId: { in: ids } },
-    select: { id: true },
-  });
-  const listingIds = listings.map((l) => l.id);
+  const listingIds = (
+    await prisma.listing.findMany({
+      where: { sellerId: { in: ids } },
+      select: { id: true },
+    })
+  ).map((l) => l.id);
 
-  // Report per-account and aggregate exposure to REAL data (rows tied to
-  // non-dummy users) so we don't nuke a real buyer's order history.
+  // The same scopes the transaction below deletes with, so the dry run
+  // reports exactly what --yes will remove.
+  const reviewScope = {
+    OR: [
+      { buyerId: { in: ids } },
+      { sellerId: { in: ids } },
+      { listingId: { in: listingIds } },
+    ],
+  };
+  const orderScope = {
+    OR: [
+      { sellerId: { in: ids } },
+      { buyerId: { in: ids } },
+      { listingId: { in: listingIds } },
+    ],
+  };
+  const offerScope = {
+    OR: [{ buyerId: { in: ids } }, { listingId: { in: listingIds } }],
+  };
+  const conversationScope = {
+    OR: [{ userAId: { in: ids } }, { userBId: { in: ids } }],
+  };
+  const messageScope = {
+    OR: [{ senderId: { in: ids } }, { conversation: conversationScope }],
+  };
+  const likeScope = {
+    OR: [{ userId: { in: ids } }, { listingId: { in: listingIds } }],
+  };
+  const followScope = {
+    OR: [{ followerId: { in: ids } }, { followedId: { in: ids } }],
+  };
+
   const [
-    sellerOrders,
-    buyerOrders,
-    ordersOnDummyListings,
-    offersByDummy,
-    messagesByDummy,
-    convos,
-    authReqs,
-    registry,
-    tradesByDummy,
-    tradesOnDummyListings,
+    reviews,
+    shipmentEvents,
+    offers,
+    orders,
+    ordersWithRealCounterparty,
+    messages,
+    conversations,
+    likes,
+    follows,
   ] = await Promise.all([
-    prisma.order.count({ where: { sellerId: { in: ids } } }),
-    prisma.order.count({ where: { buyerId: { in: ids } } }),
-    prisma.order.count({ where: { listingId: { in: listingIds } } }),
-    prisma.offer.count({ where: { buyerId: { in: ids } } }),
-    prisma.message.count({ where: { senderId: { in: ids } } }),
-    prisma.conversation.count({
-      where: { OR: [{ userAId: { in: ids } }, { userBId: { in: ids } }] },
+    prisma.productReview.count({ where: reviewScope }),
+    prisma.shipmentEvent.count({ where: { order: orderScope } }),
+    prisma.offer.count({ where: offerScope }),
+    prisma.order.count({ where: orderScope }),
+    // Orders where the other party is NOT a dummy account: deleting these
+    // erases a real member's purchase or sale history.
+    prisma.order.count({
+      where: {
+        AND: [
+          orderScope,
+          {
+            OR: [
+              { sellerId: { notIn: ids } },
+              { AND: [{ buyerId: { not: null } }, { buyerId: { notIn: ids } }] },
+            ],
+          },
+        ],
+      },
     }),
+    prisma.message.count({ where: messageScope }),
+    prisma.conversation.count({ where: conversationScope }),
+    prisma.listingLike.count({ where: likeScope }),
+    prisma.follow.count({ where: followScope }),
   ]);
 
   for (const u of users) {
     console.log(
-      `  ${u.email.padEnd(24)} role=${u.role} suspended=${u.suspended} id=${u.id}`,
+      `  ${u.email.padEnd(26)} role=${u.role} suspended=${u.suspended} id=${u.id}`,
     );
   }
   console.log("\nOwned/related rows to be removed:");
-  console.log(`  listings:            ${listingIds.length}`);
-  console.log(`  orders as seller:    ${sellerOrders}`);
-  console.log(`  orders as buyer:     ${buyerOrders}`);
-  console.log(`  orders on their listings: ${ordersOnDummyListings}`);
-  console.log(`  offers by them:      ${offersByDummy}`);
-  console.log(`  trades (by/on them): ${tradesByDummy}/${tradesOnDummyListings}`);
-  console.log(`  messages:            ${messagesByDummy}`);
-  console.log(`  conversations:       ${convos}`);
-  console.log(`  auth requests:       ${authReqs}`);
-  console.log(`  registry entries:    ${registry}`);
+  console.log(`  listings (lot items cascade): ${listingIds.length}`);
+  console.log(`  product reviews:              ${reviews}`);
+  console.log(`  shipment events:              ${shipmentEvents}`);
+  console.log(`  offers:                       ${offers}`);
+  console.log(`  orders:                       ${orders}`);
+  console.log(`  messages:                     ${messages}`);
+  console.log(`  conversations:                ${conversations}`);
+  console.log(`  listing likes:                ${likes}`);
+  console.log(`  follows:                      ${follows}`);
 
+  if (ordersWithRealCounterparty > 0) {
+    console.log(
+      `\n⚠️  ${ordersWithRealCounterparty} order(s) involve a REAL member on the other side. Deleting them removes that member's order history.`,
+    );
+  }
   const notSuspended = users.filter((u) => !u.suspended);
   if (notSuspended.length) {
     console.log(
@@ -105,27 +165,17 @@ async function main() {
   }
 
   await prisma.$transaction(async (tx) => {
-    // Listing-scoped children first.
-    // AuthenticationRequest references orders + listings (no cascade), so it
-    // must go before them.
-      where: { OR: [{ userId: { in: ids } }, { listingId: { in: listingIds } }] },
-    });
-    await tx.offer.deleteMany({
-      where: { OR: [{ listingId: { in: listingIds } }, { buyerId: { in: ids } }] },
-    });
-    await tx.order.deleteMany({
-      where: {
-        OR: [
-          { listingId: { in: listingIds } },
-          { sellerId: { in: ids } },
-          { buyerId: { in: ids } },
-        ],
-      },
-    });
-    await tx.message.deleteMany({ where: { senderId: { in: ids } } });
-    await tx.conversation.deleteMany({
-      where: { OR: [{ userAId: { in: ids } }, { userBId: { in: ids } }] },
-    });
+    // Children of orders/listings first, then the rows that reference users.
+    await tx.productReview.deleteMany({ where: reviewScope });
+    await tx.shipmentEvent.deleteMany({ where: { order: orderScope } });
+    // Offer.orderId points at Order (no cascade), so offers go before orders.
+    await tx.offer.deleteMany({ where: offerScope });
+    await tx.order.deleteMany({ where: orderScope });
+    await tx.message.deleteMany({ where: messageScope });
+    await tx.conversation.deleteMany({ where: conversationScope });
+    await tx.listingLike.deleteMany({ where: likeScope });
+    await tx.follow.deleteMany({ where: followScope });
+    // LotItem cascades from Listing.
     await tx.listing.deleteMany({ where: { id: { in: listingIds } } });
     const del = await tx.user.deleteMany({ where: { id: { in: ids } } });
     console.log(`\n✅ Deleted ${del.count} dummy users and their data.`);

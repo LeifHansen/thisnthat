@@ -3,6 +3,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { auth } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { R2_BUCKET, isR2Configured, publicUrlFor, r2Client } from "@/lib/r2";
+import { SITE_NAME } from "@/lib/site";
 
 // AI hero-image agent for the blog generator (admin only, same gate as
 // /api/blog-generate). Two steps: gpt-4o-mini acts as art director and turns
@@ -24,11 +25,11 @@ function heroSize(model: string): string {
   return "1024x1024";
 }
 
-const ART_DIRECTOR_PROMPT = `You are the art director for BeanieXchange (BX), the marketplace and community for authenticated Ty Beanie Babies. Given a blog article's title and summary, write ONE image-generation prompt for its hero image.
+const ART_DIRECTOR_PROMPT = `You are the art director for ${SITE_NAME}, an online resale marketplace for secondhand clothing, collectibles, vintage finds, electronics, home goods and more. Given a blog article's title and summary, write ONE image-generation prompt for its hero image.
 
 Rules for the prompt you write:
-- Describe a warm, editorial illustration or styled photo scene evoking the article's topic — plush bean-filled toys, collecting, tags, displays. Nostalgic, collector-friendly, light and clean; suits a white-background blog with red accents.
-- Concrete visual details only (subject, composition, lighting, palette). Never mention Ty, brand names, or real people.
+- Describe a warm, editorial illustration or styled photo scene evoking the article's topic — a thrift rail, a flat-lay of pre-owned goods, a packed parcel, a shelf of collectibles, whatever fits. Light, clean and friendly; suits a white-background blog with red accents.
+- Concrete visual details only (subject, composition, lighting, palette). Never mention brand names, logos, or real people.
 - The image must contain NO text, letters, logos, or watermarks — say so in the prompt.
 - One paragraph, under 90 words.
 
@@ -38,9 +39,10 @@ Respond ONLY with a JSON object: { "prompt": string }`;
  *  the image itself. */
 function fallbackPrompt(title: string): string {
   return (
-    `A warm editorial illustration for a collectors' blog article titled "${title}": ` +
-    `soft plush bean-filled animal toys arranged on a clean, bright surface with gentle ` +
-    `studio lighting, subtle red accents, nostalgic and friendly mood. ` +
+    `A warm editorial illustration for a resale-marketplace blog article titled "${title}": ` +
+    `a tidy flat-lay of pre-owned goods (folded denim, a pair of sneakers, a ceramic vase, ` +
+    `a vinyl record) on a clean, bright surface with gentle studio lighting, subtle red ` +
+    `accents, friendly and inviting mood. ` +
     `No text, no letters, no logos, no watermarks.`
   );
 }

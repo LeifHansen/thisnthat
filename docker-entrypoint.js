@@ -111,8 +111,8 @@ async function migrateWithRetry(attempts = 3) {
     }
   }
   // Don't hard-block startup on a migration failure (a transient DB blip
-  // shouldn't take the whole site down, and message/forum reads degrade
-  // gracefully) — but make it LOUD so it surfaces in `fly logs`.
+  // shouldn't take the whole site down, and public reads degrade gracefully)
+  // — but make it LOUD so it surfaces in `fly logs`.
   console.error(
     "[entrypoint] WARNING: migrations not applied after retries; the app is serving on whatever schema the database currently has. Check `fly logs` and run `prisma migrate deploy`.",
   );

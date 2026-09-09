@@ -134,8 +134,8 @@ export function CartCheckout({
           </p>
         ) : (
           <p className="text-muted">
-            Your payment is authorized and held in escrow. We emailed
-            {loggedIn ? " you" : ` ${email}`} your order details.
+            Your payment is authorized and held until you confirm delivery.
+            We emailed{loggedIn ? " you" : ` ${email}`} your order details.
           </p>
         )}
         <div className="space-y-2">
@@ -162,7 +162,7 @@ export function CartCheckout({
         <h1 className="text-2xl sm:text-3xl">Your cart is empty</h1>
         <Link href="/browse" className="tnt-btn inline-flex">
           <BasketIcon className="h-5 w-5" />
-          Shop Beanies
+          Browse items
         </Link>
       </div>
     );
@@ -411,8 +411,9 @@ function CheckoutForm({
 
       <h2 className="text-lg pt-2">Payment</h2>
       <p className="text-muted text-sm">
-        Funds are authorized and held in escrow — released to each seller only
-        when you confirm that item arrived as described.
+        Your payment is held until you confirm delivery — each seller is paid
+        only when their item is delivered or you confirm it arrived as
+        described.
       </p>
       <PaymentElement />
       {err && <p className="text-red-600 text-sm">{err}</p>}

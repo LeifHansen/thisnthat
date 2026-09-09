@@ -88,7 +88,7 @@ async function deliver(
 
 // ── Orders ────────────────────────────────────────────────────────────────
 
-/** Order entered escrow: buyer receipt (always — transactional) + seller alert. */
+/** Payment authorized and held: buyer receipt (always — transactional) + seller alert. */
 export async function orderPaid(orderId: string): Promise<void> {
   try {
     const order = await prisma.order.findUnique({
@@ -180,7 +180,7 @@ export async function orderShipped(orderId: string): Promise<void> {
   }
 }
 
-/** Buyer confirmed receipt / order completed → tell the seller they're paid. */
+/** Delivered / buyer confirmed receipt → tell the seller they're paid. */
 export async function orderCompleted(orderId: string): Promise<void> {
   try {
     const order = await prisma.order.findUnique({
@@ -340,48 +340,6 @@ export async function orderRefunded(
   }
 }
 
-/**
- * Prepaid inbound label bought for a paid authentication batch → send it to
- * the submitter. Transactional: they paid for this postage, so it always goes.
- */
-export async function authInboundLabel(requestId: string): Promise<void> {
-  try {
-    const r = await prisma.authenticationRequest.findUnique({
-      where: { id: requestId },
-      include: { user: { select: { email: true } } },
-    });
-    if (!r?.user?.email) return;
-
-    const label = await prisma.shipmentEvent.findFirst({
-      where: {
-        authRequestId: requestId,
-        leg: "SUBMITTER_TO_CENTER",
-        labelUrl: { not: null },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-    if (!label?.labelUrl) return;
-
-    const beanieCount = r.batchId
-      ? await prisma.authenticationRequest.count({ where: { batchId: r.batchId } })
-      : 1;
-
-    await deliver(
-      r.user.email,
-      T.authInboundLabelSubmitter({
-        beanieName: r.beanieName,
-        beanieCount,
-        labelUrl: label.labelUrl,
-        requestId: r.id,
-      }),
-      "authentication",
-      { requestId: r.id, kind: "inbound_label" },
-    );
-  } catch (e) {
-    console.error("[notify.authInboundLabel]", e);
-  }
-}
-
 // ── Messages ────────────────────────────────────────────────────────────
 
 /** New DM → email the recipient (skipped if they're actively unsubscribed). */
@@ -458,8 +416,8 @@ export async function newFollower(
 }
 
 /**
- * One-time nudge for accounts that never listed a beanie (sent by the cron
- * sweep in lib/nudges.ts — never from a request path). Gated on the
+ * One-time nudge for accounts that never listed an item (sent by the
+ * throttled sweep in lib/nudges.ts — never from a request path). Gated on the
  * "tips & nudges" preference.
  */
 export async function firstListingNudge(userId: string): Promise<void> {

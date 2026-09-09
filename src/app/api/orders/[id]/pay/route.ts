@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireStripe } from "@/lib/stripe";
 import { rateLimit } from "@/lib/rateLimit";
 import { guestTokenMatches } from "@/lib/orderState";
+import { SITE_NAME } from "@/lib/site";
 
 /**
  * Start (or resume) payment for a single existing order — the pay path for
@@ -114,7 +115,7 @@ export async function POST(
         kind: "sale",
         orderId: order.id,
       },
-      description: `Beanie Xchange order ${order.id}`,
+      description: `${SITE_NAME} order ${order.id}`,
     },
     // Collapses concurrent requests (two tabs, a double-tap) onto one
     // authorization. Keyed on the intent being replaced, so a legitimate

@@ -56,7 +56,8 @@ export async function GET(req: Request) {
  *
  * Scrubs the row rather than removing it — see src/lib/deleteAccount.ts for
  * why, and for what survives. Refuses with 409 while the account has an order
- * mid-escrow or in transit; the message names the count and a way through.
+ * paid-but-undelivered or in transit; the message names the count and a way
+ * through.
  *
  * The bearer token isn't revoked, because it can't be — it's stateless. It
  * stops working anyway: getMobileUser re-reads the row on every request and

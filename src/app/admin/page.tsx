@@ -33,7 +33,7 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <AdminHeader isSuperadmin={superadmin} queueCount={queue.total} />
+      <AdminHeader isSuperadmin={superadmin} ordersCount={queue.total} />
       <AdminOverview kpis={kpis} queue={queue} superadmin={superadmin} />
       <AdminTrends trends={trends} />
     </div>

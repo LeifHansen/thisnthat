@@ -3,9 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signIn } from "@/lib/auth";
 import { safeInternalPath } from "@/lib/nextRedirect";
+import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Sign in to Beanie Xchange",
+  title: `Sign in to ${SITE_NAME}`,
   robots: { index: false, follow: false },
 };
 

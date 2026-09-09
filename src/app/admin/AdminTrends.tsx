@@ -3,9 +3,9 @@ import type { Trends } from "./data";
 
 /**
  * "Over time" panel for the admin overview: small multiples of weekly growth
- * series (users, listings, paid orders, GMV, auth submissions, seller payouts
- * going live), rendered as
- * server-side inline SVG — no chart library, no client bundle.
+ * series (users, listings, paid orders, GMV, offers, seller payouts going
+ * live), rendered as server-side inline SVG — no chart library, no client
+ * bundle.
  *
  * Chart conventions (deliberate):
  * - One hue everywhere. Each panel is a single titled series, so color has no
@@ -164,11 +164,7 @@ export function AdminTrends({ trends }: { trends: Trends | null }) {
           values={trends.gmvCents}
           format={(v) => formatCents(v)}
         />
-        <Panel
-          label="Paid auth submissions"
-          weeks={weeks}
-          values={trends.authPaid}
-        />
+        <Panel label="New offers" weeks={weeks} values={trends.newOffers} />
         {/* Stamped only from the deploy that added the column onward, so weeks
             before it read 0 rather than unknown. */}
         <Panel
@@ -192,7 +188,7 @@ export function AdminTrends({ trends }: { trends: Trends | null }) {
                 <th className="py-1.5 pr-3">New listings</th>
                 <th className="py-1.5 pr-3">Paid orders</th>
                 <th className="py-1.5 pr-3">GMV</th>
-                <th className="py-1.5 pr-3">Paid auth</th>
+                <th className="py-1.5 pr-3">Offers</th>
                 <th className="py-1.5">Payouts live</th>
               </tr>
             </thead>
@@ -204,7 +200,7 @@ export function AdminTrends({ trends }: { trends: Trends | null }) {
                   <td className="py-1 pr-3">{trends.newListings[i]}</td>
                   <td className="py-1 pr-3">{trends.paidOrders[i]}</td>
                   <td className="py-1 pr-3">{formatCents(trends.gmvCents[i])}</td>
-                  <td className="py-1 pr-3">{trends.authPaid[i]}</td>
+                  <td className="py-1 pr-3">{trends.newOffers[i]}</td>
                   <td className="py-1">{trends.payoutEnabled[i]}</td>
                 </tr>
               ))}

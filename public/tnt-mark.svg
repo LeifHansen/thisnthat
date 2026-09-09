@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  
+  <g transform="translate(0 0) scale(1)">
+    <g transform="translate(256 256) rotate(-32) translate(-256 -256) translate(-22 -58)">
+      <path d="M 96 256 L 176 176 H 404 Q 432 176 432 204 V 308 Q 432 336 404 336 H 176 Z" fill="#1f7a8c" />
+      <circle cx="158" cy="256" r="17" fill="#ffffff"/>
+    </g>
+    <g transform="translate(256 256) rotate(-32) translate(-256 -256) translate(26 50)">
+      <path d="M 96 256 L 176 176 H 404 Q 432 176 432 204 V 308 Q 432 336 404 336 H 176 Z" fill="#d9553b" stroke="#ffffff" stroke-width="10" stroke-linejoin="round"/>
+      <circle cx="158" cy="256" r="17" fill="#ffffff"/>
+      <g fill="#ffffff">
+       <circle cx="318" cy="232" r="24"/>
+       <path d="M 294.48 236.8
+                Q 315.6 277.6 285.6 298
+                Q 339.6 284.8 341.52 236.8 Z"/>
+     </g>
+    </g>
+  </g>
+</svg>

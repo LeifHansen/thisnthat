@@ -3,19 +3,24 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { firstRealPhoto, PLACEHOLDER_PHOTO } from "@/lib/photos";
+import type { ListingCardData } from "@/components/ListingCard";
+import { ConditionBadge } from "@/components/ConditionBadge";
+import { canOptimizeImage, firstRealPhoto, PLACEHOLDER_PHOTO } from "@/lib/photos";
 import { listingImageAlt } from "@/lib/image-seo";
 import { formatCents } from "@/lib/fees";
 
-type Item = { id: string; title: string; priceCents: number; photos: string[] };
+export type RailItem = Pick<
+  ListingCardData,
+  "id" | "title" | "priceCents" | "photos" | "condition"
+>;
 
 /**
- * Horizontal "Newly Listed" rail. The scrollbar is hidden (tnt-noscrollbar) and
- * navigation is via arrow buttons that scroll ~80% of the viewport width. The
- * arrows dim + disable at each end; on touch (mobile) they're hidden and users
- * swipe instead.
+ * Horizontal "Newly listed" rail. The scrollbar is hidden (tnt-noscrollbar)
+ * and navigation is via arrow buttons that scroll ~80% of the viewport width.
+ * The arrows dim + disable at each end; on touch (mobile) they're hidden and
+ * users swipe instead.
  */
-export function NewlyListedRail({ items }: { items: Item[] }) {
+export function NewlyListedRail({ items }: { items: RailItem[] }) {
   const railRef = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
@@ -45,7 +50,7 @@ export function NewlyListedRail({ items }: { items: Item[] }) {
   }
 
   const arrowBase =
-    "hidden sm:grid place-items-center absolute top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full border-2 border-[var(--tnt-ink)] bg-white !text-ink shadow-[0_2px_0_var(--tnt-ink)] transition disabled:opacity-0 disabled:pointer-events-none hover:bg-[var(--tnt-surface)]";
+    "hidden sm:grid place-items-center absolute top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full border border-[var(--tnt-line-strong)] bg-white !text-ink shadow-[var(--tnt-shadow)] transition disabled:opacity-0 disabled:pointer-events-none hover:bg-[var(--tnt-surface)]";
 
   return (
     <div className="relative">
@@ -64,31 +69,39 @@ export function NewlyListedRail({ items }: { items: Item[] }) {
         onScroll={updateEdges}
         className="flex gap-3 overflow-x-auto tnt-noscrollbar pb-1 -mx-1 px-1 snap-x"
       >
-        {items.map((l) => (
-          <Link
-            key={l.id}
-            href={`/listings/${l.id}`}
-            className="snap-start shrink-0 w-40 sm:w-48 tnt-panel p-2.5 space-y-2 !text-ink hover:shadow-[var(--tnt-shadow-lg)] transition-shadow"
-          >
-            {/* Temporary "New Listing" frame (red border + corner ribbon) */}
-            <div className="relative aspect-square overflow-hidden rounded-lg border-[3px] border-[var(--tnt-red)] bg-[var(--tnt-surface)]">
-              <Image
-                src={firstRealPhoto(l.photos) ?? PLACEHOLDER_PHOTO}
-                alt={listingImageAlt(l.title)}
-                fill
-                sizes="200px"
-                className="object-cover"
-              />
-              <span className="absolute left-[-38px] top-[14px] -rotate-45 bg-[var(--tnt-red)] text-white text-[9px] font-bold tracking-widest px-10 py-0.5 shadow-[0_1px_0_rgba(0,0,0,0.2)]">
-                NEW LISTING
-              </span>
-            </div>
-            <p className="text-sm font-bold leading-tight line-clamp-2">{l.title}</p>
-            <p className="text-base font-extrabold text-[var(--tnt-red)] leading-none">
-              {formatCents(l.priceCents)}
-            </p>
-          </Link>
-        ))}
+        {items.map((l) => {
+          const photo = firstRealPhoto(l.photos) ?? PLACEHOLDER_PHOTO;
+          return (
+            <Link
+              key={l.id}
+              href={`/listings/${l.id}`}
+              className="snap-start shrink-0 w-40 sm:w-48 tnt-card p-2.5 space-y-2 !text-ink"
+            >
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-[var(--tnt-surface)]">
+                <Image
+                  src={photo}
+                  alt={listingImageAlt(l.title)}
+                  fill
+                  sizes="(max-width: 640px) 160px, 192px"
+                  className="object-cover"
+                  unoptimized={!canOptimizeImage(photo)}
+                />
+                <span className="absolute left-2 top-2 rounded-full bg-[var(--tnt-ink)]/85 text-white text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
+                  Just listed
+                </span>
+              </div>
+              <p className="text-sm font-semibold leading-tight line-clamp-2">
+                {l.title}
+              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-base font-bold text-[var(--tnt-red)] leading-none">
+                  {formatCents(l.priceCents)}
+                </p>
+                <ConditionBadge condition={l.condition} />
+              </div>
+            </Link>
+          );
+        })}
       </div>
 
       <button

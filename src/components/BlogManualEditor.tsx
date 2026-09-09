@@ -51,7 +51,7 @@ export function BlogManualEditor() {
         <input
           name="title"
           className="tnt-input"
-          placeholder="e.g. The 10 Most Valuable Beanie Babies of 2026"
+          placeholder="e.g. How to Price a Vintage Denim Jacket"
           maxLength={200}
           required
         />

@@ -1,26 +1,19 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireUser } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { SITE_NAME } from "@/lib/site";
 import { SellWizard } from "@/components/SellWizard";
 import { createListing } from "./actions";
 
 export const metadata: Metadata = {
-  title: "Sell Beanie Babies Online — COA, Authentication & Escrow",
+  title: `Sell on ${SITE_NAME} — list anything in minutes`,
   description:
-    "Sell Beanie Babies on Beanie Xchange. List your Ty Beanie Baby with a True Blue cert, BX Authentication, third-party COA, or as-is. Payments held in escrow, payout on buyer receipt. Reach serious vintage Beanie Baby collectors.",
+    "List anything you own — clothes, shoes, collectibles, electronics, art, books and more. Photos first, AI drafts the rest. You're paid out when the buyer confirms delivery.",
   alternates: { canonical: "/sell" },
-  keywords: [
-    "sell Beanie Babies",
-    "list Beanie Baby for sale",
-    "Beanie Baby marketplace seller",
-    "Beanie Baby consignment",
-    "where to sell Beanie Babies",
-  ],
   openGraph: {
-    title: "Sell Beanie Babies on Beanie Xchange",
+    title: `Sell on ${SITE_NAME}`,
     description:
-      "List your authenticated Beanie Baby with COA + grade. Escrow payouts.",
+      "List anything in minutes. Set your price, ship direct, get paid on delivery.",
     url: "/sell",
   },
 };
@@ -28,39 +21,18 @@ export const metadata: Metadata = {
 export default async function SellPage() {
   const user = await requireUser();
 
-  // First-time sellers get pointed at the guided wizard — but never forced
-  // into it (redirecting would trap anyone who wants the full form).
-  const listingCount = await prisma.listing.count({
-    where: { sellerId: user.id, status: { not: "REMOVED" } },
+  // The seller's ship-from ZIP drives live-rated shipping at checkout; the
+  // wizard shows it (or a nudge to add one) on its shipping step.
+  const profile = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { shipFromPostalCode: true },
   });
 
   return (
-    <div className="space-y-4">
-      {listingCount === 0 && (
-        <div className="max-w-2xl mx-auto">
-          <Link
-            href="/sell/first"
-            className="tnt-panel p-4 flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-transform"
-            style={{
-              background: "var(--tnt-green-soft)",
-              borderColor: "var(--tnt-green)",
-            }}
-          >
-            <span className="text-sm">
-              <span className="font-bold text-[var(--tnt-green)]">
-                🧸 First listing?
-              </span>{" "}
-              <span className="text-ink">
-                Try the guided wizard — one step at a time, about two minutes.
-              </span>
-            </span>
-            <span className="font-semibold text-[var(--tnt-green)] shrink-0">
-              Start easy →
-            </span>
-          </Link>
-        </div>
-      )}
-      <SellWizard userName={user.name} createListing={createListing} />
-    </div>
+    <SellWizard
+      userName={user.name}
+      shipFromPostalCode={profile?.shipFromPostalCode ?? null}
+      createListing={createListing}
+    />
   );
 }

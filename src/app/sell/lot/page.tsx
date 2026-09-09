@@ -2,21 +2,18 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { SITE_NAME } from "@/lib/site";
 import { lotSchema, firstError } from "@/lib/validation";
 import { parsePhotosField } from "@/lib/photos";
+import { parseMinAutoAcceptCents } from "@/lib/createListing";
+import { categoryIdForSlug } from "@/lib/categoryStore";
 import { LotWizard } from "@/components/LotWizard";
 
 export const metadata: Metadata = {
-  title: "Sell a Lot of Beanie Babies — Bundle Listing | Beanie Xchange",
+  title: `Sell a lot — bundle several items for one price | ${SITE_NAME}`,
   description:
-    "Sell a lot of Beanie Babies on Beanie Xchange — bundle a mix of different beanies, or multiples of the same, into one listing sold together for one price. Escrow-protected checkout.",
+    "Selling a bundle? Group several items into one lot listing sold together for one price — a box of vintage tees, a shelf of paperbacks, a set of dishes.",
   alternates: { canonical: "/sell/lot" },
-  keywords: [
-    "sell Beanie Baby lot",
-    "Beanie Babies bulk lot",
-    "Beanie Baby bundle for sale",
-    "sell Beanie Babies in bulk",
-  ],
 };
 
 // Parse the JSON `items` field the client sends. Returns null on any problem so
@@ -43,11 +40,10 @@ export default async function SellLotPage() {
 
     const parsed = lotSchema.safeParse({
       title: formData.get("title"),
+      categorySlug: formData.get("categorySlug"),
       description: formData.get("description") ?? "",
       condition: formData.get("condition"),
       price: formData.get("price"),
-      authType: formData.get("authType") || undefined,
-      coaImageUrl: formData.get("coaImageUrl") ?? "",
       photos: parsePhotosField(formData.get("photos")),
       items: parseItems(formData.get("items")),
     });
@@ -59,46 +55,32 @@ export default async function SellLotPage() {
     const d = parsed.data;
 
     const status = intent === "draft" ? "DRAFT" : "ACTIVE";
-
-    // Optional seller auto-accept floor (integer cents, null = off).
-    const minAutoRaw = String(formData.get("minAutoAccept") ?? "").trim();
-    const minAutoDollars = minAutoRaw === "" ? null : Number(minAutoRaw);
-    const minAutoAcceptCents =
-      minAutoDollars !== null &&
-      Number.isFinite(minAutoDollars) &&
-      minAutoDollars > 0
-        ? Math.round(minAutoDollars * 100)
-        : null;
+    const categoryId = await categoryIdForSlug(d.categorySlug);
 
     // A lot is a single unique bundle: quantity is always 1 (it flips to SOLD
-    // when bought), and beanieName mirrors the title so admin search + review
-    // aggregation have a stable, human-readable key.
+    // when bought), and its contents live in lotItems.
     const listing = await prisma.listing.create({
       data: {
         sellerId: me.id,
         title: d.title,
-        beanieName: d.title,
+        categoryId,
         description: d.description,
         condition: d.condition,
         priceCents: Math.round(d.price * 100),
         quantity: 1,
         isLot: true,
-        authType: d.authType,
         photos: d.photos,
-        coaImageUrl:
-          d.authType === "THIRD_PARTY_COA" ? d.coaImageUrl || null : null,
-        minAutoAcceptCents,
+        minAutoAcceptCents: parseMinAutoAcceptCents(formData.get("minAutoAccept")),
         status,
         lotItems: {
           create: d.items.map((it, i) => ({
-            beanieName: it.beanieName,
-            year: it.year ?? null,
-            styleNumber: it.styleNumber ?? null,
+            name: it.name,
             quantity: it.quantity,
             position: i,
           })),
         },
       },
+      select: { id: true },
     });
 
     if (intent === "draft") {

@@ -1,70 +1,86 @@
 @import "tailwindcss";
 
 /*
-  BeanieXchange — "90s Collectible" theme.
-  Warm, playful, nostalgic: cream backgrounds, candy colors, rounded
-  sticker-buttons, trading-card frames, collector badges, soft drop shadows,
-  and a subtle animated backdrop (clouds / sparkles / heart-tags / rainbows).
+  This'n'that — "flea market, but modern" theme.
+  Warm paper surfaces, near-black ink, a terracotta accent for the primary
+  action, teal as the secondary, and mustard / sage / lilac as supporting
+  tones for badges and tints. Soft radii, quiet shadows, no sticker chrome.
 
-  CSS variable NAMES are preserved from the previous theme so every page
-  re-skins automatically; only the values and component styles change.
+  CSS variable NAMES are shared with every component in src/ — only the
+  values live here. Legacy role names (--tnt-red, --tnt-green, --tnt-purple…)
+  are kept as aliases of the new palette so nothing else has to change.
 */
 :root {
-  /* Surfaces — warm off-white, white cards (brand kit) */
-  --tnt-bg: #faf5ec;
-  --tnt-bg2: #fffdf8;
-  --tnt-surface: #ffffff;
+  /* Surfaces — paper, white cards, warm ink */
+  --tnt-bg: #faf7f2;
+  --tnt-bg2: #fffdf9;
+  --tnt-surface: #f3efe7;
   --tnt-card: #ffffff;
-  --tnt-ink: #201c2b;          /* near-black text */
-  --tnt-ink-soft: #494357;
-  --tnt-muted: #8b8597;
-  --tnt-line: #ece5d9;
-  --tnt-line-strong: #ddd4c5;
-  --tnt-outline: #201c2b;
+  --tnt-ink: #1f1a17;
+  --tnt-ink-soft: #4a423d;
+  --tnt-muted: #7c736c;
+  --tnt-line: #e9e2d8;
+  --tnt-line-strong: #d6cdc0;
+  --tnt-outline: #1f1a17;
 
-  /* Primary — soft purple */
-  --tnt-purple: #8b66d9;
-  --tnt-purple-dark: #6c45c2;
-  --tnt-purple-bright: #b39bec;
-  --tnt-purple-soft: #efe9fb;
+  /* The palette by name */
+  --tnt-terracotta: #d9553b;
+  --tnt-terracotta-dark: #b8432c;
+  --tnt-terracotta-soft: #f9e6e0;
+  --tnt-teal: #1f7a8c;
+  --tnt-teal-dark: #165b69;
+  --tnt-teal-soft: #dcecef;
+  --tnt-mustard: #e8b43a;
+  --tnt-mustard-dark: #a3761a;
+  --tnt-mustard-soft: #fbf0d3;
+  --tnt-sage: #7a9e7e;
+  --tnt-sage-dark: #476b4c;
+  --tnt-sage-soft: #e3ece4;
+  --tnt-lilac: #9c89c2;
+  --tnt-lilac-dark: #6f5c9b;
+  --tnt-lilac-soft: #efeaf6;
 
-  /* Accent — bubblegum pink (kept on the legacy --tnt-red role so existing
-     emphasis / links / prices recolour to the brand accent automatically) */
-  --tnt-red: #e8479a;
-  --tnt-red-dark: #cf3a85;
-  --tnt-red-soft: #fde3f1;
+  /* Primary — terracotta (legacy "red" role: prices, emphasis, links) */
+  --tnt-red: var(--tnt-terracotta);
+  --tnt-red-dark: var(--tnt-terracotta-dark);
+  --tnt-red-soft: var(--tnt-terracotta-soft);
 
-  /* Secondary — teal */
-  --tnt-green: #1f9e8d;        /* readable teal for text/links */
-  --tnt-green-bright: #45c9b6;
-  --tnt-green-soft: #ddf5f0;
-  --tnt-blue: #3f86df;         /* blue (verified-authentic) */
-  --tnt-blue-bright: #6ba8f0;
-  --tnt-cyan: #1f9e8d;
-  --tnt-purple-text: #7a52cf;
+  /* Secondary — teal (legacy "green"/"blue" roles: text, links, trust) */
+  --tnt-green: var(--tnt-teal);
+  --tnt-green-bright: #9dc0a0;      /* light sage: bg with ink text */
+  --tnt-green-soft: var(--tnt-sage-soft);
+  --tnt-blue: var(--tnt-teal);
+  --tnt-blue-bright: #6fb0bd;       /* light teal: bg with ink text, focus ring */
+  --tnt-cyan: var(--tnt-teal);
+  --tnt-success: var(--tnt-sage-dark);
 
-  /* Highlight — golden yellow */
-  --tnt-yellow: #f4c84d;
-  --tnt-amber: #d99e22;
-  --tnt-pink: #e8479a;
-  --tnt-success: #1f9e8d;
+  /* Lilac (legacy "purple" roles) */
+  --tnt-purple: var(--tnt-lilac);
+  --tnt-purple-dark: var(--tnt-lilac-dark);
+  --tnt-purple-bright: #c7b9e2;
+  --tnt-purple-soft: var(--tnt-lilac-soft);
+  --tnt-purple-text: var(--tnt-lilac-dark);
 
-  /* Dark band (stats bar, footer-ish) — deep grape */
-  --tnt-dark: #2a2440;
-  --tnt-dark-soft: #3a3357;
+  /* Highlights */
+  --tnt-yellow: var(--tnt-mustard);
+  --tnt-amber: var(--tnt-mustard-dark);
+  --tnt-pink: #d9b8cf;              /* soft lilac-pink tint */
+
+  /* Dark band (stats, footers) — warm charcoal */
+  --tnt-dark: #2a2320;
+  --tnt-dark-soft: #3d342f;
 
   --tnt-panel: var(--tnt-card);
 
-  --tnt-shadow-sm: 0 2px 0 rgba(43, 35, 80, 0.06), 0 4px 12px rgba(43, 35, 80, 0.07);
-  --tnt-shadow: 0 3px 0 rgba(43, 35, 80, 0.08), 0 8px 22px rgba(43, 35, 80, 0.10);
-  --tnt-shadow-lg: 0 6px 0 rgba(43, 35, 80, 0.10), 0 18px 40px rgba(43, 35, 80, 0.16);
+  --tnt-shadow-sm: 0 1px 2px rgba(31, 26, 23, 0.05), 0 2px 8px rgba(31, 26, 23, 0.05);
+  --tnt-shadow: 0 2px 4px rgba(31, 26, 23, 0.06), 0 10px 24px rgba(31, 26, 23, 0.08);
+  --tnt-shadow-lg: 0 4px 10px rgba(31, 26, 23, 0.08), 0 22px 44px rgba(31, 26, 23, 0.14);
 
-  --tnt-radius: 18px;
+  --tnt-radius: 14px;
 
-  /* Headings and body are the same family at different weights, so both come
-     from the single next/font loader in layout.tsx, which defines --font-body.
-     Aliased here so every --font-display rule below keeps working unchanged. */
-  --font-display: var(--font-body);
+  /* Two families from next/font in layout.tsx: --font-body (sans) and
+     --font-display (serif). Aliased here for the rules below. */
+  --font-display: var(--font-display, var(--font-body));
 }
 
 @theme inline {
@@ -79,24 +95,22 @@
   --color-panel: var(--tnt-card);
   --color-red: var(--tnt-red);
   --color-blue: var(--tnt-blue);
-  --font-sans: var(--font-body), ui-rounded, "Nunito", system-ui, sans-serif;
-  --font-display: var(--font-display), ui-rounded, "Fredoka", system-ui, sans-serif;
+  --font-sans: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-display), Georgia, "Times New Roman", serif;
 }
 
 html,
 body {
   background-color: var(--tnt-bg);
-  /* Layered nostalgic backdrop: cream base + faint rainbow corner washes +
-     a soft halftone dot texture. Fixed so it doesn't scroll-jank. */
-  background-image:
-    radial-gradient(120% 90% at 100% 0%, rgba(77, 184, 255, 0.16), transparent 55%),
-    radial-gradient(120% 90% at 0% 0%, rgba(255, 217, 61, 0.18), transparent 55%),
-    radial-gradient(130% 100% at 50% 120%, rgba(179, 136, 255, 0.16), transparent 60%),
-    radial-gradient(rgba(255, 95, 162, 0.07) 1.5px, transparent 1.6px);
-  background-size: 100% 100%, 100% 100%, 100% 100%, 22px 22px;
-  background-attachment: fixed;
+  /* One faint warm wash at the top of the page; no textures, no imagery. */
+  background-image: linear-gradient(
+    180deg,
+    rgba(232, 180, 58, 0.06) 0%,
+    rgba(232, 180, 58, 0) 420px
+  );
+  background-repeat: no-repeat;
   color: var(--tnt-ink);
-  font-family: var(--font-body), ui-rounded, system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 16px;
   line-height: 1.6;
   min-height: 100vh;
@@ -108,10 +122,10 @@ h1,
 h2,
 h3,
 .font-display {
-  font-family: var(--font-display), ui-rounded, system-ui, sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.08;
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
   color: var(--tnt-ink);
 }
 
@@ -124,60 +138,62 @@ a:hover {
   color: var(--tnt-red);
 }
 
-/* ── Trading-card / panel ─────────────────────────────────────── */
+/* ── Panel ────────────────────────────────────────────────────── */
 .tnt-panel {
   background: var(--tnt-card);
-  border: 2px solid var(--tnt-line-strong);
+  border: 1px solid var(--tnt-line-strong);
   border-radius: var(--tnt-radius);
   box-shadow: var(--tnt-shadow-sm);
 }
 .tnt-panel--accent {
   background: var(--tnt-red-soft);
-  border-color: #ffc9c4;
+  border-color: #efc7bb;
 }
 
-/* Collectible card: thick playful frame + lift on hover */
+/* Listing card: quiet frame, gentle lift on hover */
 .tnt-card {
   position: relative;
   background: var(--tnt-card);
-  border: 3px solid var(--tnt-ink);
-  border-radius: 20px;
-  box-shadow: var(--tnt-shadow);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 1px solid var(--tnt-line-strong);
+  border-radius: var(--tnt-radius);
+  box-shadow: var(--tnt-shadow-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 .tnt-card:hover {
-  transform: translateY(-4px) rotate(-0.6deg);
-  box-shadow: var(--tnt-shadow-lg);
+  transform: translateY(-2px);
+  border-color: #c9bfb0;
+  box-shadow: var(--tnt-shadow);
 }
 
-/* ── Sticker buttons (chunky, pressable) ──────────────────────── */
+/* ── Buttons ──────────────────────────────────────────────────── */
 .tnt-btn {
-  font-family: var(--font-display), system-ui, sans-serif;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.7rem 1.5rem;
+  padding: 0.7rem 1.4rem;
   border-radius: 999px;
-  border: 2.5px solid var(--tnt-ink);
+  border: 1.5px solid var(--tnt-red-dark);
   color: #ffffff;
-  background: var(--tnt-purple);
+  background: var(--tnt-red);
   cursor: pointer;
-  box-shadow: 0 4px 0 var(--tnt-ink);
-  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.12s ease;
+  box-shadow: 0 1px 0 rgba(31, 26, 23, 0.08), 0 3px 10px rgba(217, 85, 59, 0.22);
+  transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
 }
 .tnt-btn:hover {
   color: #ffffff;
-  background: var(--tnt-purple-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 0 var(--tnt-ink);
+  background: var(--tnt-red-dark);
+  border-color: var(--tnt-red-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 0 rgba(31, 26, 23, 0.06), 0 6px 16px rgba(217, 85, 59, 0.28);
 }
 .tnt-btn:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 var(--tnt-ink);
+  transform: translateY(1px);
+  box-shadow: 0 1px 4px rgba(217, 85, 59, 0.2);
 }
 .tnt-btn:disabled {
   opacity: 0.55;
@@ -187,22 +203,44 @@ a:hover {
 .tnt-btn--ghost {
   background: #ffffff;
   color: var(--tnt-ink);
+  border-color: var(--tnt-line-strong);
+  box-shadow: var(--tnt-shadow-sm);
 }
 .tnt-btn--ghost:hover {
-  background: var(--tnt-yellow);
+  background: var(--tnt-surface);
   color: var(--tnt-ink);
+  border-color: #c9bfb0;
+  box-shadow: var(--tnt-shadow-sm);
 }
-.tnt-btn--green { background: var(--tnt-green-bright); color: var(--tnt-ink); }
-.tnt-btn--green:hover { background: var(--tnt-green); color: #fff; }
-.tnt-btn--purple { background: var(--tnt-purple-bright); }
-.tnt-btn--purple:hover { background: var(--tnt-purple); color: #fff; }
+.tnt-btn--green {
+  background: var(--tnt-teal);
+  border-color: var(--tnt-teal-dark);
+  color: #ffffff;
+  box-shadow: 0 1px 0 rgba(31, 26, 23, 0.08), 0 3px 10px rgba(31, 122, 140, 0.22);
+}
+.tnt-btn--green:hover {
+  background: var(--tnt-teal-dark);
+  border-color: var(--tnt-teal-dark);
+  color: #ffffff;
+}
+.tnt-btn--purple {
+  background: var(--tnt-lilac);
+  border-color: var(--tnt-lilac-dark);
+  color: #ffffff;
+  box-shadow: 0 1px 0 rgba(31, 26, 23, 0.08), 0 3px 10px rgba(156, 137, 194, 0.24);
+}
+.tnt-btn--purple:hover {
+  background: var(--tnt-lilac-dark);
+  border-color: var(--tnt-lilac-dark);
+  color: #ffffff;
+}
 
 /* ── Inputs ───────────────────────────────────────────────────── */
 .tnt-input {
   width: 100%;
   background: #ffffff;
   color: var(--tnt-ink);
-  border: 2.5px solid var(--tnt-line-strong);
+  border: 1.5px solid var(--tnt-line-strong);
   border-radius: 999px;
   padding: 0.62rem 1rem;
   font-family: var(--font-body), system-ui, sans-serif;
@@ -212,66 +250,44 @@ a:hover {
 .tnt-input::placeholder { color: var(--tnt-muted); }
 .tnt-input:focus {
   outline: none;
-  border-color: var(--tnt-blue-bright);
-  box-shadow: 0 0 0 4px rgba(77, 184, 255, 0.25);
+  border-color: var(--tnt-teal);
+  box-shadow: 0 0 0 4px rgba(31, 122, 140, 0.18);
 }
 /* The pill radius is for single-line inputs only; multi-line textareas and
    selects need a normal radius so their text lines up cleanly. */
 textarea.tnt-input,
 select.tnt-input {
-  border-radius: 16px;
+  border-radius: 12px;
 }
 textarea.tnt-input {
   padding: 0.7rem 1rem;
   line-height: 1.5;
 }
 
-/* ── Collector badges ─────────────────────────────────────────── */
+/* ── Badges ───────────────────────────────────────────────────── */
 .tnt-badge {
-  font-family: var(--font-display), system-ui, sans-serif;
-  font-size: 0.74rem;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 0.32rem 0.8rem;
+  line-height: 1;
+  padding: 0.36rem 0.7rem;
   border-radius: 999px;
-  border: 2px solid var(--tnt-ink);
-  background: var(--tnt-yellow);
+  border: 1px solid #e6cf8f;
+  background: var(--tnt-mustard-soft);
   color: var(--tnt-ink);
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  box-shadow: 0 2px 0 var(--tnt-ink);
-}
-.tnt-badge--on { background: var(--tnt-green-bright); color: var(--tnt-ink); }
-.tnt-badge--error { background: var(--tnt-red); color: #fff; }
-
-/* ── Auth chip (subtle verification tag) ──────────────────────────
-   Deliberately quiet: a small outlined pill that informs without
-   shouting, so the product (photo + price) leads on a storefront. */
-.tnt-authchip {
-  font-family: var(--font-body), system-ui, sans-serif;
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  line-height: 1;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  border: 1px solid currentColor;
-  background: transparent;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.28rem;
-  max-width: 100%;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.tnt-authchip--lg {
-  font-size: 0.78rem;
-  padding: 0.3rem 0.7rem;
-}
-.tnt-authchip__icon { opacity: 0.85; }
+/* Tones used by ConditionBadge: on (new), good (like new), default (good),
+   warn (fair), error (for parts / sold out). */
+.tnt-badge--on { background: var(--tnt-teal-soft); border-color: #b5d4da; color: var(--tnt-teal-dark); }
+.tnt-badge--good { background: var(--tnt-sage-soft); border-color: #bcd2be; color: var(--tnt-sage-dark); }
+.tnt-badge--warn { background: var(--tnt-mustard); border-color: #cf9c25; color: var(--tnt-ink); }
+.tnt-badge--error { background: var(--tnt-terracotta-soft); border-color: #efc0b4; color: var(--tnt-terracotta-dark); }
 
 /* Hide the scrollbar on swipeable carousels (still scrolls/swipes). */
 .tnt-noscrollbar { scrollbar-width: none; -ms-overflow-style: none; }
@@ -299,56 +315,33 @@ textarea.tnt-input {
 
 /* ── Wizard stepper ───────────────────────────────────────────── */
 .tnt-step {
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 2.1rem;
+  height: 2.1rem;
   border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
-  font-size: 0.9rem;
-  border: 2.5px solid var(--tnt-ink);
-  color: var(--tnt-ink);
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 1.5px solid var(--tnt-line-strong);
+  color: var(--tnt-ink-soft);
   background: #ffffff;
-  box-shadow: 0 2px 0 var(--tnt-ink);
 }
-.tnt-step--active { background: var(--tnt-red); color: #fff; }
-.tnt-step--done { background: var(--tnt-green-bright); color: var(--tnt-ink); }
+.tnt-step--active { background: var(--tnt-red); border-color: var(--tnt-red-dark); color: #fff; }
+.tnt-step--done { background: var(--tnt-sage); border-color: var(--tnt-sage-dark); color: #fff; }
 
 /* ── Section helpers ──────────────────────────────────────────── */
 .tnt-stats {
   background:
-    repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 14px, transparent 14px 28px),
+    radial-gradient(90% 120% at 100% 0%, rgba(232, 180, 58, 0.14), transparent 60%),
+    radial-gradient(80% 120% at 0% 100%, rgba(31, 122, 140, 0.22), transparent 60%),
     var(--tnt-dark);
   color: #ffffff;
-  border: 3px solid var(--tnt-ink);
-  border-radius: 22px;
-  box-shadow: var(--tnt-shadow);
-}
-.tnt-auth-banner {
-  background:
-    radial-gradient(80% 120% at 100% 0%, rgba(77,184,255,0.25), transparent 60%),
-    linear-gradient(105deg, #fff3d6 0%, #ffe0ee 55%, #efe2ff 100%);
-  border: 3px solid var(--tnt-ink);
-  border-radius: 22px;
+  border: 1px solid var(--tnt-dark-soft);
+  border-radius: 18px;
   box-shadow: var(--tnt-shadow);
 }
 
-/* ── Sitewide background: tiled brand backdrop ─────────────────── */
-.tnt-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-  /* Tiled (not stretched) so the art keeps its native proportions on any
-     viewport. WebP tile: 11KB vs the 1.2MB source PNG — this loads on every
-     page, and at 0.16 opacity the compression is invisible. */
-  background-image: url("/updated-website-backdrop.webp");
-  background-repeat: repeat;
-  background-size: 560px auto;
-  opacity: 0.16;
-}
 /* ── Toasts ───────────────────────────────────────────────────── */
 @keyframes tnt-toast-in {
   from { opacity: 0; transform: translateY(10px) scale(0.97); }
@@ -363,70 +356,17 @@ textarea.tnt-input {
 }
 .tnt-dock-in { animation: tnt-dock-in 0.2s ease-out; }
 
-/* ── Sold-price ticker (stock-ticker marquee) ─────────────────── */
-.tnt-ticker {
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  overflow: hidden;
-  background: var(--tnt-ink);
-  color: #fff;
-  border: 2px solid var(--tnt-ink);
-  border-radius: 0.75rem;
-  box-shadow: var(--tnt-shadow-sm);
-  text-decoration: none;
-}
-.tnt-ticker__label {
-  position: relative;
-  z-index: 10;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-shrink: 0;
-  padding: 0 0.85rem;
-  background: var(--tnt-red);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.tnt-ticker__dot {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 9999px;
-  background: #fff;
-  animation: tnt-ticker-pulse 1.6s ease-in-out infinite;
-}
-.tnt-ticker__track {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  white-space: nowrap;
-  animation: tnt-ticker-scroll linear infinite;
-  will-change: transform;
-}
-.tnt-ticker:hover .tnt-ticker__track { animation-play-state: paused; }
-.tnt-ticker__group { display: inline-flex; align-items: center; }
-.tnt-ticker__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.8rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.15);
-}
-@keyframes tnt-ticker-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-@keyframes tnt-ticker-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.25; }
-}
 @media (prefers-reduced-motion: reduce) {
-  .tnt-ticker { overflow-x: auto; }
-  .tnt-ticker__track { animation: none; }
-  .tnt-ticker__dot { animation: none; }
+  .tnt-card,
+  .tnt-btn {
+    transition: none;
+  }
+  .tnt-card:hover,
+  .tnt-btn:hover {
+    transform: none;
+  }
+  .tnt-toast-in,
+  .tnt-dock-in {
+    animation: none;
+  }
 }

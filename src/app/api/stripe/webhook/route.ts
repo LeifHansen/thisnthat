@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { requireStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/db";
-import { advancePaidAuthBatch } from "@/lib/authPayment";
-import { ensureInboundLabel } from "@/lib/authLabels";
 import * as notify from "@/lib/notify";
 
 export async function POST(req: Request) {
@@ -41,7 +39,7 @@ export async function POST(req: Request) {
   }
 
   // A chargeback is the one event that can take money back out of a completed
-  // sale, and escrow means the seller may already have been paid from it. There
+  // sale, and the seller may already have been paid from it. There
   // is no automatic response that is safe here — reversing a transfer the
   // seller has spent, or refunding on top of a dispute we then win, both cost
   // real money — so this records rather than acts. Without it a dispute is
@@ -89,9 +87,10 @@ export async function POST(req: Request) {
   const pi = event.data.object as Stripe.PaymentIntent;
   const kind = pi.metadata?.kind;
 
-  // Sale escrow: manual-capture authorization confirmed. A single PaymentIntent
-  // may back several orders (one cart), grouped by cartId. (orderId is a
-  // legacy single-order fallback.)
+  // Sale: manual-capture authorization confirmed — the buyer's card is held
+  // and the seller can ship. Each order has its own PaymentIntent
+  // (metadata.orderId); the cartId lookup in ordersForIntent covers orders
+  // from before that change.
   if (
     kind === "sale" &&
     (event.type === "payment_intent.amount_capturable_updated" ||
@@ -120,44 +119,6 @@ export async function POST(req: Request) {
       // Buyer receipt + seller "you sold" — fire-and-forget so a mail hiccup
       // can't fail the webhook (Stripe would retry and re-advance the order).
       if (advanced) void notify.orderPaid(order.id);
-    }
-  }
-
-  // Authentication service: paid upfront (immediate capture). A submission may
-  // cover several beanies sharing one PaymentIntent, so advance them all. The
-  // helper matches on batchId from the PI metadata (set atomically at PI
-  // creation) and falls back to the PaymentIntent id — either uniquely
-  // identifies the batch.
-  if (kind === "auth" && event.type === "payment_intent.succeeded") {
-    // label: "skip" — the label is bought right below, awaited, so that a
-    // replayed event retries a purchase that failed the first time.
-    const advanced = await advancePaidAuthBatch(pi, { label: "skip" });
-
-    // The submitter was billed for inbound postage at checkout, so buy their
-    // prepaid label now. Claimed batch-wide before purchase, so a retried
-    // delivery of this event can't buy postage twice; awaited so a failure is
-    // logged against this request rather than vanishing after the response.
-    const batchIdForLabel = pi.metadata?.batchId;
-    if (batchIdForLabel) {
-      await ensureInboundLabel(batchIdForLabel).catch((e) =>
-        console.error("stripe webhook: inbound label step failed", e),
-      );
-    }
-
-    if (advanced === 0) {
-      // Zero rows is normal on a replay (already advanced), but if no request
-      // exists at all this payment has no record in the app — an operator has
-      // real money in Stripe and nothing in the queue. Say so in the logs.
-      const batchId = pi.metadata?.batchId;
-      const exists = await prisma.authenticationRequest.findFirst({
-        where: batchId ? { batchId } : { stripePaymentIntentId: pi.id },
-        select: { id: true },
-      });
-      if (!exists) {
-        console.error(
-          `stripe webhook: auth payment ${pi.id} succeeded but no authentication request matches it (batchId: ${batchId ?? "none"})`,
-        );
-      }
     }
   }
 

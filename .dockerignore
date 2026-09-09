@@ -16,9 +16,6 @@
 # mobile app (built with EAS, not part of the web image)
 /mobile
 
-# local staging input for scripts/import-beanie-images.ts — not served at runtime
-/beanie_missing_images_batch_01
-
 # next.js
 /.next/
 /out/

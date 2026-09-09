@@ -8,8 +8,9 @@ name: DB migrations
 on:
   push:
     branches: [main]
+  # No branch filter: the repository's default branch is not `main`, so a
+  # filter on the PR base would skip every PR. Run for all of them.
   pull_request:
-    branches: [main]
 
 jobs:
   drift:
@@ -20,7 +21,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: bxtest
+          POSTGRES_DB: tnttest
         ports:
           - 5432:5432
         options: >-
@@ -29,8 +30,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/bxtest"
-      DIRECT_URL: "postgresql://postgres:postgres@localhost:5432/bxtest"
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/tnttest"
+      DIRECT_URL: "postgresql://postgres:postgres@localhost:5432/tnttest"
     steps:
       - uses: actions/checkout@v4
 

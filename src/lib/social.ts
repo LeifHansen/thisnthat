@@ -9,7 +9,7 @@ import * as notify from "@/lib/notify";
  * Like / unlike a listing. Presence of a ListingLike row = liked, so the
  * toggle is a find-then-create-or-delete keyed on @@unique([userId,
  * listingId]) — a concurrent double-submit hits the constraint and is
- * swallowed as a no-op (same pattern as the forum vote action).
+ * swallowed as a no-op.
  *
  * Signed-out users are handled in the UI (LikeButton renders a sign-in
  * link instead of the form), so the action just bails.
@@ -40,7 +40,7 @@ export async function toggleListingLike(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
-/** Follow / unfollow another collector's store. Self-follows are ignored. */
+/** Follow / unfollow another seller's store. Self-follows are ignored. */
 export async function toggleFollow(formData: FormData) {
   const session = await auth();
   if (!session?.user) return;

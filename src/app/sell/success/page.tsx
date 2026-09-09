@@ -1,19 +1,32 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { ScrollToTop } from "@/components/ScrollToTop";
 
 export const metadata: Metadata = {
-  title: "Listing Published",
+  title: "Listing published",
   robots: { index: false, follow: false },
 };
 
 export default async function SellSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; first?: string }>;
+  searchParams: Promise<{ id?: string; draft?: string }>;
 }) {
-  const { id, first } = await searchParams;
-  const isFirst = first === "1";
+  const { id, draft } = await searchParams;
+  const isDraft = draft === "1";
+
+  // Nudge sellers who haven't finished payout setup: the sale can complete
+  // but the transfer can't land until Stripe payouts are enabled.
+  const session = await auth();
+  const me = session?.user?.id
+    ? await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { stripePayoutsEnabledAt: true },
+      })
+    : null;
+  const needsPayouts = !!session?.user && !me?.stripePayoutsEnabledAt;
 
   return (
     <div className="max-w-xl mx-auto space-y-4">
@@ -34,23 +47,23 @@ export default async function SellSuccessPage({
 
         <div className="space-y-2">
           <h1 className="text-2xl sm:text-3xl font-bold">
-            {isFirst ? "Your first beanie is live! 🎉" : "Your beanie is listed!"}
+            {isDraft ? "Draft saved" : "Your listing is live! 🎉"}
           </h1>
           <p className="text-muted">
-            {isFirst
-              ? "Welcome to selling on Beanie Xchange — collectors can find it right now."
-              : "It's now live on the marketplace for collectors to find."}
+            {isDraft
+              ? "It's tucked away in your dashboard — post it whenever you're ready."
+              : "Buyers can find it on the marketplace right now."}
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-1">
           {id ? (
             <Link href={`/listings/${id}`} className="tnt-btn">
-              View Listing
+              View listing
             </Link>
           ) : (
             <Link href="/browse" className="tnt-btn">
-              Browse Listings
+              Browse listings
             </Link>
           )}
           <Link href="/sell" className="tnt-btn tnt-btn--ghost">
@@ -65,7 +78,7 @@ export default async function SellSuccessPage({
         </p>
       </div>
 
-      {isFirst && (
+      {needsPayouts && (
         <div
           className="tnt-panel p-5 flex items-center justify-between gap-4 flex-wrap"
           style={{
@@ -78,8 +91,9 @@ export default async function SellSuccessPage({
               💸 One more thing: set up payouts
             </p>
             <p className="text-sm text-ink">
-              When this sells, payment is held in escrow — connect your payout
-              account so it can be released to you.
+              When this sells, you&apos;re paid through Stripe once the buyer
+              confirms delivery — connect your payout account so the money has
+              somewhere to go.
             </p>
           </div>
           <Link href="/dashboard#payouts" className="tnt-btn shrink-0">

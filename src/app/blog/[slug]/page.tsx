@@ -6,6 +6,7 @@ import Image from "next/image";
 import Script from "next/script";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { BlogContent } from "@/components/BlogContent";
 
 // ISR: a published post is public + non-personalized. The blog actions
@@ -13,7 +14,7 @@ import { BlogContent } from "@/components/BlogContent";
 // immediately while normal traffic is served a cached page.
 export const revalidate = 3600;
 
-const SITE_URL = "https://beaniexchange.com";
+const DEFAULT_AUTHOR = `${SITE_NAME} Team`;
 
 // Memoized per request: generateMetadata and the page both need the post, and
 // without cache() that is two identical queries on every blog view.
@@ -34,7 +35,7 @@ export async function generateMetadata({
   const post = await loadPost(slug);
   if (!post) return { title: "Blog post" };
   return {
-    title: `${post.title} — Beanie Xchange Blog`,
+    title: `${post.title} — ${SITE_NAME} Blog`,
     description: post.excerpt || post.content.slice(0, 160),
     alternates: { canonical: `/blog/${post.slug}` },
     openGraph: {
@@ -84,11 +85,11 @@ export default async function BlogPostPage({
             dateModified: post.updatedAt.toISOString(),
             author: {
               "@type": "Organization",
-              name: post.authorDisplayName ?? "Beanie Xchange",
+              name: post.authorDisplayName ?? SITE_NAME,
             },
             publisher: {
               "@type": "Organization",
-              name: "Beanie Xchange",
+              name: SITE_NAME,
               logo: {
                 "@type": "ImageObject",
                 url: `${SITE_URL}/tnt-logo.png`,
@@ -101,14 +102,14 @@ export default async function BlogPostPage({
 
       <nav className="text-muted text-sm">
         <Link href="/blog" className="!text-cyan">
-          ← Beanie Xchange Blog
+          ← {SITE_NAME} Blog
         </Link>
       </nav>
 
       <header className="space-y-3">
         <h1 className="text-3xl sm:text-4xl !text-ink">{post.title}</h1>
         <p className="text-muted text-sm">
-          {post.authorDisplayName ?? "BeanieX Team"} · {formatDate(published)}
+          {post.authorDisplayName ?? DEFAULT_AUTHOR} · {formatDate(published)}
         </p>
         {post.excerpt && (
           <p className="text-lg text-[var(--tnt-ink-soft)]">{post.excerpt}</p>

@@ -8,11 +8,11 @@ import type { ReviewResult } from "@/lib/reviews";
 // re-renders showing the saved review instead of the form.
 export function ReviewForm({
   orderId,
-  beanieName,
+  itemTitle,
   submitReview,
 }: {
   orderId: string;
-  beanieName: string;
+  itemTitle: string;
   submitReview: (formData: FormData) => Promise<ReviewResult>;
 }) {
   const [rating, setRating] = useState(0);
@@ -47,7 +47,7 @@ export function ReviewForm({
 
   return (
     <form onSubmit={onSubmit} className="tnt-panel p-4 space-y-3">
-      <p className="font-display text-sm">How was your {beanieName}?</p>
+      <p className="font-display text-sm">How was your purchase of {itemTitle}?</p>
       <div className="flex items-center gap-1" role="radiogroup" aria-label="Star rating">
         {[1, 2, 3, 4, 5].map((n) => (
           <button

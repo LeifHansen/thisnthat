@@ -1,30 +1,32 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PhotoUploader } from "@/components/PhotoUploader";
-import { AuthBadge } from "@/components/AuthBadge";
 import { ListingOptimizer } from "@/components/ListingOptimizer";
-import { LISTING_CONDITIONS, isCanonicalCondition } from "@/lib/listingOptions";
-import type { AuthType } from "@prisma/client";
+import {
+  CATEGORIES,
+  getCategory,
+  type AttributeField,
+  type Attributes,
+} from "@/lib/categories";
+import { CONDITIONS } from "@/lib/listingOptions";
+import type { Condition } from "@prisma/client";
 
 export type EditListingInitial = {
-  quantity: string;
   id: string;
   title: string;
-  beanieName: string;
-  year: string;
-  condition: string;
+  categorySlug: string;
+  brand: string;
+  itemName: string;
+  condition: Condition;
+  attributes: Attributes;
   description: string;
   price: string;
+  quantity: string;
   photos: string[];
   minAutoAccept: string;
-  authType: AuthType;
   status: string;
-  registrationNumber: string | null;
-  trueBlueCertId: string | null;
-  coaImageUrl: string | null;
-  grade: string | null;
 };
 
 export function EditListingForm({
@@ -41,50 +43,60 @@ export function EditListingForm({
   saveError?: boolean;
   /** Specific field-level reason the last save failed, if known. */
   saveErrorReason?: string;
-  /** Lot listings hide the single-beanie fields and sync beanieName to title. */
+  /** Lot listings hide the single-item-only fields (brand, item, attributes, quantity). */
   isLot?: boolean;
   /** Human summary of the lot's contents, shown as a note. */
   lotSummary?: string;
 }) {
   const [photos, setPhotos] = useState<string[]>(initial.photos);
   const [title, setTitle] = useState(initial.title);
+  const [categorySlug, setCategorySlug] = useState(initial.categorySlug);
+  const [brand, setBrand] = useState(initial.brand);
+  const [itemName, setItemName] = useState(initial.itemName);
+  const [condition, setCondition] = useState<Condition>(initial.condition);
+  const [attributes, setAttributes] = useState<Attributes>(initial.attributes);
   const [description, setDescription] = useState(initial.description);
   const [autoAcceptOn, setAutoAcceptOn] = useState<boolean>(
     initial.minAutoAccept !== "",
   );
-  const [authType, setAuthType] = useState<AuthType>(initial.authType);
   const [busy, setBusy] = useState(false);
   // Which submit button was clicked, so the in-flight label matches it.
   const [intent, setIntent] = useState<"save" | "publish">("save");
-  const formRef = useRef<HTMLFormElement>(null);
+
+  const category = getCategory(categorySlug);
 
   // A draft is saved but invisible: nothing links to it and Browse skips it.
   // It stays that way until the seller publishes, so this form offers the one
   // control that flips it live.
   const isDraft = initial.status === "DRAFT";
 
-  // Older listings, lots ("Mixed — see photos") and imports can hold a
-  // condition that isn't in the current vocabulary. The field is `required`,
-  // so if the stored value matched no <option> the select would sit empty and
-  // the browser would refuse to submit — every save silently doing nothing.
-  // Carry the stored value as its own option instead (same escape hatch the
-  // authType select uses for legacy BX_EXPRESS_COA).
-  const legacyCondition =
-    initial.condition && !isCanonicalCondition(initial.condition)
-      ? initial.condition
-      : null;
+  // Switching category swaps the attribute fields. Values whose key exists in
+  // both schemas ("colour", "era"…) carry over; the rest are dropped so the
+  // hidden JSON never smuggles stale fields onto the listing.
+  function changeCategory(slug: string) {
+    setCategorySlug(slug);
+    const next = getCategory(slug);
+    setAttributes((prev) => {
+      const keep: Attributes = {};
+      for (const field of next?.attributes ?? []) {
+        if (prev[field.key]) keep[field.key] = prev[field.key];
+      }
+      return keep;
+    });
+  }
+  const setAttribute = (key: string, value: string) =>
+    setAttributes((prev) => ({ ...prev, [key]: value }));
 
-  const getOptimizeInput = () => {
-    const fd = formRef.current ? new FormData(formRef.current) : null;
-    return {
-      beanieName: (fd?.get("beanieName") as string) || initial.beanieName,
-      title,
-      description,
-      condition: (fd?.get("condition") as string) || initial.condition,
-      year: (fd?.get("year") as string) || initial.year,
-      photos,
-    };
-  };
+  const getOptimizeInput = () => ({
+    title,
+    brand,
+    itemName,
+    categorySlug,
+    condition,
+    attributes,
+    description,
+    photos,
+  });
 
   // The optimizer only analyses the first few photos, so `order` may cover
   // fewer indices than the seller actually has. Reorder the ones it ranked,
@@ -100,7 +112,6 @@ export function EditListingForm({
 
   return (
     <form
-      ref={formRef}
       action={updateListing}
       onSubmit={() => setBusy(true)}
       className="space-y-6"
@@ -160,17 +171,15 @@ export function EditListingForm({
             🎁 This is a lot{lotSummary ? ` — ${lotSummary}` : ""}.
           </p>
           <p className="text-muted text-xs mt-1">
-            Edit the title, price, condition, photos, and description here.
-            Changing which beanies are in the lot isn&apos;t supported yet —
-            relist the lot to change its contents.
+            Edit the title, category, price, condition, photos, and
+            description here. Changing what&apos;s in the lot isn&apos;t
+            supported yet — relist the lot to change its contents.
           </p>
-          {/* A lot's beanieName mirrors its title; keep them in sync on save. */}
-          <input type="hidden" name="beanieName" value={title} />
         </div>
       )}
 
       <div className="grid sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 sm:col-span-2">
           <label htmlFor="title" className="font-semibold">
             {isLot ? "Lot title" : "Listing title"}
           </label>
@@ -184,37 +193,26 @@ export function EditListingForm({
             className="tnt-input"
           />
         </div>
-        {!isLot && (
-          <div className="space-y-1.5">
-            <label htmlFor="beanieName" className="font-semibold">
-              Beanie name
-            </label>
-            <input
-              id="beanieName"
-              name="beanieName"
-              required
-              maxLength={160}
-              defaultValue={initial.beanieName}
-              className="tnt-input"
-            />
-          </div>
-        )}
-        {!isLot && (
-          <div className="space-y-1.5">
-            <label htmlFor="year" className="font-semibold">
-              Year <span className="text-muted font-normal">(optional)</span>
-            </label>
-            <input
-              id="year"
-              name="year"
-              type="number"
-              min={1980}
-              max={2100}
-              defaultValue={initial.year}
-              className="tnt-input"
-            />
-          </div>
-        )}
+        <div className="space-y-1.5">
+          <label htmlFor="categorySlug" className="font-semibold">
+            Category
+          </label>
+          <select
+            id="categorySlug"
+            name="categorySlug"
+            required
+            value={categorySlug}
+            onChange={(e) => changeCategory(e.target.value)}
+            className="tnt-input"
+          >
+            <option value="">Select…</option>
+            {CATEGORIES.map((c) => (
+              <option key={c.slug} value={c.slug}>
+                {c.emoji} {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="space-y-1.5">
           <label htmlFor="condition" className="font-semibold">
             Condition
@@ -223,20 +221,49 @@ export function EditListingForm({
             id="condition"
             name="condition"
             required
-            defaultValue={initial.condition}
+            value={condition}
+            onChange={(e) => setCondition(e.target.value as Condition)}
             className="tnt-input"
           >
-            <option value="">Select…</option>
-            {legacyCondition && (
-              <option value={legacyCondition}>{legacyCondition}</option>
-            )}
-            {LISTING_CONDITIONS.map((c) => (
+            {CONDITIONS.map((c) => (
               <option key={c.value} value={c.value}>
-                {c.value}
+                {c.label} — {c.hint}
               </option>
             ))}
           </select>
         </div>
+        {!isLot && (
+          <div className="space-y-1.5">
+            <label htmlFor="brand" className="font-semibold">
+              Brand <span className="text-muted font-normal">(optional)</span>
+            </label>
+            <input
+              id="brand"
+              name="brand"
+              maxLength={80}
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              placeholder="Levi's, Nintendo, handmade…"
+              className="tnt-input"
+            />
+          </div>
+        )}
+        {!isLot && (
+          <div className="space-y-1.5">
+            <label htmlFor="itemName" className="font-semibold">
+              Item name <span className="text-muted font-normal">(optional)</span>
+            </label>
+            <input
+              id="itemName"
+              name="itemName"
+              maxLength={160}
+              value={itemName}
+              onChange={(e) => setItemName(e.target.value)}
+              placeholder="What is it, in a few words"
+              className="tnt-input"
+            />
+          </div>
+        )}
         <div className="space-y-1.5">
           <label htmlFor="price" className="font-semibold">
             Price (USD)
@@ -278,6 +305,49 @@ export function EditListingForm({
           </div>
         )}
       </div>
+
+      {/* Per-category attributes. Rendered from the category schema — the
+          form never branches on a slug. Submitted as one JSON map. */}
+      {!isLot && (
+        <div className="tnt-panel p-4 space-y-3">
+          <input type="hidden" name="attributes" value={JSON.stringify(attributes)} />
+          <div>
+            <p className="font-semibold text-ink">
+              {category ? `${category.emoji} ${category.name} details` : "Details"}
+            </p>
+            <p className="text-xs text-muted">
+              All optional. Shown as a spec table on the listing and used by
+              the browse filters.
+            </p>
+          </div>
+          {category && category.attributes.length > 0 ? (
+            <div className="grid sm:grid-cols-2 gap-4">
+              {category.attributes.map((field) => (
+                <div key={field.key} className="space-y-1.5">
+                  <label htmlFor={`attr-${field.key}`} className="text-sm font-semibold">
+                    {field.label}
+                  </label>
+                  <AttributeInput
+                    id={`attr-${field.key}`}
+                    field={field}
+                    value={attributes[field.key] ?? ""}
+                    onChange={(v) => setAttribute(field.key, v)}
+                  />
+                  {field.hint && (
+                    <p className="text-xs text-muted">{field.hint}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted">
+              {category
+                ? "Nothing extra needed for this category."
+                : "Pick a category to see its details."}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <label htmlFor="description" className="font-semibold">
@@ -326,80 +396,6 @@ export function EditListingForm({
         )}
       </div>
 
-      {/* Authentication: pick the backing service + cert/registry number.
-          Lots stay as-is / third-party COA (per-beanie certs don't apply). */}
-      <div className="tnt-panel p-4 space-y-3 text-sm">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-ink font-semibold">Authentication</span>
-          <AuthBadge
-            authType={authType}
-            registrationNumber={initial.registrationNumber}
-            grade={initial.grade}
-          />
-        </div>
-        <select
-          name="authType"
-          className="tnt-input"
-          value={authType}
-          onChange={(e) => setAuthType(e.target.value as AuthType)}
-        >
-          {!isLot && <option value="TRUE_BLUE">True Blue verified</option>}
-          {!isLot && (
-            <option value="BX_FULL_SERVICE">BX authenticated</option>
-          )}
-          <option value="THIRD_PARTY_COA">Other (third-party COA)</option>
-          <option value="UNAUTHENTICATED">
-            Unauthenticated — sold as-is
-          </option>
-          {initial.authType === "BX_EXPRESS_COA" && (
-            <option value="BX_EXPRESS_COA">BX Express COA</option>
-          )}
-        </select>
-        {authType === "TRUE_BLUE" && (
-          <label className="block space-y-1.5">
-            <span className="text-ink">True Blue cert ID</span>
-            <input
-              name="trueBlueCertId"
-              className="tnt-input"
-              defaultValue={initial.trueBlueCertId ?? ""}
-              placeholder="TBB-…"
-              maxLength={120}
-            />
-          </label>
-        )}
-        {authType === "BX_FULL_SERVICE" && (
-          <label className="block space-y-1.5">
-            <span className="text-ink">BX Registry number</span>
-            <input
-              name="registrationNumber"
-              className="tnt-input"
-              defaultValue={initial.registrationNumber ?? ""}
-              placeholder="BX-…"
-              maxLength={120}
-            />
-            <span className="block text-xs text-muted">
-              The registry number from your BX authentication.
-            </span>
-          </label>
-        )}
-        {authType === "THIRD_PARTY_COA" && (
-          <label className="block space-y-1.5">
-            <span className="text-ink">COA image URL</span>
-            <input
-              name="coaImageUrl"
-              className="tnt-input"
-              defaultValue={initial.coaImageUrl ?? ""}
-              placeholder="https://…"
-              maxLength={2048}
-            />
-          </label>
-        )}
-        <p className="text-xs text-muted">
-          Buyers see this as the authentication badge on your listing. Don&apos;t
-          have a cert yet? Submit the item via Authenticate &amp; Grade.
-        </p>
-      </div>
-
       <div className="flex flex-wrap items-center gap-3">
         {isDraft && (
           <button
@@ -434,5 +430,61 @@ export function EditListingForm({
         </Link>
       </div>
     </form>
+  );
+}
+
+/** One attribute field from a category schema. */
+function AttributeInput({
+  id,
+  field,
+  value,
+  onChange,
+}: {
+  id: string;
+  field: AttributeField;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  if (field.type === "select") {
+    return (
+      <select
+        id={id}
+        className="tnt-input"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">Select…</option>
+        {field.options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  if (field.type === "number") {
+    return (
+      <input
+        id={id}
+        className="tnt-input"
+        type="number"
+        min={field.min}
+        max={field.max}
+        step={1}
+        value={value}
+        placeholder={field.placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    );
+  }
+  return (
+    <input
+      id={id}
+      className="tnt-input"
+      value={value}
+      maxLength={120}
+      placeholder={field.placeholder}
+      onChange={(e) => onChange(e.target.value)}
+    />
   );
 }

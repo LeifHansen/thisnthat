@@ -35,8 +35,8 @@ export default async function ProfileSettingsPage({
   });
   if (!me) return null;
 
-  // Checked here rather than after they confirm: someone mid-escrow should be
-  // told before they type their email in, not after.
+  // Checked here rather than after they confirm: someone with an order still
+  // in flight should be told before they type their email in, not after.
   const deletionBlocker = await accountDeletionBlocker(user.id);
 
   return (
@@ -45,8 +45,8 @@ export default async function ProfileSettingsPage({
         <div>
           <h1 className="text-2xl">Edit Profile</h1>
           <p className="text-muted text-sm">
-            How you appear to other collectors across the marketplace, forums,
-            and messages.
+            How you appear to buyers and sellers across the marketplace and in
+            messages.
           </p>
         </div>
         <Link
@@ -94,7 +94,7 @@ export default async function ProfileSettingsPage({
             defaultValue={me.bio ?? ""}
             rows={4}
             maxLength={500}
-            placeholder="Tell collectors about yourself — what you collect, how long you've been in the hobby, what you're hunting for…"
+            placeholder="Tell buyers about yourself — what you sell, how you pack and ship, what you're looking for…"
             className="tnt-input"
           />
           <p className="text-xs text-muted">Up to 500 characters.</p>
@@ -135,8 +135,8 @@ export default async function ProfileSettingsPage({
       <section className="tnt-panel p-5 space-y-3 border-[var(--tnt-red)]/40">
         <h2 className="text-xl">Delete your account</h2>
         <p className="text-sm text-muted">
-          This removes your profile, listings, messages, offers, reviews and
-          forum posts, and cannot be undone. Completed orders are kept — they
+          This removes your profile, listings, messages, offers and reviews,
+          and cannot be undone. Completed orders are kept — they
           are the other party&rsquo;s record of a real sale, and their receipts
           and tax records depend on them — but nothing on them identifies you
           any more.

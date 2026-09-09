@@ -5,13 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 
-const STORAGE_KEY = "bx:signup-prompt-dismissed";
+const STORAGE_KEY = "tnt:signup-prompt-dismissed";
 const SHOW_AFTER_MS = 6_000;
 // Re-show to visitors who dismissed it a while ago but still haven't joined.
 const REMIND_AFTER_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // Don't interrupt people who are already signing up, buying, or working.
-const QUIET_PREFIXES = ["/auth", "/checkout", "/cart", "/admin"];
+const QUIET_PREFIXES = ["/auth", "/checkout", "/cart", "/admin", "/sell"];
 
 /**
  * One-time "create an account" nudge for logged-out visitors. Appears a few
@@ -78,29 +78,30 @@ export function SignupPrompt({ loggedIn }: { loggedIn: boolean }) {
           type="button"
           onClick={dismiss}
           aria-label="Close"
-          className="absolute top-3 right-3 w-8 h-8 rounded-full border-2 border-[var(--tnt-ink)] bg-white text-ink text-lg leading-none hover:bg-[var(--tnt-surface)]"
+          className="absolute top-3 right-3 w-8 h-8 rounded-full border border-[var(--tnt-line-strong)] bg-white text-ink text-lg leading-none hover:bg-[var(--tnt-surface)]"
         >
           ×
         </button>
 
         <Image
-          src="/brand/tnt-heart-logo-v3.png"
+          src="/tnt-mark.svg"
           alt=""
           width={512}
           height={512}
-          className="mx-auto h-14 w-auto"
+          sizes="56px"
+          className="mx-auto h-14 w-14"
         />
 
         <h2
           id="signup-prompt-title"
-          className="font-display text-2xl font-extrabold mt-3 text-ink"
+          className="font-display text-2xl mt-3 text-ink"
         >
-          Join the BeanieXchange community
+          Join This&rsquo;n&rsquo;that
         </h2>
         <p className="text-sm text-muted mt-2 leading-relaxed">
-          Create a free account to buy and sell authenticated Beanie Babies,
-          track your collection in the BX Registry, and connect with collectors
-          worldwide.
+          Create a free account to list what you have, keep tabs on what
+          you&apos;re after, and message sellers directly. Listing is free —
+          you only pay when something sells.
         </p>
 
         <div className="mt-5 flex flex-col gap-2">

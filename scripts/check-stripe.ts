@@ -1,14 +1,15 @@
 /**
- * Standalone Stripe check. Confirms the secret key works and the two
- * PaymentIntent flows the app relies on both succeed:
- *   1. Manual-capture (marketplace escrow): confirm -> requires_capture -> capture -> succeeded
- *   2. Immediate-capture (authentication):  confirm -> succeeded
+ * Standalone Stripe check. Confirms the secret key works and that
+ * PaymentIntents behave the way the app relies on:
+ *   1. Manual-capture (marketplace hold): confirm -> requires_capture -> capture -> succeeded
+ *      — the checkout flow: authorize at checkout, capture on delivery.
+ *   2. Immediate-capture (sanity check):  confirm -> succeeded
  *
  * Run with your TEST secret key (it refuses a live key):
  *   STRIPE_SECRET_KEY=sk_test_... npx tsx scripts/check-stripe.ts
  *
  * "✓ both payment flows work" means Stripe is reachable, the key is valid, and
- * authorize/capture behave as the checkout and authentication routes expect.
+ * authorize/capture behave as the checkout and payout code expects.
  * This talks to Stripe directly (no app imports) so it runs anywhere.
  */
 
@@ -41,7 +42,7 @@ function intentBase(amount: number, kind: string) {
 async function main() {
   console.log(`Key: ${key!.slice(0, 11)}…  (TEST mode)\n`);
 
-  // 1. Manual-capture escrow flow (marketplace sales): authorize, then capture.
+  // 1. Manual-capture hold (marketplace sales): authorize, then capture.
   const escrow = await stripe.paymentIntents.create({
     ...intentBase(2599, "sale"),
     capture_method: "manual",
@@ -55,16 +56,16 @@ async function main() {
   const escrowOk =
     escrowAuth.status === "requires_capture" && escrowCap.status === "succeeded";
 
-  // 2. Immediate-capture flow (authentication service): paid up front.
-  const auth = await stripe.paymentIntents.create(intentBase(2000, "auth"));
-  const authConf = await stripe.paymentIntents.confirm(auth.id, {
+  // 2. Immediate-capture flow: a plain charge, confirmed and captured at once.
+  const direct = await stripe.paymentIntents.create(intentBase(2000, "direct"));
+  const directConf = await stripe.paymentIntents.confirm(direct.id, {
     payment_method: "pm_card_visa",
   });
-  console.log(`auth PI    pay       -> ${authConf.status}   (expect succeeded)`);
-  const authOk = authConf.status === "succeeded";
+  console.log(`direct PI  pay       -> ${directConf.status}   (expect succeeded)`);
+  const directOk = directConf.status === "succeeded";
 
   // 3. Redirect exposure. Every intent the app creates sets
-  //    `allow_redirects: "never"`, because all three checkout surfaces confirm
+  //    `allow_redirects: "never"`, because every checkout surface confirms
   //    with `redirect: "if_required"` and pass no `return_url` — a redirect
   //    method reaching the Payment Element is a dead payment button, and which
   //    methods are live is a Dashboard setting nobody changes in this repo. So
@@ -101,7 +102,7 @@ async function main() {
   ]);
 
   console.log();
-  if (escrowOk && authOk) {
+  if (escrowOk && directOk) {
     console.log("✓ Stripe is reachable and both payment flows work.");
   } else {
     console.log("✗ Stripe responded but a flow didn't reach the expected state (see above).");

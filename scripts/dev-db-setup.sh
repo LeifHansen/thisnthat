@@ -4,7 +4,7 @@
 # ephemeral container that has no external database. Idempotent: safe to re-run
 # (it won't wipe existing data). After running, start the app with `npm run dev`.
 #
-#   bash scripts/dev-db-setup.sh
+#   bash scripts/dev-db-setup.sh      # or: npm run db:dev:setup
 #
 # Connection used (matches .env.local, which this script creates if missing):
 #   postgresql://user:pass@127.0.0.1:5432/db
@@ -51,18 +51,19 @@ DIRECT_URL="$URL"
 AUTH_SECRET="local-dev-secret-local-dev-secret-pad-32+"
 STRIPE_PUBLISHABLE_KEY="pk_test_local"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+SUPERADMIN_EMAIL="admin@thisnthat.com"
 EOF
   echo "wrote .env.local"
 fi
 
-# 5) Schema + seed data.
+# 5) Schema + seed data. `migrate deploy` applies the committed migrations
+#    (the same command the Fly release runs); the seed upserts categories, the
+#    demo accounts and — outside production — a set of demo listings.
 export DATABASE_URL="$URL" DIRECT_URL="$URL"
-npx prisma db push --skip-generate
+npx prisma migrate deploy
 npx tsx prisma/seed.ts
-npx tsx scripts/seed-dummy-sellers.ts || true   # references prod IDs; best-effort
-npx tsx scripts/seed-dev.ts
 
 echo ""
 echo "Dev DB ready at $URL"
 echo "Start the app:  npm run dev"
-echo "Demo logins (password123): admin@beaniex.com / seller@beaniex.com / buyer@beaniex.com"
+echo "Demo logins (password123): admin@thisnthat.com / seller@thisnthat.com / buyer@thisnthat.com"

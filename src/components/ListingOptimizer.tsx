@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 
+// What /api/listing-optimize takes: the listing as it stands in the edit form.
 export type OptimizeInput = {
-  beanieName: string;
   title: string;
-  description: string;
+  brand: string;
+  itemName: string;
+  categorySlug: string;
   condition: string;
-  year: string;
+  attributes: Record<string, string>;
+  description: string;
   photos: string[];
 };
 
@@ -21,12 +24,6 @@ type OptimizeResult = {
     tips: string[];
     missingShots: string[];
   };
-  databaseMatch: {
-    name: string;
-    styleNumber: string | null;
-    low: number;
-    high: number;
-  } | null;
 };
 
 export function ListingOptimizer({
@@ -60,8 +57,8 @@ export function ListingOptimizer({
       setResult(r);
       // Everything lands in the form immediately — no separate apply step.
       // The seller still reviews before saving the listing itself.
-      onApplyTitle(r.optimizedTitle);
-      onApplyDescription(r.optimizedDescription);
+      if (r.optimizedTitle) onApplyTitle(r.optimizedTitle);
+      if (r.optimizedDescription) onApplyDescription(r.optimizedDescription);
       if (
         r.photoPlan.recommendedOrder.length > 0 &&
         r.photoPlan.recommendedOrder.some((v, i) => v !== i)
@@ -86,7 +83,7 @@ export function ListingOptimizer({
         <div>
           <p className="font-semibold text-ink">✨ Optimize for discoverability</p>
           <p className="text-xs text-muted">
-            AI rewrites your title &amp; description with terms collectors
+            AI rewrites your title &amp; description with the terms buyers
             search, reviews your photos&apos; presentation, and updates the
             form for you — review, tweak anything, then save.
           </p>

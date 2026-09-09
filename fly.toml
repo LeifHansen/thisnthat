@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for beanie-xchange on 2026-05-20T23:14:23Z
+# fly.toml app configuration file for thisnthat
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'beanie-xchange'
+app = 'thisnthat'
 primary_region = 'ams'
 
 [build]
@@ -13,27 +13,25 @@ primary_region = 'ams'
   # build arg silently killed checkout for every customer until the next deploy,
   # so it is read at request time from STRIPE_PUBLISHABLE_KEY (an unprefixed name
   # precisely so nothing inlines it). Set it with `fly secrets set` — no rebuild.
-  # The secret-ish ones (Google client/API IDs, GA ID) are passed by
-  # .github/workflows/fly-deploy.yml from GitHub secrets; the app URL is a
-  # public constant so it lives here. Without it, baseUrl() compiled to ""
-  # and Stripe rejected Connect-onboarding redirect URLs ("Not a valid URL").
+  # The GA ID is passed by .github/workflows/fly-deploy.yml from a GitHub
+  # secret; the app URL is a public constant so it lives here. Without it,
+  # baseUrl() compiled to "" and Stripe rejected Connect-onboarding redirect
+  # URLs ("Not a valid URL").
+  #
+  # The *.fly.dev hostname is a placeholder until a custom domain exists —
+  # update it (and SITE_URL via `fly secrets set`) when one is attached.
   [build.args]
-    NEXT_PUBLIC_APP_URL = "https://beaniexchange.com"
+    NEXT_PUBLIC_APP_URL = "https://thisnthat.fly.dev"
 
 [deploy]
-  # Apply committed migrations deterministically, then (re)seed the demo
-  # accounts. We moved off `prisma db push` because it silently dropped schema
-  # changes on release: without `--accept-data-loss` it aborts non-interactively
-  # the moment Prisma flags any change as lossy, so prod drifted out of sync with
-  # schema.prisma (e.g. PR #29's auth tier/shipping columns never landed, 500ing
-  # the dashboard). `migrate deploy` only applies pending migrations and never
-  # touches existing data. The seed is idempotent and scoped to the demo users,
-  # so it is safe on every release; it never touches real user-created data.
-  #
-  # ONE-TIME BASELINE (already run against prod): because this database was
-  # originally bootstrapped with `db push`, it had no migration history. Each
-  # existing migration was marked applied via `prisma migrate resolve --applied
-  # <name>` so `migrate deploy` starts from a clean, in-sync baseline.
+  # Apply committed migrations deterministically, then (re)seed. `migrate
+  # deploy` only applies pending migrations and never touches existing data
+  # (we do not use `prisma db push` on release: without `--accept-data-loss`
+  # it aborts non-interactively the moment Prisma flags any change as lossy,
+  # so the schema silently drifts). The seed is idempotent — it syncs the
+  # category table from src/lib/categories.ts and (re)creates the demo
+  # accounts — and with NODE_ENV=production it seeds no demo listings; it
+  # never touches real user-created data.
   #
   # Both steps are non-fatal so a transient migrate/seed hiccup never aborts the
   # release and leaves prod on stale code. This runs before any machine boots
