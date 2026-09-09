@@ -24,14 +24,14 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID?.trim() || "";
 
 // Typography: DM Sans for body/UI, Fraunces (a warm serif) for headings.
 // Both are variable fonts, so no weight list is needed. globals.css reads
-// --font-body and --font-display.
+// --font-body and --font-heading (and aliases the latter to --font-display).
 const dmSans = DM_Sans({
   variable: "--font-body",
   subsets: ["latin"],
   display: "swap",
 });
 const fraunces = Fraunces({
-  variable: "--font-display",
+  variable: "--font-heading",
   subsets: ["latin"],
   display: "swap",
 });

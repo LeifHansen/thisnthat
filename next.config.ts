@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-// Host of R2_PUBLIC_URL (e.g. a custom domain like images.beaniexchange.com),
+// Host of R2_PUBLIC_URL (e.g. a custom domain like images.example.com),
 // so next/image can optimize photos even when the bucket is served from a
 // custom domain rather than a pub-xxx.r2.dev host. Parsed at build time;
 // falls back to just the r2.dev wildcard when the env var is unset (e.g. CI).
@@ -75,17 +75,6 @@ const nextConfig: NextConfig = {
         // Legacy path → RFC 9116 canonical location.
         source: "/security.txt",
         destination: "/.well-known/security.txt",
-        permanent: true,
-      },
-      {
-        // Canonicalize www → non-www (https). Pairs with Fly's force_https
-        // (http → https in fly.toml) so every variant of the domain resolves
-        // to a single canonical origin: https://beaniexchange.com. This turns
-        // the www host into a hard 308 redirect instead of a 200 + canonical
-        // tag, removing the duplicate host from Google's index entirely.
-        source: "/:path*",
-        has: [{ type: "host", value: "www.beaniexchange.com" }],
-        destination: "https://beaniexchange.com/:path*",
         permanent: true,
       },
     ];

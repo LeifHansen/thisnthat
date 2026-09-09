@@ -78,9 +78,10 @@ export default function TermsPage() {
           content (photos, descriptions) on the Service and in related
           promotional surfaces (search, social previews, emails).
         </p>
-        <h3>3.2 No authentication or verification service</h3>
+        <h3>3.2 No verification or inspection service</h3>
         <p>
-          {SITE_NAME} does not inspect, grade, verify, or authenticate items.
+          {SITE_NAME} does not inspect, grade, verify, or vouch for the
+          genuineness of items.
           Any condition, brand, or provenance claim in a listing is the
           seller&apos;s alone. Sellers are solely responsible for the accuracy
           of their descriptions, and buyers should review photos and ask

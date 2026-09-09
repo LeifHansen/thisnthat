@@ -79,8 +79,9 @@
   --tnt-radius: 14px;
 
   /* Two families from next/font in layout.tsx: --font-body (sans) and
-     --font-display (serif). Aliased here for the rules below. */
-  --font-display: var(--font-display, var(--font-body));
+     --font-heading (serif). Aliased to --font-display for the rules below;
+     falls back to the body face if the heading font is unavailable. */
+  --font-display: var(--font-heading, var(--font-body));
 }
 
 @theme inline {

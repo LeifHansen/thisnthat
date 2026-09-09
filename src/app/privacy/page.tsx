@@ -93,7 +93,7 @@ export default function PrivacyPage() {
         <ul>
           <li>
             <strong>Session cookies:</strong> a first-party cookie set by our
-            authentication system to keep you signed in.
+            sign-in system to keep you signed in.
           </li>
           <li>
             <strong>Analytics (Google Analytics 4), where configured:</strong>{" "}
