@@ -1,26 +1,26 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
-import { resolveBeanie } from "@/lib/beanie-id";
+import { getCategory, readAttributes, attributeEntries } from "@/lib/categories";
+import { canonicalCondition, conditionLabel } from "@/lib/listingOptions";
 
 // AI description writer. Given the details a seller has ALREADY typed into the
-// listing form (beanie name, year, condition, hang-tag), it drafts a single
-// honest, buyer-friendly description — no photos required. Grounded in our own
-// Beanie catalogue so facts (animal, style number, intro year) are accurate.
+// listing form (title, brand, item name, category, condition, attributes), it
+// drafts a single honest, buyer-friendly description — no photos required.
 // Distinct from /api/listing-assist (drafts a whole listing from photos) and
 // /api/listing-optimize (rewrites an existing listing for discoverability).
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY || process.env.OPEN_AI_API_KEY;
 
-const SYSTEM_PROMPT = `You are a Ty Beanie Baby marketplace copywriter for BeanieXchange.
+const SYSTEM_PROMPT = `You are a marketplace copywriter for This'n'that, a general resale marketplace where people sell anything they own.
 Write a single, honest listing description from the details the seller has already entered.
 
 Rules:
-- 2-4 short, warm, scannable sentences a collector would want to read. No bullet lists, no headings, no markdown.
-- Use ONLY facts the seller provided plus the catalogue context given to you. Never invent condition, flaws, tag generation, or authenticity claims that were not provided.
-- Naturally weave in the beanie's name, animal, and introduction year when known. You may mention the style number if it is in the catalogue context.
-- If the condition is given, describe it honestly. If a hang-tag status is given, you may reference it naturally — do NOT start the description with a "Hang tag:" label line.
-- No hype, no ALL CAPS, no emoji, no price. End with a gentle, collector-appropriate closing line.
+- 2-4 short, warm, scannable sentences a buyer would want to read. No bullet lists, no headings, no markdown.
+- Use ONLY facts the seller provided. Never invent condition, flaws, provenance, sizes, materials or authenticity claims that were not provided.
+- Naturally weave in the brand, what the item is, and the attributes given (size, era, material, model...) when they are present.
+- If the condition is given, describe it honestly in plain words.
+- No hype, no ALL CAPS, no emoji, no price. End with a brief, friendly closing line.
 - If a rough draft is provided, polish and expand it rather than discarding the seller's wording.
 
 Respond ONLY with a JSON object: { "description": string }`;
@@ -35,53 +35,45 @@ export async function POST(req: Request) {
   }
   if (!OPENAI_KEY) {
     return NextResponse.json(
-      { error: "AI description is not configured (OPENAI_API_KEY missing)." },
+      { error: "AI description isn't set up on this server (OPENAI_API_KEY missing)." },
       { status: 503 },
     );
   }
 
   const body = await req.json().catch(() => ({}));
   const str = (v: unknown, n = 300) =>
-    typeof v === "string" ? v.slice(0, n) : "";
-  const beanieName = str(body?.beanieName, 120);
-  const condition = str(body?.condition, 200);
-  const year = body?.year ? String(body.year).slice(0, 8) : "";
+    typeof v === "string" ? v.trim().slice(0, n) : "";
+  const title = str(body?.title, 160);
+  const brand = str(body?.brand, 80);
+  const itemName = str(body?.itemName, 160);
+  const categorySlug = str(body?.categorySlug, 60);
+  const condition = canonicalCondition(body?.condition);
   const existing = str(body?.description, 2000);
-  // The form sends the hang-tag condition grade ("Mint" | "Good" | "Fair" |
-  // "Missing"); legacy clients sent "yes"/"no". Map every real value so the
-  // seller's hang-tag detail actually reaches the model.
-  const hangTagRaw = str(body?.hangTag, 12).toLowerCase();
-  const hangTag =
-    hangTagRaw === "missing" || hangTagRaw === "no"
-      ? "No hang tag"
-      : hangTagRaw === "yes"
-        ? "Still has its hang tag"
-        : hangTagRaw
-          ? `Hang tag present, ${hangTagRaw} condition`
-          : "";
+  const category = getCategory(categorySlug);
+  // Only the attributes the category actually defines, labelled for the model.
+  const attrs = category
+    ? attributeEntries(category, readAttributes(body?.attributes)).filter((e) =>
+        category.attributes.some((f) => f.key === e.key),
+      )
+    : [];
 
-  if (beanieName.trim().length < 2) {
+  if ((itemName || title).length < 2) {
     return NextResponse.json(
-      { error: "Add the Beanie's name first." },
+      { error: "Add a title or say what the item is first." },
       { status: 400 },
     );
   }
 
-  // Confident resolution only (never guesses between beanies) — the old loose
-  // substring matcher false-matched single-letter alphabet bears ("M", "P")
-  // and grounded descriptions in the wrong beanie's catalogue facts.
-  const db = resolveBeanie(beanieName) ?? undefined;
-  const dbContext = db
-    ? `Known catalogue facts — name: ${db.name}; animal: ${db.animal}; intro year: ${db.year ?? "?"}; style number: ${db.styleNumber ?? "?"}; Ty birthday: ${db.birthday ?? "?"}${db.note ? `; note: ${db.note}` : ""}.`
-    : "No exact catalogue match — rely only on the details below.";
-
   const userText = [
     "Write a listing description from these details.",
-    dbContext,
-    `Beanie name: ${beanieName}`,
-    `Year: ${year || "(not given)"}`,
-    `Condition: ${condition || "(not given)"}`,
-    `Hang tag: ${hangTag || "(not given)"}`,
+    `Title: ${title || "(not given)"}`,
+    `Item: ${itemName || "(not given)"}`,
+    `Brand: ${brand || "(not given)"}`,
+    `Category: ${category?.name ?? "(not given)"}`,
+    `Condition: ${condition ? conditionLabel(condition) : "(not given)"}`,
+    attrs.length
+      ? `Details: ${attrs.map((a) => `${a.label}: ${a.value}`).join("; ")}`
+      : "Details: (none)",
     `Seller's rough draft: ${existing || "(none — write fresh)"}`,
   ].join("\n");
 
@@ -144,8 +136,5 @@ export async function POST(req: Request) {
     );
   }
 
-  return NextResponse.json({
-    description,
-    databaseMatch: db ? { name: db.name } : null,
-  });
+  return NextResponse.json({ description });
 }

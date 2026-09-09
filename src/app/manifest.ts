@@ -12,8 +12,8 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#e0252f",
     categories: ["shopping", "collectibles"],
     icons: [
-      { src: "/bx-logo.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/bx-logo.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/tnt-logo.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/tnt-logo.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }

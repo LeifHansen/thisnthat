@@ -43,14 +43,14 @@ export function BlogManualEditor() {
   const validImage = /^https?:\/\//i.test(imageUrl.trim());
 
   return (
-    <form action={saveBlogPost} className="bx-panel p-5 space-y-4">
+    <form action={saveBlogPost} className="tnt-panel p-5 space-y-4">
       <input type="hidden" name="coverImageUrl" value={imageUrl} />
 
       <div className="space-y-1">
         <label className="text-sm font-semibold text-ink">Title</label>
         <input
           name="title"
-          className="bx-input"
+          className="tnt-input"
           placeholder="e.g. The 10 Most Valuable Beanie Babies of 2026"
           maxLength={200}
           required
@@ -64,7 +64,7 @@ export function BlogManualEditor() {
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="url"
-            className="bx-input flex-1 min-w-[220px]"
+            className="tnt-input flex-1 min-w-[220px]"
             placeholder="https://…/hero.jpg"
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
@@ -80,7 +80,7 @@ export function BlogManualEditor() {
           />
           <button
             type="button"
-            className="bx-btn bx-btn--ghost !py-2 !px-4 shrink-0"
+            className="tnt-btn tnt-btn--ghost !py-2 !px-4 shrink-0"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
           >
@@ -92,7 +92,7 @@ export function BlogManualEditor() {
         </p>
         {uploadErr && <p className="text-pink text-sm">{uploadErr}</p>}
         {validImage && (
-          <div className="relative mt-2 w-full max-w-sm aspect-[16/9] overflow-hidden rounded-lg border border-[var(--bx-line)] bg-[var(--bx-surface)]">
+          <div className="relative mt-2 w-full max-w-sm aspect-[16/9] overflow-hidden rounded-lg border border-[var(--tnt-line)] bg-[var(--tnt-surface)]">
             <Image
               src={imageUrl}
               alt="Hero preview"
@@ -114,7 +114,7 @@ export function BlogManualEditor() {
         </label>
         <textarea
           name="excerpt"
-          className="bx-input"
+          className="tnt-input"
           rows={2}
           maxLength={320}
           placeholder="One or two sentences summarizing the post."
@@ -127,7 +127,7 @@ export function BlogManualEditor() {
         </label>
         <textarea
           name="content"
-          className="bx-input font-mono text-sm"
+          className="tnt-input font-mono text-sm"
           rows={18}
           placeholder={"## Heading\n\nWrite your post in Markdown…"}
           required
@@ -139,7 +139,7 @@ export function BlogManualEditor() {
           type="submit"
           name="intent"
           value="publish"
-          className="bx-btn bx-btn--green"
+          className="tnt-btn tnt-btn--green"
         >
           Publish
         </button>
@@ -147,7 +147,7 @@ export function BlogManualEditor() {
           type="submit"
           name="intent"
           value="draft"
-          className="bx-btn bx-btn--ghost"
+          className="tnt-btn tnt-btn--ghost"
         >
           Save as draft
         </button>

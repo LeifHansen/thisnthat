@@ -40,21 +40,21 @@ export default async function SellPage() {
         <div className="max-w-2xl mx-auto">
           <Link
             href="/sell/first"
-            className="bx-panel p-4 flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-transform"
+            className="tnt-panel p-4 flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-transform"
             style={{
-              background: "var(--bx-green-soft)",
-              borderColor: "var(--bx-green)",
+              background: "var(--tnt-green-soft)",
+              borderColor: "var(--tnt-green)",
             }}
           >
             <span className="text-sm">
-              <span className="font-bold text-[var(--bx-green)]">
+              <span className="font-bold text-[var(--tnt-green)]">
                 🧸 First listing?
               </span>{" "}
               <span className="text-ink">
                 Try the guided wizard — one step at a time, about two minutes.
               </span>
             </span>
-            <span className="font-semibold text-[var(--bx-green)] shrink-0">
+            <span className="font-semibold text-[var(--tnt-green)] shrink-0">
               Start easy →
             </span>
           </Link>

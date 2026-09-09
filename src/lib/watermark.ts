@@ -10,13 +10,21 @@ const MARK_SCALE = 0.18; // logo width ≈ 18% of the image's short side
 const MARK_OPACITY = 0.45;
 const MARGIN_SCALE = 0.03;
 
-let logoPromise: Promise<Buffer> | null = null;
-function logo(): Promise<Buffer> {
-  // bx-watermark.png is bx-logo.png with its white background made
-  // transparent (see git history for the one-off flood-fill script).
-  logoPromise ??= fs.readFile(
-    path.join(process.cwd(), "public", "bx-watermark.png"),
-  );
+// public/tnt-watermark.png: the This'n'that mark as a small PNG with an alpha
+// channel (transparent background), so it can be faded and composited onto a
+// photo without a box around it.
+const LOGO_PATH = path.join(process.cwd(), "public", "tnt-watermark.png");
+
+// Loaded once per process. A missing or unreadable file resolves to null
+// rather than rejecting, and null is NOT cached: the file may appear later
+// (a deploy that ships it after the process started) and one bad read must
+// not disable watermarking until the next restart.
+let logoPromise: Promise<Buffer | null> | null = null;
+function logo(): Promise<Buffer | null> {
+  logoPromise ??= fs.readFile(LOGO_PATH).catch(() => {
+    logoPromise = null;
+    return null;
+  });
   return logoPromise;
 }
 
@@ -27,10 +35,11 @@ export type WatermarkedImage = {
 };
 
 /**
- * Stamp the BX heart logo (semi-transparent, bottom-right) onto an uploaded
- * image. Returns null when the format isn't watermarkable or processing
- * fails — callers should then store the original bytes unchanged, so a bad
- * or exotic file never blocks an upload.
+ * Stamp the This'n'that mark (semi-transparent, bottom-right) onto an
+ * uploaded image. Returns null when the format isn't watermarkable, the mark
+ * image is missing or corrupt, or processing fails — callers then store the
+ * original bytes unchanged, so watermarking is a best-effort no-op and never
+ * blocks an upload.
  */
 export async function watermarkImage(
   input: Uint8Array,
@@ -38,6 +47,9 @@ export async function watermarkImage(
 ): Promise<WatermarkedImage | null> {
   if (!WATERMARKABLE.test(mime)) return null;
   try {
+    const logoBytes = await logo();
+    if (!logoBytes || logoBytes.byteLength === 0) return null;
+
     // rotate() bakes in EXIF orientation so the corner we stamp is the corner
     // the viewer sees. min(w,h) is orientation-invariant.
     const base = sharp(Buffer.from(input)).rotate();
@@ -49,8 +61,9 @@ export async function watermarkImage(
 
     // Fade the logo by multiplying its alpha (dest-in against a tiled 1×1
     // pixel), then pad transparent margin so gravity placement keeps it off
-    // the very edge.
-    const mark = await sharp(await logo())
+    // the very edge. A corrupt PNG throws out of sharp here and lands in the
+    // catch below, i.e. the photo is stored unmarked.
+    const mark = await sharp(logoBytes)
       .resize({ width: markWidth })
       .ensureAlpha()
       .composite([

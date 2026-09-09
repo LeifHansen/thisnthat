@@ -37,10 +37,10 @@ export default async function SignInPage({
   }
 
   return (
-    <div className="max-w-md mx-auto bx-panel p-6 space-y-4">
+    <div className="max-w-md mx-auto tnt-panel p-6 space-y-4">
       <h1 className="text-2xl">Sign in</h1>
       {sp.registered && (
-        <p className="text-[var(--bx-success)] text-sm font-semibold">
+        <p className="text-[var(--tnt-success)] text-sm font-semibold">
           Account created — sign in below.
         </p>
       )}
@@ -50,20 +50,20 @@ export default async function SignInPage({
       <form action={doSignIn} className="space-y-3">
         {next && <input type="hidden" name="next" value={next} />}
         <input
-          className="bx-input"
+          className="tnt-input"
           name="email"
           type="email"
           placeholder="email"
           required
         />
         <input
-          className="bx-input"
+          className="tnt-input"
           name="password"
           type="password"
           placeholder="password"
           required
         />
-        <button className="bx-btn w-full" type="submit">
+        <button className="tnt-btn w-full" type="submit">
           Sign In
         </button>
       </form>
@@ -71,7 +71,7 @@ export default async function SignInPage({
         No account?{" "}
         <Link
           href="/auth/signup"
-          className="!text-[var(--bx-green)] font-semibold"
+          className="!text-[var(--tnt-green)] font-semibold"
         >
           Sign up
         </Link>

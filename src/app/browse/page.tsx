@@ -185,13 +185,13 @@ export default async function BrowsePage({
       <div className="flex gap-2 flex-wrap items-center">
         <Link
           href={beaniesHref}
-          className={`bx-badge ${!lotView ? "bx-badge--on !text-white" : ""}`}
+          className={`tnt-badge ${!lotView ? "tnt-badge--on !text-white" : ""}`}
         >
           Single beanies
         </Link>
         <Link
           href={lotsHref}
-          className={`bx-badge ${lotView ? "bx-badge--on !text-white" : ""}`}
+          className={`tnt-badge ${lotView ? "tnt-badge--on !text-white" : ""}`}
         >
           🎁 Lots{lotCount ? ` (${lotCount})` : ""}
         </Link>
@@ -211,7 +211,7 @@ export default async function BrowsePage({
               <Link
                 key={c.key}
                 href={href}
-                className={`bx-badge ${on ? "bx-badge--on !text-white" : ""}`}
+                className={`tnt-badge ${on ? "tnt-badge--on !text-white" : ""}`}
               >
                 {c.key === "all" ? "All Collections" : c.label}
               </Link>
@@ -232,7 +232,7 @@ export default async function BrowsePage({
             <Link
               key={f.key}
               href={href}
-              className={`bx-badge ${on ? "bx-badge--on !text-white" : ""}`}
+              className={`tnt-badge ${on ? "tnt-badge--on !text-white" : ""}`}
             >
               {f.label}
             </Link>
@@ -240,7 +240,7 @@ export default async function BrowsePage({
         })}
         <Link
           href={toggleHref}
-          className={`bx-badge ${hideUnauth ? "bx-badge--on !text-white" : ""}`}
+          className={`tnt-badge ${hideUnauth ? "tnt-badge--on !text-white" : ""}`}
         >
           {hideUnauth ? "✓ Hiding unauthenticated" : "Hide unauthenticated"}
         </Link>
@@ -254,11 +254,11 @@ export default async function BrowsePage({
 
       {lotView ? (
         lots.length === 0 ? (
-          <div className="bx-panel p-8 text-center text-muted space-y-2">
+          <div className="tnt-panel p-8 text-center text-muted space-y-2">
             <p>No lots listed right now — check back soon.</p>
             <Link
               href="/sell/lot"
-              className="!text-[var(--bx-red)] font-semibold"
+              className="!text-[var(--tnt-red)] font-semibold"
             >
               Selling a bundle? List a Lot →
             </Link>
@@ -271,14 +271,14 @@ export default async function BrowsePage({
           </div>
         )
       ) : options.length === 0 ? (
-        <div className="bx-panel p-8 text-center text-muted space-y-2">
+        <div className="tnt-panel p-8 text-center text-muted space-y-2">
           <p>
             {col
               ? `No ${col.label} listings right now — check back soon, or browse the full marketplace.`
               : "Nothing here yet."}
           </p>
           {col && (
-            <Link href="/browse" className="!text-[var(--bx-red)] font-semibold">
+            <Link href="/browse" className="!text-[var(--tnt-red)] font-semibold">
               View all Beanies →
             </Link>
           )}

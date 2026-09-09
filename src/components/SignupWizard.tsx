@@ -115,11 +115,11 @@ export function SignupWizard() {
           <div key={label} className="flex items-center gap-3">
             <div className="flex flex-col items-center gap-1">
               <div
-                className={`bx-step ${
+                className={`tnt-step ${
                   i === step
-                    ? "bx-step--active"
+                    ? "tnt-step--active"
                     : i < step
-                      ? "bx-step--done"
+                      ? "tnt-step--done"
                       : ""
                 }`}
               >
@@ -134,18 +134,18 @@ export function SignupWizard() {
               </span>
             </div>
             {i < STEPS.length - 1 && (
-              <div className="w-8 h-px bg-[var(--bx-line)]" />
+              <div className="w-8 h-px bg-[var(--tnt-line)]" />
             )}
           </div>
         ))}
       </div>
 
-      <div className="bx-panel p-6 space-y-4">
+      <div className="tnt-panel p-6 space-y-4">
         {step === 0 && (
           <>
             <Field label="Full name">
               <input
-                className="bx-input"
+                className="tnt-input"
                 value={f.name}
                 onChange={(e) => set("name", e.target.value)}
                 placeholder="Jane Collector"
@@ -153,7 +153,7 @@ export function SignupWizard() {
             </Field>
             <Field label="Email">
               <input
-                className="bx-input"
+                className="tnt-input"
                 type="email"
                 value={f.email}
                 onChange={(e) => set("email", e.target.value)}
@@ -162,7 +162,7 @@ export function SignupWizard() {
             </Field>
             <Field label="Password">
               <input
-                className="bx-input"
+                className="tnt-input"
                 type="password"
                 value={f.password}
                 onChange={(e) => set("password", e.target.value)}
@@ -180,14 +180,14 @@ export function SignupWizard() {
             </p>
             <Field label="Address line 1">
               <input
-                className="bx-input"
+                className="tnt-input"
                 value={f.addressLine1}
                 onChange={(e) => set("addressLine1", e.target.value)}
               />
             </Field>
             <Field label="Address line 2 (optional)">
               <input
-                className="bx-input"
+                className="tnt-input"
                 value={f.addressLine2}
                 onChange={(e) => set("addressLine2", e.target.value)}
               />
@@ -195,21 +195,21 @@ export function SignupWizard() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <Field label="City" className="col-span-2 sm:col-span-1">
                 <input
-                  className="bx-input"
+                  className="tnt-input"
                   value={f.city}
                   onChange={(e) => set("city", e.target.value)}
                 />
               </Field>
               <Field label="State">
                 <input
-                  className="bx-input"
+                  className="tnt-input"
                   value={f.state}
                   onChange={(e) => set("state", e.target.value)}
                 />
               </Field>
               <Field label="ZIP">
                 <input
-                  className="bx-input"
+                  className="tnt-input"
                   value={f.postalCode}
                   onChange={(e) => set("postalCode", e.target.value)}
                 />
@@ -227,8 +227,8 @@ export function SignupWizard() {
                     key={g}
                     type="button"
                     onClick={() => set("goal", g)}
-                    className={`bx-badge justify-center py-2 capitalize ${
-                      f.goal === g ? "bx-badge--on !text-white" : ""
+                    className={`tnt-badge justify-center py-2 capitalize ${
+                      f.goal === g ? "tnt-badge--on !text-white" : ""
                     }`}
                   >
                     {g === "both" ? "Buy & sell" : g}
@@ -236,7 +236,7 @@ export function SignupWizard() {
                 ))}
               </div>
             </Field>
-            <div className="text-sm text-muted space-y-1 border-t border-[var(--bx-line)] pt-4">
+            <div className="text-sm text-muted space-y-1 border-t border-[var(--tnt-line)] pt-4">
               <p>
                 <span className="text-ink">{f.name || "—"}</span> ·{" "}
                 {f.email || "—"}
@@ -248,10 +248,10 @@ export function SignupWizard() {
               </p>
             </div>
 
-            <label className="flex items-start gap-3 text-sm cursor-pointer pt-3 border-t border-[var(--bx-line)]">
+            <label className="flex items-start gap-3 text-sm cursor-pointer pt-3 border-t border-[var(--tnt-line)]">
               <input
                 type="checkbox"
-                className="mt-0.5 h-4 w-4 accent-[var(--bx-red)] cursor-pointer"
+                className="mt-0.5 h-4 w-4 accent-[var(--tnt-red)] cursor-pointer"
                 checked={f.agreedToTerms}
                 onChange={(e) => set("agreedToTerms", e.target.checked)}
                 required
@@ -261,7 +261,7 @@ export function SignupWizard() {
                 <Link
                   href="/terms"
                   target="_blank"
-                  className="!text-[var(--bx-red)] font-semibold"
+                  className="!text-[var(--tnt-red)] font-semibold"
                 >
                   Terms of Service
                 </Link>{" "}
@@ -269,7 +269,7 @@ export function SignupWizard() {
                 <Link
                   href="/privacy"
                   target="_blank"
-                  className="!text-[var(--bx-red)] font-semibold"
+                  className="!text-[var(--tnt-red)] font-semibold"
                 >
                   Privacy Policy
                 </Link>
@@ -297,7 +297,7 @@ export function SignupWizard() {
             {/* replace: the wizard is spent, so Back should leave signup
                 behind instead of resurrecting the form for a signed-in user. */}
             <div className="flex flex-col gap-2">
-              <Link href="/sell/first" replace className="bx-btn w-full">
+              <Link href="/sell/first" replace className="tnt-btn w-full">
                 List your first beanie →
               </Link>
               <Link
@@ -305,7 +305,7 @@ export function SignupWizard() {
                   "Welcome to Beanie Xchange — you're signed in.",
                 )}`}
                 replace
-                className="bx-btn bx-btn--ghost w-full"
+                className="tnt-btn tnt-btn--ghost w-full"
               >
                 Maybe later — go to my dashboard
               </Link>
@@ -321,7 +321,7 @@ export function SignupWizard() {
               <button
                 type="button"
                 onClick={back}
-                className="bx-btn bx-btn--ghost"
+                className="tnt-btn tnt-btn--ghost"
                 disabled={busy}
               >
                 Back
@@ -330,14 +330,14 @@ export function SignupWizard() {
               <span />
             )}
             {step < LAST_FORM_STEP ? (
-              <button type="button" onClick={next} className="bx-btn">
+              <button type="button" onClick={next} className="tnt-btn">
                 Continue
               </button>
             ) : (
               <button
                 type="button"
                 onClick={submit}
-                className="bx-btn"
+                className="tnt-btn"
                 disabled={busy || !f.agreedToTerms}
                 title={
                   !f.agreedToTerms
@@ -357,7 +357,7 @@ export function SignupWizard() {
           Already have an account?{" "}
           <Link
             href="/auth/signin"
-            className="!text-[var(--bx-green)] font-semibold"
+            className="!text-[var(--tnt-green)] font-semibold"
           >
             Sign in
           </Link>

@@ -58,7 +58,7 @@ export async function POST(req: Request) {
   let res: Response;
   try {
     res = await fetchPublicUrl(raw, {
-      headers: { "User-Agent": "Mozilla/5.0 (BeanieXchange studio optimize)" },
+      headers: { "User-Agent": "Mozilla/5.0 (thisnthat studio optimize)" },
     });
   } catch {
     return NextResponse.json(
@@ -111,9 +111,10 @@ export async function POST(req: Request) {
     );
   }
 
-  // Re-apply the BX watermark so the studio shot carries branding like every
-  // other listing photo. Fall back to the un-marked studio JPEG if watermarking
-  // fails rather than dropping the whole optimization.
+  // Re-apply the This'n'that watermark so the studio shot carries branding
+  // like every other listing photo. Fall back to the un-marked studio JPEG if
+  // watermarking fails (or the mark asset is missing) rather than dropping
+  // the whole optimization.
   const marked = await watermarkImage(new Uint8Array(studioJpeg), "image/jpeg");
   const bodyBytes = marked?.data ?? studioJpeg;
   const contentType = marked?.contentType ?? "image/jpeg";

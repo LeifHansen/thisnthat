@@ -117,7 +117,7 @@ export function CartCheckout({
   const totalCents = itemCents + shipCents;
 
   if (!ready) {
-    return <div className="bx-panel p-10 text-center text-muted">Loading…</div>;
+    return <div className="tnt-panel p-10 text-center text-muted">Loading…</div>;
   }
 
   // Payment (at least partly) succeeded — confirmation with per-order links.
@@ -143,13 +143,13 @@ export function CartCheckout({
             <Link
               key={o.id}
               href={o.guestToken ? `/orders/${o.id}?t=${o.guestToken}` : `/orders/${o.id}`}
-              className="bx-btn bx-btn--ghost w-full"
+              className="tnt-btn tnt-btn--ghost w-full"
             >
               {partialWarning ? "Open" : "Track"} order {i + 1} →
             </Link>
           ))}
         </div>
-        <Link href="/browse" className="block text-sm font-semibold !text-[var(--bx-red)]">
+        <Link href="/browse" className="block text-sm font-semibold !text-[var(--tnt-red)]">
           Continue shopping
         </Link>
       </div>
@@ -160,7 +160,7 @@ export function CartCheckout({
     return (
       <div className="max-w-xl mx-auto space-y-5 text-center">
         <h1 className="text-2xl sm:text-3xl">Your cart is empty</h1>
-        <Link href="/browse" className="bx-btn inline-flex">
+        <Link href="/browse" className="tnt-btn inline-flex">
           <BasketIcon className="h-5 w-5" />
           Shop Beanies
         </Link>
@@ -173,21 +173,21 @@ export function CartCheckout({
       <h1 className="text-2xl sm:text-3xl">Checkout</h1>
 
       {/* Order summary */}
-      <div className="bx-panel p-5 space-y-2">
+      <div className="tnt-panel p-5 space-y-2">
         {lines.map(({ item }) => (
           <div key={item.listingId} className="flex justify-between gap-3 text-sm">
             <span className="text-muted line-clamp-1">{item.title}</span>
             <span className="text-ink shrink-0">{formatCents(item.priceCents)}</span>
           </div>
         ))}
-        <div className="border-t border-[var(--bx-line)] pt-2 space-y-1 text-sm">
+        <div className="border-t border-[var(--tnt-line)] pt-2 space-y-1 text-sm">
           <Row label="Items" value={formatCents(itemCents)} />
           <Row
             label={quotedShipCents == null ? "Shipping (estimated)" : "Shipping"}
             value={formatCents(shipCents)}
           />
         </div>
-        <div className="border-t border-[var(--bx-line)] pt-2 flex justify-between font-bold text-[var(--bx-green)]">
+        <div className="border-t border-[var(--tnt-line)] pt-2 flex justify-between font-bold text-[var(--tnt-green)]">
           <span>Total</span>
           <span>{formatCents(totalCents)}</span>
         </div>
@@ -226,7 +226,7 @@ export function CartCheckout({
           />
         </Elements>
       ) : (
-        <p className="bx-panel p-6 text-red-600">
+        <p className="tnt-panel p-6 text-red-600">
           Card payments are temporarily unavailable. Please try again shortly —
           your cart is saved.
         </p>
@@ -341,7 +341,7 @@ function CheckoutForm({
   }
 
   return (
-    <form onSubmit={pay} className="bx-panel p-6 space-y-3">
+    <form onSubmit={pay} className="tnt-panel p-6 space-y-3">
       <h2 className="text-lg flex items-center gap-2">
         <BasketIcon className="h-6 w-6" />
         Contact &amp; Shipping
@@ -349,7 +349,7 @@ function CheckoutForm({
       {!loggedIn && (
         <>
           <input
-            className="bx-input"
+            className="tnt-input"
             type="email"
             placeholder="email (for your order updates)"
             value={guestEmail}
@@ -358,7 +358,7 @@ function CheckoutForm({
           />
           <p className="text-muted text-xs -mt-1 px-1">
             Checking out as a guest.{" "}
-            <Link href="/auth/signup" className="!text-[var(--bx-red)] font-semibold">
+            <Link href="/auth/signup" className="!text-[var(--tnt-red)] font-semibold">
               Create an account
             </Link>{" "}
             to save your orders (optional).
@@ -366,42 +366,42 @@ function CheckoutForm({
         </>
       )}
       <input
-        className="bx-input"
+        className="tnt-input"
         placeholder="full name"
         value={ship.name}
         onChange={(e) => set("name", e.target.value)}
         required
       />
       <input
-        className="bx-input"
+        className="tnt-input"
         placeholder="address line 1"
         value={ship.line1}
         onChange={(e) => set("line1", e.target.value)}
         required
       />
       <input
-        className="bx-input"
+        className="tnt-input"
         placeholder="address line 2 (optional)"
         value={ship.line2}
         onChange={(e) => set("line2", e.target.value)}
       />
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <input
-          className="bx-input col-span-2 sm:col-span-1"
+          className="tnt-input col-span-2 sm:col-span-1"
           placeholder="city"
           value={ship.city}
           onChange={(e) => set("city", e.target.value)}
           required
         />
         <input
-          className="bx-input"
+          className="tnt-input"
           placeholder="state"
           value={ship.state}
           onChange={(e) => set("state", e.target.value)}
           required
         />
         <input
-          className="bx-input"
+          className="tnt-input"
           placeholder="zip"
           value={ship.postalCode}
           onChange={(e) => set("postalCode", e.target.value)}
@@ -416,7 +416,7 @@ function CheckoutForm({
       </p>
       <PaymentElement />
       {err && <p className="text-red-600 text-sm">{err}</p>}
-      <button className="bx-btn w-full" disabled={busy || !stripe} type="submit">
+      <button className="tnt-btn w-full" disabled={busy || !stripe} type="submit">
         {busy ? "Processing…" : `Authorize ${totalLabel}`}
       </button>
     </form>

@@ -16,8 +16,8 @@ import type { Trends } from "./data";
  * - A plain data table below the grid is the accessible/screen-reader view.
  */
 
-const BAR = "#8b66d9"; // --bx-purple: 3:1+ on white, used for every series
-const GRID = "#ece5d9"; // --bx-line
+const BAR = "#8b66d9"; // --tnt-purple: 3:1+ on white, used for every series
+const GRID = "#ece5d9"; // --tnt-line
 const MUTED = "#7c7690";
 
 const W = 280;
@@ -129,7 +129,7 @@ function Panel({
 }) {
   const total = values.reduce((s, v) => s + v, 0);
   return (
-    <div className="bx-panel p-4 space-y-2">
+    <div className="tnt-panel p-4 space-y-2">
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">
           {label}
@@ -179,14 +179,14 @@ export function AdminTrends({ trends }: { trends: Trends | null }) {
       </div>
 
       {/* Accessible/table view of the same data */}
-      <details className="bx-panel p-4 text-sm">
+      <details className="tnt-panel p-4 text-sm">
         <summary className="cursor-pointer font-semibold text-ink">
           Data table
         </summary>
         <div className="overflow-x-auto mt-3">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-left text-muted border-b border-[var(--bx-line)]">
+              <tr className="text-left text-muted border-b border-[var(--tnt-line)]">
                 <th className="py-1.5 pr-3">Week of</th>
                 <th className="py-1.5 pr-3">New users</th>
                 <th className="py-1.5 pr-3">New listings</th>
@@ -198,7 +198,7 @@ export function AdminTrends({ trends }: { trends: Trends | null }) {
             </thead>
             <tbody>
               {weeks.map((w, i) => (
-                <tr key={w} className="border-b border-[var(--bx-line)] last:border-0">
+                <tr key={w} className="border-b border-[var(--tnt-line)] last:border-0">
                   <td className="py-1 pr-3 text-muted">{weekLabel(w)}</td>
                   <td className="py-1 pr-3">{trends.newUsers[i]}</td>
                   <td className="py-1 pr-3">{trends.newListings[i]}</td>

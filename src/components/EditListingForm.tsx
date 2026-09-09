@@ -106,7 +106,7 @@ export function EditListingForm({
       className="space-y-6"
     >
       {saveError && (
-        <div className="bx-panel p-4 border-2 border-red-400 bg-red-50">
+        <div className="tnt-panel p-4 border-2 border-red-400 bg-red-50">
           <p className="text-red-700 text-sm font-semibold">
             Your last save didn&apos;t go through — something failed
             validation. Check that the price is set, required fields are
@@ -120,7 +120,7 @@ export function EditListingForm({
         </div>
       )}
       {isDraft && (
-        <div className="bx-panel p-4 border-2 border-[var(--bx-ink)] space-y-1">
+        <div className="tnt-panel p-4 border-2 border-[var(--tnt-ink)] space-y-1">
           <p className="text-sm font-semibold text-ink">
             This listing is a draft — buyers can&apos;t see it yet.
           </p>
@@ -150,13 +150,13 @@ export function EditListingForm({
 
       {isLot && (
         <div
-          className="bx-panel p-4 border-2"
+          className="tnt-panel p-4 border-2"
           style={{
-            background: "var(--bx-purple-soft)",
-            borderColor: "var(--bx-purple)",
+            background: "var(--tnt-purple-soft)",
+            borderColor: "var(--tnt-purple)",
           }}
         >
-          <p className="text-sm font-semibold text-[var(--bx-purple-text)]">
+          <p className="text-sm font-semibold text-[var(--tnt-purple-text)]">
             🎁 This is a lot{lotSummary ? ` — ${lotSummary}` : ""}.
           </p>
           <p className="text-muted text-xs mt-1">
@@ -181,7 +181,7 @@ export function EditListingForm({
             maxLength={160}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="bx-input"
+            className="tnt-input"
           />
         </div>
         {!isLot && (
@@ -195,7 +195,7 @@ export function EditListingForm({
               required
               maxLength={160}
               defaultValue={initial.beanieName}
-              className="bx-input"
+              className="tnt-input"
             />
           </div>
         )}
@@ -211,7 +211,7 @@ export function EditListingForm({
               min={1980}
               max={2100}
               defaultValue={initial.year}
-              className="bx-input"
+              className="tnt-input"
             />
           </div>
         )}
@@ -224,7 +224,7 @@ export function EditListingForm({
             name="condition"
             required
             defaultValue={initial.condition}
-            className="bx-input"
+            className="tnt-input"
           >
             <option value="">Select…</option>
             {legacyCondition && (
@@ -249,7 +249,7 @@ export function EditListingForm({
             step={0.01}
             required
             defaultValue={initial.price}
-            className="bx-input"
+            className="tnt-input"
           />
         </div>
         {!isLot && (
@@ -273,7 +273,7 @@ export function EditListingForm({
               max={999}
               step={1}
               defaultValue={initial.quantity}
-              className="bx-input"
+              className="tnt-input"
             />
           </div>
         )}
@@ -290,12 +290,12 @@ export function EditListingForm({
           maxLength={4000}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="bx-input"
+          className="tnt-input"
         />
       </div>
 
       {/* Auto-accept floor */}
-      <div className="bx-panel p-4 space-y-3">
+      <div className="tnt-panel p-4 space-y-3">
         <label className="flex items-center gap-2 font-semibold cursor-pointer">
           <input
             type="checkbox"
@@ -316,7 +316,7 @@ export function EditListingForm({
               min={0.01}
               step={0.01}
               defaultValue={initial.minAutoAccept}
-              className="bx-input max-w-xs"
+              className="tnt-input max-w-xs"
             />
           </div>
         )}
@@ -328,7 +328,7 @@ export function EditListingForm({
 
       {/* Authentication: pick the backing service + cert/registry number.
           Lots stay as-is / third-party COA (per-beanie certs don't apply). */}
-      <div className="bx-panel p-4 space-y-3 text-sm">
+      <div className="tnt-panel p-4 space-y-3 text-sm">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-ink font-semibold">Authentication</span>
           <AuthBadge
@@ -339,7 +339,7 @@ export function EditListingForm({
         </div>
         <select
           name="authType"
-          className="bx-input"
+          className="tnt-input"
           value={authType}
           onChange={(e) => setAuthType(e.target.value as AuthType)}
         >
@@ -360,7 +360,7 @@ export function EditListingForm({
             <span className="text-ink">True Blue cert ID</span>
             <input
               name="trueBlueCertId"
-              className="bx-input"
+              className="tnt-input"
               defaultValue={initial.trueBlueCertId ?? ""}
               placeholder="TBB-…"
               maxLength={120}
@@ -372,7 +372,7 @@ export function EditListingForm({
             <span className="text-ink">BX Registry number</span>
             <input
               name="registrationNumber"
-              className="bx-input"
+              className="tnt-input"
               defaultValue={initial.registrationNumber ?? ""}
               placeholder="BX-…"
               maxLength={120}
@@ -387,7 +387,7 @@ export function EditListingForm({
             <span className="text-ink">COA image URL</span>
             <input
               name="coaImageUrl"
-              className="bx-input"
+              className="tnt-input"
               defaultValue={initial.coaImageUrl ?? ""}
               placeholder="https://…"
               maxLength={2048}
@@ -408,7 +408,7 @@ export function EditListingForm({
             value="publish"
             onClick={() => setIntent("publish")}
             disabled={busy}
-            className="bx-btn disabled:opacity-60"
+            className="tnt-btn disabled:opacity-60"
           >
             {busy && intent === "publish" ? "Publishing…" : "Publish listing"}
           </button>
@@ -420,7 +420,7 @@ export function EditListingForm({
           onClick={() => setIntent("save")}
           disabled={busy}
           className={`disabled:opacity-60 ${
-            isDraft ? "bx-btn bx-btn--ghost" : "bx-btn"
+            isDraft ? "tnt-btn tnt-btn--ghost" : "tnt-btn"
           }`}
         >
           {busy && intent === "save"
@@ -429,7 +429,7 @@ export function EditListingForm({
               ? "Save draft"
               : "Save changes"}
         </button>
-        <Link href={`/listings/${initial.id}`} className="bx-btn bx-btn--ghost">
+        <Link href={`/listings/${initial.id}`} className="tnt-btn tnt-btn--ghost">
           Cancel
         </Link>
       </div>

@@ -10,7 +10,7 @@ import { formatCents } from "@/lib/fees";
 type Item = { id: string; title: string; priceCents: number; photos: string[] };
 
 /**
- * Horizontal "Newly Listed" rail. The scrollbar is hidden (bx-noscrollbar) and
+ * Horizontal "Newly Listed" rail. The scrollbar is hidden (tnt-noscrollbar) and
  * navigation is via arrow buttons that scroll ~80% of the viewport width. The
  * arrows dim + disable at each end; on touch (mobile) they're hidden and users
  * swipe instead.
@@ -45,7 +45,7 @@ export function NewlyListedRail({ items }: { items: Item[] }) {
   }
 
   const arrowBase =
-    "hidden sm:grid place-items-center absolute top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full border-2 border-[var(--bx-ink)] bg-white !text-ink shadow-[0_2px_0_var(--bx-ink)] transition disabled:opacity-0 disabled:pointer-events-none hover:bg-[var(--bx-surface)]";
+    "hidden sm:grid place-items-center absolute top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full border-2 border-[var(--tnt-ink)] bg-white !text-ink shadow-[0_2px_0_var(--tnt-ink)] transition disabled:opacity-0 disabled:pointer-events-none hover:bg-[var(--tnt-surface)]";
 
   return (
     <div className="relative">
@@ -62,16 +62,16 @@ export function NewlyListedRail({ items }: { items: Item[] }) {
       <div
         ref={railRef}
         onScroll={updateEdges}
-        className="flex gap-3 overflow-x-auto bx-noscrollbar pb-1 -mx-1 px-1 snap-x"
+        className="flex gap-3 overflow-x-auto tnt-noscrollbar pb-1 -mx-1 px-1 snap-x"
       >
         {items.map((l) => (
           <Link
             key={l.id}
             href={`/listings/${l.id}`}
-            className="snap-start shrink-0 w-40 sm:w-48 bx-panel p-2.5 space-y-2 !text-ink hover:shadow-[var(--bx-shadow-lg)] transition-shadow"
+            className="snap-start shrink-0 w-40 sm:w-48 tnt-panel p-2.5 space-y-2 !text-ink hover:shadow-[var(--tnt-shadow-lg)] transition-shadow"
           >
             {/* Temporary "New Listing" frame (red border + corner ribbon) */}
-            <div className="relative aspect-square overflow-hidden rounded-lg border-[3px] border-[var(--bx-red)] bg-[var(--bx-surface)]">
+            <div className="relative aspect-square overflow-hidden rounded-lg border-[3px] border-[var(--tnt-red)] bg-[var(--tnt-surface)]">
               <Image
                 src={firstRealPhoto(l.photos) ?? PLACEHOLDER_PHOTO}
                 alt={listingImageAlt(l.title)}
@@ -79,12 +79,12 @@ export function NewlyListedRail({ items }: { items: Item[] }) {
                 sizes="200px"
                 className="object-cover"
               />
-              <span className="absolute left-[-38px] top-[14px] -rotate-45 bg-[var(--bx-red)] text-white text-[9px] font-bold tracking-widest px-10 py-0.5 shadow-[0_1px_0_rgba(0,0,0,0.2)]">
+              <span className="absolute left-[-38px] top-[14px] -rotate-45 bg-[var(--tnt-red)] text-white text-[9px] font-bold tracking-widest px-10 py-0.5 shadow-[0_1px_0_rgba(0,0,0,0.2)]">
                 NEW LISTING
               </span>
             </div>
             <p className="text-sm font-bold leading-tight line-clamp-2">{l.title}</p>
-            <p className="text-base font-extrabold text-[var(--bx-red)] leading-none">
+            <p className="text-base font-extrabold text-[var(--tnt-red)] leading-none">
               {formatCents(l.priceCents)}
             </p>
           </Link>

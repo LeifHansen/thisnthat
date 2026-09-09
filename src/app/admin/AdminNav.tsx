@@ -25,7 +25,7 @@ export function AdminNav({
   ];
 
   return (
-    <nav className="flex flex-wrap gap-1.5 rounded-xl bg-[var(--bx-surface)] border border-[var(--bx-line)] p-1.5">
+    <nav className="flex flex-wrap gap-1.5 rounded-xl bg-[var(--tnt-surface)] border border-[var(--tnt-line)] p-1.5">
       {tabs.map((t) => {
         const active =
           t.href === overviewHref
@@ -37,13 +37,13 @@ export function AdminNav({
             href={t.href}
             className={`relative rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors ${
               active
-                ? "bg-[var(--bx-dark)] !text-white"
+                ? "bg-[var(--tnt-dark)] !text-white"
                 : "!text-ink hover:bg-black/5"
             }`}
           >
             {t.label}
             {t.badge ? (
-              <span className="ml-1.5 rounded-full bg-[var(--bx-red)] text-white text-[10px] font-bold px-1.5 py-0.5">
+              <span className="ml-1.5 rounded-full bg-[var(--tnt-red)] text-white text-[10px] font-bold px-1.5 py-0.5">
                 {t.badge}
               </span>
             ) : null}

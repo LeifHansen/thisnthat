@@ -22,7 +22,7 @@ export function LikeButton({
     size === "sm"
       ? "px-2.5 py-1 text-xs gap-1"
       : "px-3.5 py-1.5 text-sm gap-1.5";
-  const base = `inline-flex items-center ${btn} rounded-full border-2 border-[var(--bx-ink)] font-bold shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform select-none`;
+  const base = `inline-flex items-center ${btn} rounded-full border-2 border-[var(--tnt-ink)] font-bold shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform select-none`;
   const label = (
     <>
       <span aria-hidden className={likedByMe ? "" : "opacity-80"}>
@@ -52,7 +52,7 @@ export function LikeButton({
         type="submit"
         className={`${base} ${
           likedByMe
-            ? "bg-[var(--bx-red)] !text-white"
+            ? "bg-[var(--tnt-red)] !text-white"
             : "bg-white !text-ink"
         }`}
         aria-pressed={likedByMe}

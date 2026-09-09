@@ -190,16 +190,16 @@ export async function Dashboard({
           </div>
         </div>
         <div className="flex gap-3 flex-wrap">
-          <Link href={listingsCount === 0 ? "/sell/first" : "/sell"} className="bx-btn">
+          <Link href={listingsCount === 0 ? "/sell/first" : "/sell"} className="tnt-btn">
             Sell a Beanie
           </Link>
-          <Link href="/dashboard/profile" className="bx-btn bx-btn--ghost">
+          <Link href="/dashboard/profile" className="tnt-btn tnt-btn--ghost">
             Edit Profile
           </Link>
-          <Link href="/browse" className="bx-btn bx-btn--ghost">
+          <Link href="/browse" className="tnt-btn tnt-btn--ghost">
             Browse
           </Link>
-          <Link href="/messages" className="bx-btn bx-btn--ghost">
+          <Link href="/messages" className="tnt-btn tnt-btn--ghost">
             Messages
           </Link>
         </div>
@@ -208,10 +208,10 @@ export async function Dashboard({
       {/* ── First-listing hero: unmissable until the first listing exists ── */}
       {listingsCount === 0 && (
         <section
-          className="bx-panel p-5 sm:p-6 flex items-center justify-between gap-4 flex-wrap"
+          className="tnt-panel p-5 sm:p-6 flex items-center justify-between gap-4 flex-wrap"
           style={{
-            background: "var(--bx-green-soft)",
-            borderColor: "var(--bx-green)",
+            background: "var(--tnt-green-soft)",
+            borderColor: "var(--tnt-green)",
           }}
         >
           <div className="flex items-center gap-4">
@@ -226,7 +226,7 @@ export async function Dashboard({
               </p>
             </div>
           </div>
-          <Link href="/sell/first" className="bx-btn shrink-0">
+          <Link href="/sell/first" className="tnt-btn shrink-0">
             Start the wizard →
           </Link>
         </section>
@@ -241,35 +241,35 @@ export async function Dashboard({
               value: needsShipCount,
               sub: needsShipCount > 0 ? "Buyers are waiting!" : "All caught up",
               href: "#sales",
-              accent: needsShipCount > 0 ? "var(--bx-red)" : "var(--bx-green)",
+              accent: needsShipCount > 0 ? "var(--tnt-red)" : "var(--tnt-green)",
             },
             {
               label: "Open sales",
               value: openSalesCount,
               sub: `${sellingCount} all-time`,
               href: "#sales",
-              accent: "var(--bx-blue)",
+              accent: "var(--tnt-blue)",
             },
             {
               label: "Open purchases",
               value: openPurchasesCount,
               sub: `${buyingCount} all-time`,
               href: "#purchases",
-              accent: "var(--bx-purple)",
+              accent: "var(--tnt-purple)",
             },
             {
               label: "Active listings",
               value: activeListingsCount,
               sub: `${listingsCount} total`,
               href: "#listings",
-              accent: "var(--bx-green)",
+              accent: "var(--tnt-green)",
             },
           ];
           return tiles.map((t) => (
             <Link
               key={t.label}
               href={t.href}
-              className="bx-panel p-4 space-y-0.5 !text-ink hover:shadow-[var(--bx-shadow-lg)] transition-shadow border-t-4"
+              className="tnt-panel p-4 space-y-0.5 !text-ink hover:shadow-[var(--tnt-shadow-lg)] transition-shadow border-t-4"
               style={{ borderTopColor: t.accent }}
             >
               <p className="text-3xl font-extrabold leading-none">{t.value}</p>
@@ -280,7 +280,7 @@ export async function Dashboard({
         })()}
       </section>
 
-      <section id="payouts" className="bx-panel p-5 space-y-2 scroll-mt-24">
+      <section id="payouts" className="tnt-panel p-5 space-y-2 scroll-mt-24">
         <h2 className="text-lg flex items-center gap-2">
           <CoinIcon className="h-6 w-6" />
           Seller payouts
@@ -295,12 +295,12 @@ export async function Dashboard({
             style={
               connected === "refresh_failed"
                 ? {
-                    background: "var(--bx-red-soft)",
-                    borderColor: "var(--bx-red)",
+                    background: "var(--tnt-red-soft)",
+                    borderColor: "var(--tnt-red)",
                   }
                 : {
-                    background: "var(--bx-green-soft)",
-                    borderColor: "var(--bx-green)",
+                    background: "var(--tnt-green-soft)",
+                    borderColor: "var(--tnt-green)",
                   }
             }
           >
@@ -349,7 +349,7 @@ export async function Dashboard({
                   (o.priceCents / o.listing.priceCents) * 100,
                 );
                 return (
-                  <div key={o.id} className="bx-panel p-4 space-y-3">
+                  <div key={o.id} className="tnt-panel p-4 space-y-3">
                     <div className="flex justify-between items-baseline gap-3 flex-wrap">
                       <Link
                         href={`/listings/${o.listing.id}`}
@@ -358,7 +358,7 @@ export async function Dashboard({
                         {o.listing.title}
                       </Link>
                       <span className="text-sm">
-                        <b className="text-[var(--bx-red)]">
+                        <b className="text-[var(--tnt-red)]">
                           {formatCents(o.priceCents)}
                         </b>{" "}
                         <span className="text-muted">
@@ -373,7 +373,7 @@ export async function Dashboard({
                       {o.expiresAt.toISOString().slice(0, 10)}
                     </p>
                     {o.message && (
-                      <p className="text-sm whitespace-pre-wrap bg-[var(--bx-surface)] p-2 rounded border border-[var(--bx-line)]">
+                      <p className="text-sm whitespace-pre-wrap bg-[var(--tnt-surface)] p-2 rounded border border-[var(--tnt-line)]">
                         “{o.message}”
                       </p>
                     )}
@@ -387,7 +387,7 @@ export async function Dashboard({
                       <form action={rejectOffer}>
                         <input type="hidden" name="offerId" value={o.id} />
                         <FormSubmitButton
-                          className="bx-btn bx-btn--ghost"
+                          className="tnt-btn tnt-btn--ghost"
                           pendingLabel="Rejecting…"
                         >
                           Reject
@@ -408,7 +408,7 @@ export async function Dashboard({
                 // act on, so let the buyer clear the row away.
                 const clearable = o.status !== "PENDING" && !o.orderId;
                 const rowClass =
-                  "bx-panel px-4 py-3 flex justify-between items-center !text-ink hover:border-[var(--bx-line-strong)] flex-wrap gap-2";
+                  "tnt-panel px-4 py-3 flex justify-between items-center !text-ink hover:border-[var(--tnt-line-strong)] flex-wrap gap-2";
                 const statusLabel = o.status.replace(/_/g, " ");
                 const content = (
                   <>
@@ -430,7 +430,7 @@ export async function Dashboard({
                       <span
                         className={
                           o.status === "ACCEPTED" || o.status === "AUTO_ACCEPTED"
-                            ? "text-[var(--bx-green)]"
+                            ? "text-[var(--tnt-green)]"
                             : o.status === "REJECTED"
                               ? "text-pink"
                               : "text-muted"
@@ -441,7 +441,7 @@ export async function Dashboard({
                       {o.orderId &&
                         (o.status === "ACCEPTED" ||
                           o.status === "AUTO_ACCEPTED") && (
-                          <span className="text-[var(--bx-green)]">
+                          <span className="text-[var(--tnt-green)]">
                             {" "}
                             · Pay now →
                           </span>
@@ -478,7 +478,7 @@ export async function Dashboard({
           <h2 className="text-lg">Authentication</h2>
           <Link
             href="/authenticate"
-            className="text-sm !text-[var(--bx-green)] font-semibold"
+            className="text-sm !text-[var(--tnt-green)] font-semibold"
           >
             + Authenticate an item
           </Link>
@@ -486,7 +486,7 @@ export async function Dashboard({
         {authReqs.length === 0 ? (
           <p className="text-muted">
             No authentication requests yet.{" "}
-            <Link href="/authenticate" className="!text-[var(--bx-green)]">
+            <Link href="/authenticate" className="!text-[var(--tnt-green)]">
               Submit one →
             </Link>
           </p>
@@ -496,7 +496,7 @@ export async function Dashboard({
               <Link
                 key={r.id}
                 href={`/authenticate/${r.id}`}
-                className="bx-panel px-4 py-3 flex justify-between items-center !text-ink hover:border-[var(--bx-line-strong)]"
+                className="tnt-panel px-4 py-3 flex justify-between items-center !text-ink hover:border-[var(--tnt-line-strong)]"
               >
                 <span>
                   {r.beanieName}
@@ -522,7 +522,7 @@ export async function Dashboard({
           <h2 className="text-lg">My listings</h2>
           <Link
             href="/sell"
-            className="text-sm !text-[var(--bx-green)] font-semibold"
+            className="text-sm !text-[var(--tnt-green)] font-semibold"
           >
             + List a Beanie
           </Link>
@@ -530,7 +530,7 @@ export async function Dashboard({
         {listings.length === 0 ? (
           <p className="text-muted">
             None yet —{" "}
-            <Link href="/sell/first" className="!text-[var(--bx-green)]">
+            <Link href="/sell/first" className="!text-[var(--tnt-green)]">
               add your first listing
             </Link>
             .
@@ -546,13 +546,13 @@ export async function Dashboard({
                 confirmMessage={`Delete "${l.title}"? It will be removed from your store and Browse. This can't be undone from here.`}
                 ariaLabel={`Delete ${l.title}`}
                 errorFallback="Couldn't delete this listing."
-                className="bx-panel p-2 flex items-center gap-3 !text-ink"
+                className="tnt-panel p-2 flex items-center gap-3 !text-ink"
               >
                 <Link
                   href={`/listings/${l.id}`}
                   className="flex items-center gap-3 flex-1 min-w-0 !text-ink hover:opacity-80"
                 >
-                  <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-[var(--bx-line)] bg-[var(--bx-surface)]">
+                  <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-[var(--tnt-line)] bg-[var(--tnt-surface)]">
                     {l.photos[0] ? (
                       <Image
                         src={l.photos[0]}
@@ -576,7 +576,7 @@ export async function Dashboard({
                 {l.status !== "SOLD" && (
                   <Link
                     href={`/listings/${l.id}/edit`}
-                    className="shrink-0 rounded-full border-2 border-[var(--bx-ink)] bg-white !text-ink px-3 py-1 text-xs font-bold shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform"
+                    className="shrink-0 rounded-full border-2 border-[var(--tnt-ink)] bg-white !text-ink px-3 py-1 text-xs font-bold shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform"
                   >
                     Edit
                   </Link>
@@ -592,7 +592,7 @@ export async function Dashboard({
         {likedListings.length === 0 ? (
           <p className="text-muted">
             Nothing liked yet — tap the ♡ on any{" "}
-            <Link href="/browse" className="!text-[var(--bx-green)]">
+            <Link href="/browse" className="!text-[var(--tnt-green)]">
               listing
             </Link>{" "}
             to save it here.
@@ -620,7 +620,7 @@ export async function Dashboard({
               .map((f) => (
                 <div
                   key={f.id}
-                  className="bx-panel p-2 flex items-center gap-3 !text-ink"
+                  className="tnt-panel p-2 flex items-center gap-3 !text-ink"
                 >
                   <Link
                     href={`/u/${f.followed.id}`}
@@ -720,7 +720,7 @@ function OrderList({
           <Link
             key={o.id}
             href={`/orders/${o.id}`}
-            className="bx-panel px-4 py-3 flex justify-between items-center !text-ink hover:border-[var(--bx-line-strong)]"
+            className="tnt-panel px-4 py-3 flex justify-between items-center !text-ink hover:border-[var(--tnt-line-strong)]"
           >
             <span>{o.listing.title}</span>
             <span className="text-sm font-semibold">

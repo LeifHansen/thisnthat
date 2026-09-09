@@ -21,7 +21,7 @@ export function Avatar({
   if (src) {
     return (
       <span
-        className={`relative inline-block shrink-0 overflow-hidden rounded-full border-2 border-[var(--bx-ink)] bg-white ${className}`}
+        className={`relative inline-block shrink-0 overflow-hidden rounded-full border-2 border-[var(--tnt-ink)] bg-white ${className}`}
         style={{ width: size, height: size }}
       >
         <Image
@@ -38,7 +38,7 @@ export function Avatar({
   return (
     <span
       aria-hidden
-      className={`inline-flex shrink-0 items-center justify-center rounded-full border-2 border-[var(--bx-ink)] font-bold text-white ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full border-2 border-[var(--tnt-ink)] font-bold text-white ${className}`}
       style={{ width: size, height: size, background: avatarTint(name), fontSize: size * 0.42 }}
     >
       {initial}

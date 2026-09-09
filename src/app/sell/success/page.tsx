@@ -18,9 +18,9 @@ export default async function SellSuccessPage({
   return (
     <div className="max-w-xl mx-auto space-y-4">
       <ScrollToTop />
-      <div className="bx-panel p-8 sm:p-10 text-center space-y-5">
-        <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--bx-green-soft)]">
-          <svg viewBox="0 0 24 24" className="h-8 w-8 text-[var(--bx-green)]" aria-hidden>
+      <div className="tnt-panel p-8 sm:p-10 text-center space-y-5">
+        <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--tnt-green-soft)]">
+          <svg viewBox="0 0 24 24" className="h-8 w-8 text-[var(--tnt-green)]" aria-hidden>
             <path
               d="M5 12.5l4.5 4.5L19 7"
               fill="none"
@@ -45,15 +45,15 @@ export default async function SellSuccessPage({
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-1">
           {id ? (
-            <Link href={`/listings/${id}`} className="bx-btn">
+            <Link href={`/listings/${id}`} className="tnt-btn">
               View Listing
             </Link>
           ) : (
-            <Link href="/browse" className="bx-btn">
+            <Link href="/browse" className="tnt-btn">
               Browse Listings
             </Link>
           )}
-          <Link href="/sell" className="bx-btn bx-btn--ghost">
+          <Link href="/sell" className="tnt-btn tnt-btn--ghost">
             List another
           </Link>
         </div>
@@ -67,14 +67,14 @@ export default async function SellSuccessPage({
 
       {isFirst && (
         <div
-          className="bx-panel p-5 flex items-center justify-between gap-4 flex-wrap"
+          className="tnt-panel p-5 flex items-center justify-between gap-4 flex-wrap"
           style={{
-            background: "var(--bx-purple-soft)",
-            borderColor: "var(--bx-purple)",
+            background: "var(--tnt-purple-soft)",
+            borderColor: "var(--tnt-purple)",
           }}
         >
           <div className="space-y-0.5">
-            <p className="font-bold text-[var(--bx-purple-text)]">
+            <p className="font-bold text-[var(--tnt-purple-text)]">
               💸 One more thing: set up payouts
             </p>
             <p className="text-sm text-ink">
@@ -82,7 +82,7 @@ export default async function SellSuccessPage({
               account so it can be released to you.
             </p>
           </div>
-          <Link href="/dashboard#payouts" className="bx-btn shrink-0">
+          <Link href="/dashboard#payouts" className="tnt-btn shrink-0">
             Connect payouts →
           </Link>
         </div>

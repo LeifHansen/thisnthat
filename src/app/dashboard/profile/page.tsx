@@ -51,13 +51,13 @@ export default async function ProfileSettingsPage({
         </div>
         <Link
           href={`/u/${me.id}`}
-          className="text-sm font-semibold !text-[var(--bx-red)] shrink-0"
+          className="text-sm font-semibold !text-[var(--tnt-red)] shrink-0"
         >
           View public profile →
         </Link>
       </div>
 
-      <form action={updateProfile} className="bx-panel p-6 sm:p-8 space-y-6">
+      <form action={updateProfile} className="tnt-panel p-6 sm:p-8 space-y-6">
         <div className="space-y-2">
           <p className="font-semibold text-sm">Profile photo</p>
           <AvatarUploader
@@ -76,7 +76,7 @@ export default async function ProfileSettingsPage({
             defaultValue={me.displayName ?? ""}
             placeholder={me.name}
             maxLength={40}
-            className="bx-input"
+            className="tnt-input"
           />
           <p className="text-xs text-muted">
             Shown on your listings, messages, and profile. Leave blank to use
@@ -95,7 +95,7 @@ export default async function ProfileSettingsPage({
             rows={4}
             maxLength={500}
             placeholder="Tell collectors about yourself — what you collect, how long you've been in the hobby, what you're hunting for…"
-            className="bx-input"
+            className="tnt-input"
           />
           <p className="text-xs text-muted">Up to 500 characters.</p>
         </div>
@@ -114,7 +114,7 @@ export default async function ProfileSettingsPage({
             placeholder="e.g. 98126"
             maxLength={10}
             inputMode="numeric"
-            className="bx-input max-w-[12rem]"
+            className="tnt-input max-w-[12rem]"
           />
           <p className="text-xs text-muted">
             Where you ship your listings from. Buyers see live-calculated
@@ -123,16 +123,16 @@ export default async function ProfileSettingsPage({
         </div>
 
         <div className="flex items-center gap-3 pt-1">
-          <button type="submit" className="bx-btn">
+          <button type="submit" className="tnt-btn">
             Save profile
           </button>
-          <Link href="/dashboard" className="bx-btn bx-btn--ghost">
+          <Link href="/dashboard" className="tnt-btn tnt-btn--ghost">
             Back to dashboard
           </Link>
         </div>
       </form>
 
-      <section className="bx-panel p-5 space-y-3 border-[var(--bx-red)]/40">
+      <section className="tnt-panel p-5 space-y-3 border-[var(--tnt-red)]/40">
         <h2 className="text-xl">Delete your account</h2>
         <p className="text-sm text-muted">
           This removes your profile, listings, messages, offers, reviews and
@@ -143,13 +143,13 @@ export default async function ProfileSettingsPage({
         </p>
 
         {deletionBlocker ? (
-          <p className="text-sm font-semibold text-[var(--bx-red)]">
+          <p className="text-sm font-semibold text-[var(--tnt-red)]">
             {deletionBlocker.message}
           </p>
         ) : (
           <form action={deleteOwnAccount} className="space-y-3">
             {deleteError && (
-              <p className="text-sm font-semibold text-[var(--bx-red)]">
+              <p className="text-sm font-semibold text-[var(--tnt-red)]">
                 {deleteError}
               </p>
             )}
@@ -162,10 +162,10 @@ export default async function ProfileSettingsPage({
                 name="confirmEmail"
                 autoComplete="off"
                 placeholder="your email address"
-                className="bx-input max-w-sm"
+                className="tnt-input max-w-sm"
               />
             </div>
-            <button type="submit" className="bx-btn bx-btn--ghost">
+            <button type="submit" className="tnt-btn tnt-btn--ghost">
               Delete my account permanently
             </button>
           </form>

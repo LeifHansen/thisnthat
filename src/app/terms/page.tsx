@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PLATFORM_FEE_LABEL } from "@/lib/fees";
+import { SITE_NAME, SUPPORT_EMAIL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description:
-    "The rules and agreements that govern your use of the Beanie Xchange marketplace.",
+  description: `The rules and agreements that govern your use of the ${SITE_NAME} marketplace.`,
   alternates: { canonical: "/terms" },
 };
 
-const UPDATED = "May 23, 2026";
+const UPDATED = "September 9, 2026";
 
 export default function TermsPage() {
   return (
@@ -20,16 +21,20 @@ export default function TermsPage() {
 
       <p>
         These Terms of Service (&ldquo;<strong>Terms</strong>&rdquo;) govern your
-        access to and use of Beanie Xchange, an online marketplace for buying,
-        selling, authenticating, and grading Beanie Babies (the &ldquo;
-        <strong>Service</strong>&rdquo;), operated by Beanie Xchange (&ldquo;
-        <strong>Beanie Xchange</strong>,&rdquo;
+        access to and use of {SITE_NAME}, an online marketplace where anyone can
+        list secondhand and pre-owned goods for sale and buy from other members
+        (the &ldquo;<strong>Service</strong>&rdquo;), operated by {SITE_NAME}{" "}
+        (&ldquo;<strong>{SITE_NAME}</strong>,&rdquo;
         &ldquo;<strong>we</strong>,&rdquo; &ldquo;<strong>us</strong>,&rdquo; or
         &ldquo;<strong>our</strong>&rdquo;). By creating an account, listing an
-        item, placing a bid or purchase, or otherwise using the Service, you
-        agree to be bound by these Terms and by our{" "}
-        <Link href="/privacy" className="!text-[var(--bx-red)]">
+        item, making an offer, placing an order, or otherwise using the Service,
+        you agree to be bound by these Terms and by our{" "}
+        <Link href="/privacy" className="!text-[var(--tnt-red)]">
           Privacy Policy
+        </Link>{" "}
+        and{" "}
+        <Link href="/returns" className="!text-[var(--tnt-red)]">
+          Return &amp; Refund Policy
         </Link>
         . If you do not agree, do not use the Service.
       </p>
@@ -40,7 +45,7 @@ export default function TermsPage() {
           jurisdiction) and capable of forming a binding contract to use the
           Service. By using the Service, you represent and warrant that you
           meet these requirements and that the information you provide is
-          accurate.
+          accurate and kept up to date.
         </p>
       </Section>
 
@@ -50,121 +55,180 @@ export default function TermsPage() {
           all activity that occurs under your account. Notify us immediately of
           any unauthorized access. We may suspend or terminate accounts that
           violate these Terms or that we reasonably believe are involved in
-          fraud, counterfeiting, or other abuse.
+          fraud, counterfeiting, or other abuse. You may close your account at
+          any time from your account settings.
         </p>
       </Section>
 
       <Section title="3. The marketplace">
         <p>
-          Beanie Xchange is a venue that connects buyers and sellers of Beanie
-          Babies. We are not the seller of any item listed by a third party.
-          For listings authenticated through Beanie Xchange Authentication,
-          the item ships from our authentication center to the buyer, but
-          Beanie Xchange does not take title to the goods at any point.
+          {SITE_NAME} is a venue that connects independent sellers with buyers.
+          We are not the seller of any item listed by a member, we do not take
+          title to goods at any point, and every sale is a contract between the
+          buyer and the seller. Items ship directly from the seller to the
+          buyer.
         </p>
         <h3>3.1 Listings</h3>
         <p>
-          Sellers must accurately describe each item, including condition, tag
-          state, year (where known), and authentication path (True Blue,
-          third-party COA, BX Authenticated, or sold as-is). Sellers grant
-          Beanie Xchange a non-exclusive, worldwide, royalty-free license to
-          display listing content (photos, descriptions) on the Service and in
-          related promotional surfaces (search, social previews, emails).
+          Sellers must accurately describe each item, including its condition,
+          any flaws, what is included, and the category details the listing
+          form asks for (size, era, working state, and so on). Photos must be
+          of the actual item being sold. Sellers grant {SITE_NAME} a
+          non-exclusive, worldwide, royalty-free license to display listing
+          content (photos, descriptions) on the Service and in related
+          promotional surfaces (search, social previews, emails).
         </p>
-        <h3>3.2 Prohibited items and conduct</h3>
+        <h3>3.2 No authentication or verification service</h3>
+        <p>
+          {SITE_NAME} does not inspect, grade, verify, or authenticate items.
+          Any condition, brand, or provenance claim in a listing is the
+          seller&apos;s alone. Sellers are solely responsible for the accuracy
+          of their descriptions, and buyers should review photos and ask
+          questions through messages before purchasing.
+        </p>
+        <h3>3.3 Prohibited items and conduct</h3>
         <ul>
-          <li>Counterfeit, replica, or knowingly misrepresented Beanie Babies.</li>
-          <li>Items that infringe Ty&nbsp;Inc.&apos;s or any third party&apos;s intellectual property rights.</li>
+          <li>Counterfeit, replica, or knowingly misrepresented goods.</li>
+          <li>Stolen property, or items you do not have the right to sell.</li>
+          <li>
+            Weapons, ammunition, controlled substances, tobacco and vaping
+            products, alcohol, prescription drugs, and medical devices.
+          </li>
+          <li>
+            Recalled products, hazardous materials, and items that cannot be
+            shipped by common carriers.
+          </li>
+          <li>
+            Live animals, animal parts from protected species, and human
+            remains.
+          </li>
+          <li>Adult content, and anything that infringes a third party&apos;s intellectual property rights.</li>
           <li>Items prohibited or restricted by applicable law.</li>
-          <li>Listings that bypass the Beanie Xchange payment flow (off-platform sales).</li>
-          <li>Fraud, manipulation of reviews or registry numbers, harassment, or any conduct that interferes with the Service.</li>
+          <li>Listings that bypass the {SITE_NAME} checkout (off-platform sales, or steering a buyer to pay elsewhere).</li>
+          <li>Fraud, manipulation of reviews or offers, harassment, or any conduct that interferes with the Service.</li>
         </ul>
-      </Section>
-
-      <Section title="4. Authentication and grading">
         <p>
-          Beanie Xchange Authentication is performed by trained authenticators
-          against a known database of authentic Ty markers (embroidery, tag
-          font and bend, fabric type, fill consistency, recall variants, and
-          tush-tag printing). Our authentication is a good-faith opinion based
-          on visual and tactile inspection. While we stand behind our results,
-          authentication is not a guarantee or insurance against future
-          determination by a third-party expert.
-        </p>
-        <p>
-          Items submitted for authentication that fail are returned to the
-          submitter with a written explanation. The $5 examination fee is
-          non-refundable; inbound shipping is refunded only if the item is
-          determined to have been a Beanie Xchange handling error.
+          We may remove any listing, cancel any order, or suspend any account
+          that we reasonably believe violates this section.
         </p>
       </Section>
 
-      <Section title="5. Payments, escrow, and fees">
+      <Section title="4. Offers and orders">
         <p>
-          All payments are processed by Stripe, Inc. Buyer funds are authorized
-          at checkout and captured only when the buyer confirms receipt of an
-          authenticated, undamaged item (for COA/BX listings) or when an item
-          is delivered (for as-is direct-ship listings). Authentication-fee
-          payments are captured immediately at checkout.
-        </p>
-        <p>
-          Beanie Xchange charges sellers a platform fee on each sale (currently
-          10%), deducted from the seller&apos;s proceeds — it is not added to the
-          buyer&apos;s total. Buyers pay the item price plus shipping.
-          Authentication fees are listed on the Authenticate page. Fees may
-          change at any time; the fee in effect at the time of the transaction
-          applies.
-        </p>
-        <p>
-          Sellers receive payouts through Stripe Connect Express. Sellers are
-          solely responsible for their own taxes and for accurately reporting
-          income from sales on Beanie Xchange.
+          A buyer may purchase at the listed price or make an offer. An offer
+          is a binding commitment to buy at that price if the seller accepts
+          it (or if it meets a seller&apos;s auto-accept floor) before it
+          expires. Once an order is placed the seller must ship the item
+          promptly with tracking, and the buyer must not cancel except as
+          described in section 6 and our Return &amp; Refund Policy.
         </p>
       </Section>
 
-      <Section title="6. Shipping, refunds, and disputes">
+      <section id="fees" className="space-y-3">
+        <h2 className="text-xl sm:text-2xl font-semibold pt-4">
+          5. Fees &amp; payouts
+        </h2>
+        <div className="space-y-3 text-muted leading-relaxed">
+          <p>
+            <strong>Listing is free.</strong> There is no charge to create an
+            account or to list an item, however many you list.
+          </p>
+          <p>
+            <strong>Platform fee.</strong> When an item sells, {SITE_NAME}{" "}
+            charges the seller a platform fee of{" "}
+            <strong>{PLATFORM_FEE_LABEL} of the item price</strong>. The fee is
+            deducted from the seller&apos;s proceeds; it is never added to the
+            buyer&apos;s total. {SITE_NAME} also keeps the shipping amount it
+            collects from the buyer, which is used to pay for the shipping
+            label.
+          </p>
+          <p>
+            <strong>What buyers pay.</strong> Buyers pay the item price plus
+            shipping, as shown at checkout. No sales tax is collected by the
+            Service at this time; buyers and sellers are responsible for any
+            tax that applies to them.
+          </p>
+          <p>
+            <strong>Payment hold.</strong> All payments are processed by
+            Stripe, Inc. The buyer&apos;s card is authorized at checkout and
+            the funds are held. They are captured only when the item is
+            delivered &mdash; when the buyer confirms receipt in their
+            dashboard or when the carrier reports delivery, whichever comes
+            first. At that moment the seller&apos;s proceeds (item price minus
+            the platform fee) are transferred to the seller&apos;s connected
+            Stripe account.
+          </p>
+          <p>
+            <strong>Seller payouts.</strong> To receive proceeds, a seller must
+            complete Stripe Connect onboarding. Stripe may require identity
+            and tax information as a condition of enabling payouts. If a sale
+            completes before a seller has finished onboarding, the transfer is
+            made once payouts are enabled. Sellers are solely responsible for
+            their own taxes and for reporting income from sales on{" "}
+            {SITE_NAME}.
+          </p>
+          <p>
+            <strong>Changes.</strong> Fees may change at any time; the fee in
+            effect when an order is placed applies to that order.
+          </p>
+        </div>
+      </section>
+
+      <Section title="6. Shipping, cancellations, refunds, and disputes">
         <p>
-          For BX-authenticated listings, items ship from our authentication
-          center to the buyer with tracking and insurance. For True Blue and
-          third-party COA listings, items ship directly seller-to-buyer. For
-          as-is listings, the buyer assumes all risk; refunds are at the
-          seller&apos;s discretion.
+          Sellers ship directly to the buyer&apos;s address on the order and
+          must add tracking to the order. Shipping labels may be purchased
+          through the Service or supplied by the seller.
         </p>
         <p>
-          If a BX-authenticated item fails post-sale authentication (e.g. the
-          submitted item was swapped between approval and shipment), the
-          escrow authorization is canceled and the buyer is refunded. If a
-          shipment is lost or damaged in transit on a BX path, we will work
-          with the carrier and refund or reship at our discretion. Disputes
-          that cannot be resolved between buyer and seller may be escalated to
-          our team; our determinations on authenticity and condition are
-          final.
+          <strong>Cancellations.</strong> Either party may cancel an order
+          before it ships; the authorization on the buyer&apos;s card is
+          released in full and no fee is charged. A seller who repeatedly
+          cancels paid orders may be suspended.
+        </p>
+        <p>
+          <strong>Refunds.</strong> If an item arrives materially not as
+          described &mdash; the wrong item, undisclosed damage, or a
+          misrepresented condition &mdash; the buyer may open a return within
+          the window in our{" "}
+          <Link href="/returns" className="!text-[var(--tnt-red)]">
+            Return &amp; Refund Policy
+          </Link>
+          . Refunds are issued through the order&apos;s cancel/refund path to
+          the original payment method. Once payment has been captured and paid
+          out, a refund reverses the seller&apos;s transfer.
+        </p>
+        <p>
+          <strong>Disputes.</strong> Buyers and sellers should first try to
+          resolve issues through messages. Disputes that cannot be resolved
+          may be escalated to{" "}
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="!text-[var(--tnt-red)] underline">
+            {SUPPORT_EMAIL}
+          </a>
+          . We will review the order, the listing, and the messages between
+          the parties, and our determination on whether an item was
+          materially as described is final for the purposes of the Service.
         </p>
       </Section>
 
-      <Section title="7. BX Registry">
+      <Section title="7. Reviews and community content">
         <p>
-          Items that complete BX Full Authentication may be issued a permanent
-          registration number recorded in the public Beanie Xchange Registry.
-          Registry numbers are tied to the item, not the owner, and remain
-          valid across resales as long as the item retains its sealed
-          packaging or its identity can be re-verified.
+          Buyers may leave a review after an order completes. Reviews must be
+          honest and based on the buyer&apos;s own experience. Messages,
+          reviews, profile text, and listing content must not be unlawful,
+          harassing, or misleading. We may remove content that violates these
+          Terms.
         </p>
       </Section>
 
       <Section title="8. Intellectual property">
         <p>
-          &ldquo;Beanie Babies,&rdquo; &ldquo;Ty,&rdquo; and the Ty heart logo
-          are trademarks of Ty&nbsp;Inc. Beanie Xchange is an independent
-          aftermarket service and is not affiliated with, endorsed by, or
-          sponsored by Ty&nbsp;Inc. All other trademarks, service marks, and
-          logos on the Service belong to their respective owners.
-        </p>
-        <p>
-          The Beanie Xchange name, logo (rainbow peace-sign bear), site
-          design, and original site content are the property of Beanie
-          Xchange. You may not copy, reproduce, or use them without our prior
-          written permission.
+          The {SITE_NAME} name, logo, site design, and original site content
+          are the property of {SITE_NAME}. You may not copy, reproduce, or use
+          them without our prior written permission. Brand names that appear
+          in listings belong to their respective owners; {SITE_NAME} is an
+          independent resale marketplace and is not affiliated with, endorsed
+          by, or sponsored by any brand whose products are listed here.
         </p>
       </Section>
 
@@ -173,8 +237,8 @@ export default function TermsPage() {
           You may close your account at any time. We may suspend or terminate
           your access to the Service at any time, with or without notice, for
           conduct that we reasonably believe violates these Terms, is harmful
-          to other users, or exposes Beanie Xchange to legal or financial
-          risk. Sections that by their nature should survive termination
+          to other users, or exposes {SITE_NAME} to legal or financial risk.
+          Sections that by their nature should survive termination
           (intellectual property, disclaimers, limitations of liability,
           indemnification, governing law) will survive.
         </p>
@@ -188,33 +252,32 @@ export default function TermsPage() {
           INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
           PARTICULAR PURPOSE, NON-INFRINGEMENT, AND TITLE. WE DO NOT WARRANT
           THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR SECURE, OR
-          THAT ANY GIVEN ITEM&apos;S CONDITION OR AUTHENTICITY WILL MATCH
-          EVERY BUYER&apos;S EXPECTATION. AUTHENTICATION IS AN INFORMED
-          OPINION, NOT AN INSURANCE PRODUCT.
+          THAT ANY ITEM LISTED BY A SELLER IS GENUINE, SAFE, OR AS DESCRIBED.
+          WE DO NOT INSPECT OR VERIFY ITEMS.
         </p>
       </Section>
 
       <Section title="11. Limitation of liability">
         <p>
-          TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT WILL BEANIE
-          XCHANGE OR ITS OFFICERS, EMPLOYEES, OR AGENTS BE LIABLE FOR ANY
-          INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES,
-          OR ANY LOSS OF PROFITS OR REVENUE, ARISING OUT OF OR RELATED TO YOUR
-          USE OF THE SERVICE. OUR TOTAL LIABILITY FOR ANY CLAIM RELATED TO THE
-          SERVICE WILL NOT EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID
-          BEANIE XCHANGE IN FEES IN THE TWELVE MONTHS PRECEDING THE CLAIM, OR
-          (B) USD $100.
+          TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT WILL{" "}
+          {SITE_NAME.toUpperCase()} OR ITS OFFICERS, EMPLOYEES, OR AGENTS BE
+          LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR
+          PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUE, ARISING OUT OF
+          OR RELATED TO YOUR USE OF THE SERVICE. OUR TOTAL LIABILITY FOR ANY
+          CLAIM RELATED TO THE SERVICE WILL NOT EXCEED THE GREATER OF (A) THE
+          AMOUNT YOU PAID {SITE_NAME.toUpperCase()} IN FEES IN THE TWELVE
+          MONTHS PRECEDING THE CLAIM, OR (B) USD $100.
         </p>
       </Section>
 
       <Section title="12. Indemnification">
         <p>
-          You agree to indemnify, defend, and hold harmless Beanie Xchange
-          from any claim, demand, loss, or expense (including reasonable
+          You agree to indemnify, defend, and hold harmless {SITE_NAME} from
+          any claim, demand, loss, or expense (including reasonable
           attorneys&apos; fees) arising out of (a) your use of the Service,
           (b) your violation of these Terms, (c) your violation of any third
           party&apos;s rights (including intellectual-property rights), or (d)
-          any item you list, sell, or submit for authentication.
+          any item you list, sell, or buy.
         </p>
       </Section>
 
@@ -222,9 +285,9 @@ export default function TermsPage() {
         <p>
           These Terms are governed by the laws of the State of Washington,
           USA, without regard to its conflict-of-laws principles. The state
-          and federal courts located in Clark County, Washington have
-          exclusive jurisdiction over any dispute arising out of or related to
-          these Terms or the Service, and you consent to personal jurisdiction
+          and federal courts located in King County, Washington have exclusive
+          jurisdiction over any dispute arising out of or related to these
+          Terms or the Service, and you consent to personal jurisdiction
           there. The United Nations Convention on Contracts for the
           International Sale of Goods does not apply.
         </p>
@@ -243,10 +306,10 @@ export default function TermsPage() {
         <p>
           Questions about these Terms:{" "}
           <a
-            href="mailto:support@beaniexchange.com"
-            className="!text-[var(--bx-red)] underline"
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="!text-[var(--tnt-red)] underline"
           >
-            support@beaniexchange.com
+            {SUPPORT_EMAIL}
           </a>
           .
         </p>
@@ -254,8 +317,12 @@ export default function TermsPage() {
 
       <p className="text-sm text-muted">
         See also our{" "}
-        <Link href="/privacy" className="!text-[var(--bx-red)]">
+        <Link href="/privacy" className="!text-[var(--tnt-red)]">
           Privacy Policy
+        </Link>{" "}
+        and{" "}
+        <Link href="/returns" className="!text-[var(--tnt-red)]">
+          Return &amp; Refund Policy
         </Link>
         .
       </p>

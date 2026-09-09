@@ -29,7 +29,7 @@ export default async function DashboardPage({
           (admin@beaniexchange.com) only. Other admins (e.g. HQ) reach the
           standalone /admin section via the header Admin pill. */}
       {superadmin && (
-        <div className="flex flex-wrap gap-1.5 rounded-xl bg-[var(--bx-surface)] border border-[var(--bx-line)] p-1.5">
+        <div className="flex flex-wrap gap-1.5 rounded-xl bg-[var(--tnt-surface)] border border-[var(--tnt-line)] p-1.5">
           <DashTab href="/dashboard" label="My Account" active={!adminTab} />
           <DashTab href="/dashboard?tab=admin" label="Admin" active={adminTab} />
         </div>
@@ -61,8 +61,8 @@ async function AdminTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 rounded-xl bg-[var(--bx-dark)] text-white px-4 py-3">
-        <span className="rounded-full bg-[var(--bx-red)] px-2.5 py-1 text-xs font-bold">
+      <div className="flex items-center gap-2 rounded-xl bg-[var(--tnt-dark)] text-white px-4 py-3">
+        <span className="rounded-full bg-[var(--tnt-red)] px-2.5 py-1 text-xs font-bold">
           SUPERADMIN
         </span>
         <span className="text-sm font-semibold">Admin Dashboard</span>
@@ -86,7 +86,7 @@ function DashTab({
     <Link
       href={href}
       className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors ${
-        active ? "bg-[var(--bx-dark)] !text-white" : "!text-ink hover:bg-black/5"
+        active ? "bg-[var(--tnt-dark)] !text-white" : "!text-ink hover:bg-black/5"
       }`}
     >
       {label}

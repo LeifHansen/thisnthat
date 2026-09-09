@@ -8,7 +8,7 @@ import { listingImageAlt } from "@/lib/image-seo";
 /**
  * Swipeable photo gallery. Native horizontal scroll-snap (swipe on touch, drag/
  * scroll on desktop) with dot indicators; the larger variant adds prev/next
- * arrows. Falls back to the BX logo when there are no real photos.
+ * arrows. Falls back to the placeholder image when there are no real photos.
  *
  * Safe to place inside a parent <Link>: the dot/arrow controls stop the click
  * from bubbling, and swiping scrolls rather than navigates.
@@ -37,7 +37,7 @@ export function PhotoCarousel({
 
   const fitClass = fit === "contain" ? "object-contain" : "object-cover";
   const frame =
-    "relative aspect-square overflow-hidden rounded-xl border border-[var(--bx-line)] bg-[var(--bx-surface)]";
+    "relative aspect-square overflow-hidden rounded-xl border border-[var(--tnt-line)] bg-[var(--tnt-surface)]";
 
   if (imgs.length === 0) {
     return (
@@ -88,7 +88,7 @@ export function PhotoCarousel({
       <div
         ref={ref}
         onScroll={onScroll}
-        className="flex h-full w-full overflow-x-auto snap-x snap-mandatory bx-noscrollbar"
+        className="flex h-full w-full overflow-x-auto snap-x snap-mandatory tnt-noscrollbar"
       >
         {imgs.map((p, i) => (
           <div key={i} className="relative shrink-0 w-full h-full snap-center">
@@ -144,7 +144,7 @@ export function PhotoCarousel({
               stop(e);
               goTo(Math.max(0, idx - 1));
             }}
-            className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-white/85 hover:bg-white text-[var(--bx-ink)] grid place-items-center shadow-[var(--bx-shadow-sm)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:!opacity-0"
+            className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-white/85 hover:bg-white text-[var(--tnt-ink)] grid place-items-center shadow-[var(--tnt-shadow-sm)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:!opacity-0"
             disabled={idx === 0}
           >
             ‹
@@ -156,7 +156,7 @@ export function PhotoCarousel({
               stop(e);
               goTo(Math.min(imgs.length - 1, idx + 1));
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-white/85 hover:bg-white text-[var(--bx-ink)] grid place-items-center shadow-[var(--bx-shadow-sm)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:!opacity-0"
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-white/85 hover:bg-white text-[var(--tnt-ink)] grid place-items-center shadow-[var(--tnt-shadow-sm)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:!opacity-0"
             disabled={idx === imgs.length - 1}
           >
             ›

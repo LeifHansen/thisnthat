@@ -29,8 +29,8 @@ export function AddToCartButton({
         href="/cart"
         className={
           variant === "full"
-            ? "bx-btn bx-btn--green w-full"
-            : "flex w-full items-center justify-center gap-1 whitespace-nowrap py-1.5 text-xs font-bold !text-[var(--bx-green)]"
+            ? "tnt-btn tnt-btn--green w-full"
+            : "flex w-full items-center justify-center gap-1 whitespace-nowrap py-1.5 text-xs font-bold !text-[var(--tnt-green)]"
         }
       >
         {justAdded ? "Added ✓ " : ""}In cart · View →
@@ -48,8 +48,8 @@ export function AddToCartButton({
       }}
       className={
         variant === "full"
-          ? "bx-btn bx-btn--ghost w-full"
-          : "flex w-full items-center justify-center whitespace-nowrap rounded-full border-2 border-[var(--bx-ink)] bg-[var(--bx-yellow)] !text-ink px-3 py-1.5 text-xs font-bold shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform"
+          ? "tnt-btn tnt-btn--ghost w-full"
+          : "flex w-full items-center justify-center whitespace-nowrap rounded-full border-2 border-[var(--tnt-ink)] bg-[var(--tnt-yellow)] !text-ink px-3 py-1.5 text-xs font-bold shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform"
       }
     >
       + Add to Cart

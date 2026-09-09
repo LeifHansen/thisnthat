@@ -50,13 +50,13 @@ export default async function UnsubscribePage({
 
   if (!user) {
     return (
-      <div className="max-w-md mx-auto bx-panel p-8 text-center space-y-3">
+      <div className="max-w-md mx-auto tnt-panel p-8 text-center space-y-3">
         <h1 className="text-xl">This link has expired</h1>
         <p className="text-muted text-sm">
           The unsubscribe link is no longer valid. You can manage notifications
           from your account settings instead.
         </p>
-        <Link href="/dashboard/profile" className="bx-btn inline-block">
+        <Link href="/dashboard/profile" className="tnt-btn inline-block">
           Go to settings
         </Link>
       </div>
@@ -74,12 +74,12 @@ export default async function UnsubscribePage({
       </div>
 
       {saved && (
-        <div className="bx-panel p-3 text-sm text-green border-l-4 border-[var(--bx-green)]">
+        <div className="tnt-panel p-3 text-sm text-green border-l-4 border-[var(--tnt-green)]">
           Your preferences were saved.
         </div>
       )}
 
-      <form action={saveNotifyPrefsByToken} className="bx-panel p-5 space-y-4">
+      <form action={saveNotifyPrefsByToken} className="tnt-panel p-5 space-y-4">
         <input type="hidden" name="token" value={token} />
         {CATEGORIES.map((c) => (
           <label key={c.key} className="flex items-start gap-3 cursor-pointer">
@@ -87,7 +87,7 @@ export default async function UnsubscribePage({
               type="checkbox"
               name={c.key}
               defaultChecked={user[c.key]}
-              className="mt-1 h-4 w-4 accent-[var(--bx-red)]"
+              className="mt-1 h-4 w-4 accent-[var(--tnt-red)]"
             />
             <span>
               <span className="font-semibold text-ink block">{c.label}</span>
@@ -97,14 +97,14 @@ export default async function UnsubscribePage({
         ))}
 
         <div className="flex flex-wrap gap-2 pt-1">
-          <button type="submit" name="intent" value="save" className="bx-btn">
+          <button type="submit" name="intent" value="save" className="tnt-btn">
             Save preferences
           </button>
           <button
             type="submit"
             name="intent"
             value="all-off"
-            className="bx-btn bx-btn--ghost"
+            className="tnt-btn tnt-btn--ghost"
           >
             Unsubscribe from all
           </button>

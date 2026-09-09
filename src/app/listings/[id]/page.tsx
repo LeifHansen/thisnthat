@@ -336,7 +336,7 @@ export default async function ListingPage({
         <h1 className="text-3xl">{listing.title}</h1>
         {listing.isLot ? (
           <p className="text-muted">
-            <span className="font-semibold text-[var(--bx-purple-text)]">
+            <span className="font-semibold text-[var(--tnt-purple-text)]">
               🎁 Lot · {lotPieces} {lotPieces === 1 ? "beanie" : "beanies"}
             </span>{" "}
             · {listing.condition}
@@ -350,14 +350,14 @@ export default async function ListingPage({
         <p className="whitespace-pre-wrap">{listing.description}</p>
 
         {listing.isLot && listing.lotItems.length > 0 && (
-          <div className="bx-panel p-5 space-y-2">
+          <div className="tnt-panel p-5 space-y-2">
             <p className="font-display text-lg">
               What&apos;s in this lot{" "}
               <span className="text-muted text-sm font-normal">
                 ({lotPieces} total)
               </span>
             </p>
-            <ul className="divide-y divide-[var(--bx-line)]">
+            <ul className="divide-y divide-[var(--tnt-line)]">
               {listing.lotItems.map((it) => (
                 <li
                   key={it.id}
@@ -365,7 +365,7 @@ export default async function ListingPage({
                 >
                   <Link
                     href={`/database?q=${encodeURIComponent(it.beanieName)}`}
-                    className="!text-ink hover:!text-[var(--bx-red)] truncate"
+                    className="!text-ink hover:!text-[var(--tnt-red)] truncate"
                   >
                     {it.beanieName}
                     {it.year ? (
@@ -420,7 +420,7 @@ export default async function ListingPage({
                 {" · "}
                 <Link
                   href={`/registry?n=${listing.registrationNumber}`}
-                  className="!text-[var(--bx-green)] font-semibold"
+                  className="!text-[var(--tnt-green)] font-semibold"
                 >
                   verify #{listing.registrationNumber}
                 </Link>
@@ -429,12 +429,12 @@ export default async function ListingPage({
           </p>
         )}
 
-        <div className="bx-panel p-5 space-y-2">
+        <div className="tnt-panel p-5 space-y-2">
           <Row label="Item price" value={formatCents(fees.itemCents)} />
           {/* Shipping is live-rated from the seller's ZIP at checkout; no
               number here so the page can't contradict the rated charge. */}
           <Row label="Shipping" value="Calculated at checkout" />
-          <div className="border-t border-[var(--bx-line)] pt-2 flex justify-between font-bold text-[var(--bx-green)]">
+          <div className="border-t border-[var(--tnt-line)] pt-2 flex justify-between font-bold text-[var(--tnt-green)]">
             <span>Total</span>
             <span>{formatCents(fees.itemCents)} + shipping</span>
           </div>
@@ -446,7 +446,7 @@ export default async function ListingPage({
         </div>
 
         {sold ? (
-          <p className="bx-badge bx-badge--error">SOLD OUT</p>
+          <p className="tnt-badge tnt-badge--error">SOLD OUT</p>
         ) : isOwn ? (
           <div className="space-y-3">
             {/* A hidden listing is the seller's own preview — saying buyers
@@ -454,7 +454,7 @@ export default async function ListingPage({
                 needs to say how to go live. */}
             {listing.status === "DRAFT" ? (
               <>
-                <p className="bx-badge bx-badge--error">
+                <p className="tnt-badge tnt-badge--error">
                   DRAFT — NOT PUBLISHED
                 </p>
                 <p className="text-muted">
@@ -464,7 +464,7 @@ export default async function ListingPage({
               </>
             ) : listing.status === "REMOVED" ? (
               <>
-                <p className="bx-badge bx-badge--error">REMOVED</p>
+                <p className="tnt-badge tnt-badge--error">REMOVED</p>
                 <p className="text-muted">
                   This listing has been pulled from the marketplace — only you
                   can see it.
@@ -481,13 +481,13 @@ export default async function ListingPage({
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 href={`/listings/${listing.id}/edit`}
-                className="bx-btn flex-1"
+                className="tnt-btn flex-1"
               >
                 {listing.status === "DRAFT" ? "Edit & publish" : "Edit listing"}
               </Link>
               <Link
                 href="/dashboard"
-                className="bx-btn bx-btn--ghost flex-1"
+                className="tnt-btn tnt-btn--ghost flex-1"
               >
                 Manage your listings
               </Link>
@@ -498,7 +498,7 @@ export default async function ListingPage({
           // everyone else 404s). A pulled or unpublished listing must never
           // offer a Buy box: it kept quantity > 0, so it was cartable and only
           // failed later at /api/checkout.
-          <p className="bx-badge bx-badge--error">
+          <p className="tnt-badge tnt-badge--error">
             {listing.status === "DRAFT" ? "DRAFT — NOT PUBLISHED" : "REMOVED"}
           </p>
         ) : (
@@ -525,19 +525,19 @@ export default async function ListingPage({
               userId={listing.sellerId}
               loggedIn={!!session?.user}
               label="💬 Message seller"
-              className="bx-btn bx-btn--ghost w-full"
+              className="tnt-btn tnt-btn--ghost w-full"
               callbackPath={`/listings/${listing.id}`}
             />
             {session?.user ? (
               <div className="space-y-3">
                 {myPendingOffer ? (
-                  <div className="bx-panel p-4 space-y-1 border border-[var(--bx-line-strong)]">
+                  <div className="tnt-panel p-4 space-y-1 border border-[var(--tnt-line-strong)]">
                     <p className="font-display text-sm">
                       ⏳ Your offer is pending
                     </p>
                     <p className="text-sm">
                       You offered{" "}
-                      <b className="text-[var(--bx-red)]">
+                      <b className="text-[var(--tnt-red)]">
                         {formatCents(myPendingOffer.priceCents)}
                       </b>{" "}
                       · expires{" "}
@@ -560,7 +560,7 @@ export default async function ListingPage({
                 Prefer to haggle?{" "}
                 <Link
                   href="/auth/signin"
-                  className="!text-[var(--bx-red)] font-semibold"
+                  className="!text-[var(--tnt-red)] font-semibold"
                 >
                   Log in
                 </Link>{" "}
@@ -582,13 +582,13 @@ export default async function ListingPage({
           </h2>
           <div className="grid sm:grid-cols-3 gap-3">
             {recentReviews.map((r) => (
-              <div key={r.id} className="bx-panel p-4 space-y-1.5">
+              <div key={r.id} className="tnt-panel p-4 space-y-1.5">
                 <p
                   aria-label={`${r.rating} out of 5 stars`}
                   className="text-[#f5a623] leading-none"
                 >
                   {"★".repeat(r.rating)}
-                  <span className="text-[var(--bx-line-strong)]">
+                  <span className="text-[var(--tnt-line-strong)]">
                     {"★".repeat(5 - r.rating)}
                   </span>
                 </p>

@@ -1,106 +1,69 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
-import { BEANIES } from "@/lib/beanie-database";
+import {
+  CATEGORIES,
+  getCategory,
+  isCategorySlug,
+  validateAttributes,
+  type Attributes,
+} from "@/lib/categories";
+import { CONDITIONS, canonicalCondition } from "@/lib/listingOptions";
+import { soldPriceSummary } from "@/lib/ebay-sold";
 
 // AI listing assistant: takes the seller's uploaded photo URLs and drafts a
-// suggested title, beanie name, year, condition, description, and price — so
-// starting a listing is fast. The photo pass is a DRAFTING aid only: it never
-// links the listing to the catalogue database (image-based matching proved
-// unreliable). Catalogue linking is driven by the seller's typed beanie name
-// via the ranked text recommender (see src/lib/beanie-id.ts + BeanieCombobox).
-// Pricing is grounded in our own Beanie database's value reference, layering
-// in real eBay sold comps via the RapidAPI "ebay-average-selling-price"
-// service (see ebaySoldComps below) when RAPIDAPI_KEY is configured.
+// listing — title, brand, item name, category, condition, description,
+// per-category attributes and a suggested price — so starting a listing is
+// fast. It is a DRAFTING aid only: the wizard fills empty fields from it and
+// never overwrites what the seller typed. When RAPIDAPI_KEY is configured the
+// price suggestion is replaced by the median of real eBay sold comps for the
+// item (see src/lib/ebay-sold.ts).
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY || process.env.OPEN_AI_API_KEY;
-const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || process.env.RAPID_API_KEY;
 
-type EbayComps = {
-  average: number | null;
-  median: number | null;
-  min: number | null;
-  max: number | null;
-  count: number | null;
-};
+// The category list, with each category's attribute keys and (for selects)
+// the allowed values, so the model picks values the validators accept.
+const CATEGORY_REFERENCE = CATEGORIES.map((c) => {
+  const fields = c.attributes.map((f) => {
+    if (f.type === "select") return `${f.key} (one of: ${f.options.join(" | ")})`;
+    if (f.type === "number") {
+      const range = [f.min != null ? `min ${f.min}` : "", f.max != null ? `max ${f.max}` : ""]
+        .filter(Boolean)
+        .join(", ");
+      return `${f.key} (number${range ? `, ${range}` : ""})`;
+    }
+    return `${f.key} (free text)`;
+  });
+  return `- "${c.slug}" — ${c.name}: ${c.blurb}${
+    fields.length ? `\n    attributes: ${fields.join("; ")}` : "\n    attributes: none"
+  }`;
+}).join("\n");
 
-// Real eBay SOLD/completed-item comps via the RapidAPI
-// "ebay-average-selling-price" service. Returns null if no key is configured
-// or the call fails, so the assistant degrades gracefully.
-async function ebaySoldComps(keywords: string): Promise<EbayComps | null> {
-  if (!RAPIDAPI_KEY) return null;
-  try {
-    const res = await fetch(
-      "https://ebay-average-selling-price.p.rapidapi.com/findCompletedItems",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-rapidapi-host": "ebay-average-selling-price.p.rapidapi.com",
-          "x-rapidapi-key": RAPIDAPI_KEY,
-        },
-        body: JSON.stringify({
-          keywords,
-          excluded_keywords: "lot bundle fake repro reproduction custom",
-          max_search_results: "120",
-          remove_outliers: true,
-          site_id: "0",
-        }),
-        // Comps are a best-effort enrichment — never let them hang the request.
-        signal: AbortSignal.timeout(15_000),
-      },
-    );
-    if (!res.ok) return null;
-    const d = await res.json().catch(() => null);
-    if (!d) return null;
-    const num = (v: unknown) => {
-      const n = typeof v === "string" ? parseFloat(v) : (v as number);
-      return Number.isFinite(n) ? n : null;
-    };
-    return {
-      average: num(d.average_price ?? d.average),
-      median: num(d.median_price ?? d.median),
-      min: num(d.min_price ?? d.min),
-      max: num(d.max_price ?? d.max),
-      count: num(d.total_results ?? d.results ?? d.products?.length) ?? null,
-    };
-  } catch {
-    return null;
-  }
-}
+const CONDITION_REFERENCE = CONDITIONS.map(
+  (c) => `"${c.value}" (${c.label}: ${c.hint})`,
+).join(", ");
 
-// Compact pricing reference passed to the model so its estimates are grounded.
-// Only curated entries carry value estimates — the expanded Ty-roster import
-// is facts-only and would bloat the prompt with no pricing signal.
-const PRICE_REFERENCE = BEANIES.filter(
-  (b) => b.valueLow != null && b.valueHigh != null,
-)
-  .map((b) => `${b.name} (${b.animal}): $${b.valueLow}-$${b.valueHigh}`)
-  .join("; ");
+const SYSTEM_PROMPT = `You are a marketplace copywriter and product identifier for This'n'that, a general resale marketplace where people sell anything they own.
+From the seller's photos, identify the item and produce a high-quality, honest listing.
+Assess condition only from what is visible. Be honest and avoid hype. If you cannot identify the item confidently, say so in "notes" and still give your best guess.
 
-const SYSTEM_PROMPT = `You are an expert Ty Beanie Baby authenticator and marketplace copywriter for BeanieXchange.
-From the seller's photos, identify the Beanie Baby and produce a high-quality marketplace listing.
-Assess condition from what is visible (plush cleanliness, fading, the swing/hang tag and tush tag, tag protector).
-Be honest and avoid hype. If you cannot identify it confidently, say so in "notes" and still give your best guess.
+Categories (pick exactly one slug; use "other" if nothing fits):
+${CATEGORY_REFERENCE}
 
-Ground your price estimate in this reference of typical values for an authentic example in excellent condition (actual value varies by tag generation, condition, and variation):
-${PRICE_REFERENCE}
+Conditions (pick exactly one value): ${CONDITION_REFERENCE}
 
 Respond ONLY with a JSON object with these exact keys:
 {
-  "beanieName": string,            // e.g. "Princess"
-  "animal": string,                // e.g. "Bear"
-  "year": number|null,             // introduction year if known
-  "title": string,                 // compelling marketplace title, <= 80 chars
-  "condition": string,             // short, e.g. "Mint with mint tag"
-  "conditionNotes": string,        // what you observed
-  "description": string,           // 2-3 sentence honest listing description
-  "tagGeneration": string,         // best guess or "unknown"
-  "priceLow": number,              // USD
-  "priceHigh": number,             // USD
-  "recommendedPrice": number,      // USD single suggested list price
+  "title": string,                 // compelling marketplace title, <= 80 chars, no ALL CAPS, no emoji
+  "brand": string,                 // maker / label if identifiable, else ""
+  "itemName": string,              // what the item is in a few words, e.g. "denim trucker jacket"
+  "categorySlug": string,          // one of the category slugs above
+  "condition": string,             // one of the condition values above
+  "description": string,           // 2-4 honest sentences a buyer would want to read
+  "attributes": object,            // { key: string } using ONLY that category's attribute keys; omit anything you can't tell from the photos
+  "recommendedPrice": number,      // USD single suggested list price for a used-market sale
   "confidence": "high"|"medium"|"low",
-  "notes": string                  // caveats, authenticity flags, or ""
+  "notes": string                  // caveats, flaws you noticed, or ""
 }`;
 
 export async function POST(req: Request) {
@@ -113,7 +76,10 @@ export async function POST(req: Request) {
   }
   if (!OPENAI_KEY) {
     return NextResponse.json(
-      { error: "AI assist is not configured (OPENAI_API_KEY missing)." },
+      {
+        error:
+          "Auto-fill isn't set up on this server (OPENAI_API_KEY missing). Fill in the details by hand.",
+      },
       { status: 503 },
     );
   }
@@ -137,7 +103,7 @@ export async function POST(req: Request) {
   }
 
   const userText =
-    "Identify this Ty Beanie Baby and write the listing." +
+    "Identify this item and write the listing." +
     (hint ? ` Seller note: ${hint}` : "");
 
   let aiRes: Response;
@@ -152,7 +118,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         response_format: { type: "json_object" },
-        max_tokens: 700,
+        max_tokens: 800,
         temperature: 0.3,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
@@ -199,28 +165,78 @@ export async function POST(req: Request) {
       { status: 502 },
     );
   }
-  if (!parsed) {
+  if (!parsed || typeof parsed !== "object") {
     return NextResponse.json({ error: "No suggestion produced." }, { status: 502 });
   }
 
-  // The photo pass only DRAFTS the name as text — it does not link to the
-  // catalogue. The seller reviews the suggested name and links it to a
-  // catalogue entry through the ranked text recommender in the form.
-  const beanieName = String(parsed.beanieName ?? "").trim();
+  // Coerce every field to something the sell form can actually store. The
+  // model is told the vocabularies, but anything off-list is dropped rather
+  // than passed through: a category that doesn't exist or a select value
+  // outside its options would make the listing unsavable.
+  const str = (v: unknown, n: number) =>
+    typeof v === "string" ? v.trim().slice(0, n) : "";
+  const title = str(parsed.title, 160);
+  const brand = str(parsed.brand, 80);
+  const itemName = str(parsed.itemName, 160);
+  const description = str(parsed.description, 4000);
+  const notes = str(parsed.notes, 500);
+  const rawSlug = str(parsed.categorySlug, 60).toLowerCase();
+  const categorySlug = isCategorySlug(rawSlug) ? rawSlug : "";
+  const condition = canonicalCondition(parsed.condition);
 
-  // Real eBay sold comps (if RAPIDAPI_KEY is configured). Search by beanie name.
-  const ebay = await ebaySoldComps(`Ty Beanie Baby ${beanieName}`.trim());
+  let attributes: Attributes = {};
+  const category = getCategory(categorySlug);
+  if (category) {
+    // validateAttributes drops unknown keys; a single bad value (out-of-range
+    // year, off-list option) would reject the whole map, so strip the offending
+    // key and retry rather than losing every suggestion over one.
+    const src =
+      parsed.attributes && typeof parsed.attributes === "object" && !Array.isArray(parsed.attributes)
+        ? { ...(parsed.attributes as Record<string, unknown>) }
+        : {};
+    for (const field of category.attributes) {
+      const single = validateAttributes(category, { [field.key]: src[field.key] });
+      if (single.ok && single.attributes[field.key]) {
+        attributes[field.key] = single.attributes[field.key];
+      }
+    }
+    const all = validateAttributes(category, attributes);
+    attributes = all.ok ? all.attributes : {};
+  }
 
-  // Prefer the real median sold price when we have a meaningful sample.
-  if (ebay?.median && (ebay.count ?? 0) >= 3) {
-    parsed.recommendedPrice = Math.round(ebay.median);
-    parsed.priceSource = "ebay_sold_median";
-  } else {
-    parsed.priceSource = "ai_estimate";
+  const priceNum = Number(parsed.recommendedPrice);
+  let recommendedPrice: number | null =
+    Number.isFinite(priceNum) && priceNum > 0 ? Math.round(priceNum * 100) / 100 : null;
+  const confidenceRaw = str(parsed.confidence, 10).toLowerCase();
+  const confidence =
+    confidenceRaw === "high" || confidenceRaw === "medium" || confidenceRaw === "low"
+      ? confidenceRaw
+      : "low";
+
+  // Real eBay sold comps when configured, keyed by what the item is. A thin
+  // sample (or no key) leaves the AI estimate in place.
+  const compsQuery = `${brand} ${itemName || title}`.trim();
+  const ebay = compsQuery ? await soldPriceSummary(compsQuery) : null;
+  let priceSource: "ebay_sold_median" | "ai_estimate" = "ai_estimate";
+  if (ebay) {
+    recommendedPrice = ebay.median;
+    priceSource = "ebay_sold_median";
   }
 
   return NextResponse.json({
-    suggestion: parsed,
-    ebayComps: ebay,
+    suggestion: {
+      title,
+      brand,
+      itemName,
+      categorySlug,
+      condition,
+      description,
+      attributes,
+      recommendedPrice,
+      confidence,
+      notes,
+      priceSource,
+    },
+    ebayComps: ebay ? { median: ebay.median, count: ebay.count } : null,
   });
 }

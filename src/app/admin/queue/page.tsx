@@ -109,7 +109,7 @@ export default async function AdminQueuePage() {
         <div className="flex items-end justify-between gap-3">
           <h1 className="text-ink text-2xl">New beanie submissions</h1>
           {newBeanies.length > 0 && (
-            <span className="rounded-full bg-[var(--bx-red)] text-white text-xs font-bold px-2.5 py-1">
+            <span className="rounded-full bg-[var(--tnt-red)] text-white text-xs font-bold px-2.5 py-1">
               {newBeanies.length} pending
             </span>
           )}
@@ -120,12 +120,12 @@ export default async function AdminQueuePage() {
           beanie entry.
         </p>
         {newBeaniesError ? (
-          <div className="bx-panel p-6 text-center text-[var(--bx-red)]">
+          <div className="tnt-panel p-6 text-center text-[var(--tnt-red)]">
             Couldn&apos;t load new beanie submissions. The database schema may
             be out of date in this environment.
           </div>
         ) : newBeanies.length === 0 ? (
-          <div className="bx-panel p-6 text-center text-muted">
+          <div className="tnt-panel p-6 text-center text-muted">
             No new beanies to review.
           </div>
         ) : (
@@ -133,7 +133,7 @@ export default async function AdminQueuePage() {
             {newBeanies.map((b) => (
               <div
                 key={b.id}
-                className="bx-panel p-4 flex flex-wrap items-center justify-between gap-3"
+                className="tnt-panel p-4 flex flex-wrap items-center justify-between gap-3"
               >
                 <div className="min-w-0">
                   <p className="font-bold text-ink">
@@ -150,7 +150,7 @@ export default async function AdminQueuePage() {
                         {" · "}
                         <Link
                           href={`/listings/${b.firstListingId}`}
-                          className="!text-[var(--bx-red)] font-semibold"
+                          className="!text-[var(--tnt-red)] font-semibold"
                         >
                           view listing →
                         </Link>
@@ -162,7 +162,7 @@ export default async function AdminQueuePage() {
                   <form action={approveBeanieSubmission}>
                     <input type="hidden" name="submissionId" value={b.id} />
                     <button
-                      className="bx-btn bx-btn--green !py-1.5 !px-4"
+                      className="tnt-btn tnt-btn--green !py-1.5 !px-4"
                       type="submit"
                     >
                       Approve
@@ -171,7 +171,7 @@ export default async function AdminQueuePage() {
                   <form action={rejectBeanieSubmission}>
                     <input type="hidden" name="submissionId" value={b.id} />
                     <button
-                      className="bx-btn bx-btn--ghost !py-1.5 !px-4"
+                      className="tnt-btn tnt-btn--ghost !py-1.5 !px-4"
                       type="submit"
                     >
                       Reject
@@ -194,12 +194,12 @@ export default async function AdminQueuePage() {
       </p>
 
       {requestsError ? (
-        <div className="bx-panel p-8 text-center text-[var(--bx-red)]">
+        <div className="tnt-panel p-8 text-center text-[var(--tnt-red)]">
           Couldn&apos;t load the authentication queue. The database schema may
           be out of date in this environment.
         </div>
       ) : requests.length === 0 ? (
-        <div className="bx-panel p-8 text-center text-muted">
+        <div className="tnt-panel p-8 text-center text-muted">
           Queue is empty.
         </div>
       ) : (
@@ -210,7 +210,7 @@ export default async function AdminQueuePage() {
               r.provider === "BX_AUTHENTICATION" && r.tier === "FULL_GRADING";
             const boxOf = r.batchId ? (batchSize.get(r.batchId) ?? 1) : 1;
             return (
-              <div key={r.id} className="bx-panel p-5 space-y-3">
+              <div key={r.id} className="tnt-panel p-5 space-y-3">
                 <div className="flex justify-between flex-wrap gap-2">
                   <Link
                     href={`/authenticate/${r.id}`}
@@ -225,7 +225,7 @@ export default async function AdminQueuePage() {
                 </div>
                 <p className="text-muted text-sm">
                   <span
-                    className={`bx-badge ${isTrueBlue ? "text-cyan" : "text-[var(--bx-red)]"} mr-2`}
+                    className={`tnt-badge ${isTrueBlue ? "text-cyan" : "text-[var(--tnt-red)]"} mr-2`}
                   >
                     {isTrueBlue
                       ? "True Blue"
@@ -245,16 +245,16 @@ export default async function AdminQueuePage() {
                   >
                     <input type="hidden" name="authRequestId" value={r.id} />
                     <input
-                      className="bx-input max-w-[150px]"
+                      className="tnt-input max-w-[150px]"
                       name="carrier"
                       placeholder="carrier"
                     />
                     <input
-                      className="bx-input max-w-[180px]"
+                      className="tnt-input max-w-[180px]"
                       name="trackingNumber"
                       placeholder="inbound tracking"
                     />
-                    <button className="bx-btn" type="submit">
+                    <button className="tnt-btn" type="submit">
                       Mark received at center
                     </button>
                     {boxOf > 1 && (
@@ -274,7 +274,7 @@ export default async function AdminQueuePage() {
                           True Blue cert ID (required to pass)
                         </span>
                         <input
-                          className="bx-input"
+                          className="tnt-input"
                           name="trueBlueCertId"
                           placeholder="TBB-…"
                         />
@@ -286,7 +286,7 @@ export default async function AdminQueuePage() {
                           True Blue grade (required to pass)
                         </span>
                         <input
-                          className="bx-input"
+                          className="tnt-input"
                           name="grade"
                           placeholder="e.g. 9.5 / Gem Mint"
                         />
@@ -294,7 +294,7 @@ export default async function AdminQueuePage() {
                     )}
                     {isGrading && (
                       <fieldset className="space-y-2">
-                        <legend className="text-[var(--bx-red)] text-sm">
+                        <legend className="text-[var(--tnt-red)] text-sm">
                           5-point grade — score each 1–10 (overall is the
                           average)
                         </legend>
@@ -314,7 +314,7 @@ export default async function AdminQueuePage() {
                                 {c.label}
                               </span>
                               <input
-                                className="bx-input"
+                                className="tnt-input"
                                 name={c.name}
                                 type="number"
                                 min={1}
@@ -336,7 +336,7 @@ export default async function AdminQueuePage() {
                       </p>
                     )}
                     <textarea
-                      className="bx-input"
+                      className="tnt-input"
                       name="notes"
                       rows={2}
                       placeholder={
@@ -347,7 +347,7 @@ export default async function AdminQueuePage() {
                     />
                     <div className="flex gap-2">
                       <button
-                        className="bx-btn"
+                        className="tnt-btn"
                         type="submit"
                         name="result"
                         value="PASS"
@@ -357,7 +357,7 @@ export default async function AdminQueuePage() {
                           : "PASS — issue BX cert + registry #"}
                       </button>
                       <button
-                        className="bx-btn bx-btn--ghost"
+                        className="tnt-btn tnt-btn--ghost"
                         type="submit"
                         formNoValidate
                         name="result"
@@ -390,16 +390,16 @@ export default async function AdminQueuePage() {
                         value={r.id}
                       />
                       <input
-                        className="bx-input max-w-[150px]"
+                        className="tnt-input max-w-[150px]"
                         name="carrier"
                         placeholder="carrier"
                       />
                       <input
-                        className="bx-input max-w-[180px]"
+                        className="tnt-input max-w-[180px]"
                         name="trackingNumber"
                         placeholder="return tracking"
                       />
-                      <button className="bx-btn" type="submit">
+                      <button className="tnt-btn" type="submit">
                         Record return shipment
                       </button>
                       <span className="text-muted text-xs">

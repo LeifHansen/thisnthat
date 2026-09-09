@@ -96,7 +96,7 @@ export default async function PublicProfilePage({
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       {/* ── Profile header ── */}
-      <section className="bx-panel p-6 sm:p-8">
+      <section className="tnt-panel p-6 sm:p-8">
         <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:text-left">
           <Avatar src={user.avatarUrl} name={name} size={96} />
           <div className="min-w-0 flex-1 space-y-2">
@@ -104,7 +104,7 @@ export default async function PublicProfilePage({
               <h1 className="text-2xl truncate">{name}</h1>
               <div className="flex gap-2 shrink-0">
                 {isMe ? (
-                  <Link href="/dashboard/profile" className="bx-btn bx-btn--ghost !py-2 !px-4 text-sm">
+                  <Link href="/dashboard/profile" className="tnt-btn tnt-btn--ghost !py-2 !px-4 text-sm">
                     Edit profile
                   </Link>
                 ) : (
@@ -118,7 +118,7 @@ export default async function PublicProfilePage({
                       userId={user.id}
                       loggedIn={!!session?.user}
                       label={`Message ${name.split(" ")[0]}`}
-                      className="bx-btn !py-2 !px-4 text-sm"
+                      className="tnt-btn !py-2 !px-4 text-sm"
                       callbackPath={`/u/${user.id}`}
                     />
                   </>
@@ -153,7 +153,7 @@ export default async function PublicProfilePage({
               )}
             </p>
             {user.bio && (
-              <p className="text-sm text-[var(--bx-ink-soft)] leading-relaxed whitespace-pre-wrap">
+              <p className="text-sm text-[var(--tnt-ink-soft)] leading-relaxed whitespace-pre-wrap">
                 {user.bio}
               </p>
             )}
@@ -167,7 +167,7 @@ export default async function PublicProfilePage({
           {isMe ? "Your active listings" : `Beanies from ${name}`}
         </h2>
         {listings.length === 0 ? (
-          <div className="bx-panel p-8 text-center text-muted text-sm">
+          <div className="tnt-panel p-8 text-center text-muted text-sm">
             No active listings right now.
           </div>
         ) : (

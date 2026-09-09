@@ -50,9 +50,9 @@ const EMPTY: Toast[] = [];
 const getServerSnapshot = () => EMPTY;
 
 const KIND_STYLE: Record<ToastKind, { bg: string; icon: string }> = {
-  success: { bg: "var(--bx-green)", icon: "✓" },
-  error: { bg: "var(--bx-red)", icon: "!" },
-  info: { bg: "var(--bx-blue)", icon: "i" },
+  success: { bg: "var(--tnt-green)", icon: "✓" },
+  error: { bg: "var(--tnt-red)", icon: "!" },
+  info: { bg: "var(--tnt-blue)", icon: "i" },
 };
 
 export function Toaster() {
@@ -68,7 +68,7 @@ export function Toaster() {
           key={t.id}
           type="button"
           onClick={() => dismiss(t.id)}
-          className="pointer-events-auto flex items-center gap-2.5 max-w-md w-fit rounded-full border-2 border-[var(--bx-ink)] bg-white px-4 py-2.5 text-sm font-semibold !text-ink shadow-[0_3px_0_var(--bx-ink)] bx-toast-in"
+          className="pointer-events-auto flex items-center gap-2.5 max-w-md w-fit rounded-full border-2 border-[var(--tnt-ink)] bg-white px-4 py-2.5 text-sm font-semibold !text-ink shadow-[0_3px_0_var(--tnt-ink)] tnt-toast-in"
         >
           <span
             aria-hidden

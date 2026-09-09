@@ -72,14 +72,14 @@ export function MobileMenu({
             onClick={close}
             className="fixed inset-0 top-[4.4rem] z-40 bg-black/30"
           />
-          <div className="fixed inset-x-0 top-[4.4rem] z-50 max-h-[calc(100vh-4.4rem)] overflow-y-auto border-b border-[var(--bx-line)] bg-white shadow-[var(--bx-shadow-lg)]">
+          <div className="fixed inset-x-0 top-[4.4rem] z-50 max-h-[calc(100vh-4.4rem)] overflow-y-auto border-b border-[var(--tnt-line)] bg-white shadow-[var(--tnt-shadow-lg)]">
             <nav className="mx-auto max-w-6xl px-4 py-3 flex flex-col">
               {NAV.map((item) => (
                 <Link
                   key={item.href + item.label}
                   href={item.href}
                   onClick={close}
-                  className="py-3 border-t border-[var(--bx-line)] font-medium !text-ink"
+                  className="py-3 border-t border-[var(--tnt-line)] font-medium !text-ink"
                 >
                   {item.label}
                 </Link>
@@ -90,7 +90,7 @@ export function MobileMenu({
                   <Link
                     href="/dashboard"
                     onClick={close}
-                    className="py-3 border-t border-[var(--bx-line)] font-medium !text-ink"
+                    className="py-3 border-t border-[var(--tnt-line)] font-medium !text-ink"
                   >
                     Dashboard
                   </Link>
@@ -98,28 +98,28 @@ export function MobileMenu({
                     <Link
                       href={adminHref}
                       onClick={close}
-                      className="py-3 border-t border-[var(--bx-line)] font-bold !text-[var(--bx-red)]"
+                      className="py-3 border-t border-[var(--tnt-line)] font-bold !text-[var(--tnt-red)]"
                     >
                       Admin Dashboard
                     </Link>
                   )}
-                  <div className="py-3 border-t border-[var(--bx-line)]">
+                  <div className="py-3 border-t border-[var(--tnt-line)]">
                     {signOutSlot}
                   </div>
                 </>
               ) : (
-                <div className="flex gap-3 pt-4 border-t border-[var(--bx-line)] mt-1">
+                <div className="flex gap-3 pt-4 border-t border-[var(--tnt-line)] mt-1">
                   <Link
                     href="/auth/signin"
                     onClick={close}
-                    className="bx-btn bx-btn--ghost flex-1"
+                    className="tnt-btn tnt-btn--ghost flex-1"
                   >
                     Log in
                   </Link>
                   <Link
                     href="/auth/signup"
                     onClick={close}
-                    className="bx-btn flex-1"
+                    className="tnt-btn flex-1"
                   >
                     Sign up
                   </Link>

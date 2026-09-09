@@ -100,7 +100,7 @@ export const metadata: Metadata = {
       "Trade · Collect · Connect. Every Beanie Baby on Beanie Xchange is True Blue verified, COA-backed, or authenticated in-house. Escrow-protected payments. Optional professional grading and a permanent place in the Beanie Xchange Registry.",
     images: [
       {
-        url: "/bx-logo.png",
+        url: "/tnt-logo.png",
         width: 512,
         height: 512,
         alt: "Beanie Xchange — BX heart logo. Trade · Collect · Connect.",
@@ -112,7 +112,7 @@ export const metadata: Metadata = {
     title: "BeanieXchange — Buy, Sell & Authenticate Your Beanie Babies",
     description:
       "The trusted marketplace for Ty Beanie Babies. Authenticated, graded, escrow-protected.",
-    images: ["/bx-logo.png"],
+    images: ["/tnt-logo.png"],
   },
   robots: {
     index: true,
@@ -147,12 +147,12 @@ export default async function RootLayout({
       lang="en"
       className={`${montserrat.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[var(--bx-bg)] text-ink">
+      <body className="min-h-full flex flex-col bg-[var(--tnt-bg)] text-ink">
         {/* Stops the mouse wheel from silently changing focused number inputs
             (e.g. a price field turning $10 into $9.97 on scroll). */}
         <NumberInputWheelGuard />
         {/* ── Sitewide beanie-bear pattern backdrop (decorative) ── */}
-        <div className="bx-backdrop" aria-hidden />
+        <div className="tnt-backdrop" aria-hidden />
         <div className="relative z-10 flex flex-col min-h-full">
         <CartProvider>
         {/* Open the TCP+TLS connection to googletagmanager up front rather than
@@ -201,7 +201,7 @@ export default async function RootLayout({
               name: SITE_NAME,
               alternateName: ["BeanieXchange", "Beanie Baby Exchange", "BX"],
               url: SITE_URL,
-              logo: `${SITE_URL}/bx-logo.png`,
+              logo: `${SITE_URL}/tnt-logo.png`,
               description:
                 "Beanie Xchange is the trusted marketplace for authenticated Beanie Babies — buy, sell, authenticate, grade, and register Ty Beanie Babies with escrow-protected payments.",
               sameAs: [],
@@ -229,7 +229,7 @@ export default async function RootLayout({
           }}
         />
 
-        <header className="sticky top-0 z-50 bg-[var(--bx-bg2)]/95 backdrop-blur border-b-[3px] border-[var(--bx-ink)] shadow-[0_3px_0_rgba(43,35,80,0.10)]">
+        <header className="sticky top-0 z-50 bg-[var(--tnt-bg2)]/95 backdrop-blur border-b-[3px] border-[var(--tnt-ink)] shadow-[0_3px_0_rgba(43,35,80,0.10)]">
           <div className="mx-auto max-w-7xl px-4 h-[4.4rem] flex flex-nowrap items-center gap-2 xl:gap-4">
             <Link href="/" className="shrink-0 flex items-center gap-2 !text-ink">
               {/* `sizes` matters more than it looks here: without it, next/image
@@ -238,7 +238,7 @@ export default async function RootLayout({
                   preload competes with the hero's — the actual LCP element — on
                   mobile. Pinned to the real display size instead. */}
               <Image
-                src="/bx-logo.png"
+                src="/tnt-logo.png"
                 alt="Beanie Xchange"
                 width={512}
                 height={512}
@@ -250,40 +250,40 @@ export default async function RootLayout({
                   and hamburger, the wordmark overflowed a 360px header and
                   body's overflow-x:clip silently cut the menu button off. */}
               <span className="hidden min-[420px]:inline font-display text-xl sm:text-[1.65rem] font-bold tracking-tight leading-none">
-                <span className="!text-[var(--bx-red)]">Beanie</span>
-                <span className="!text-[var(--bx-blue-bright)]">X</span>
-                <span className="!text-[var(--bx-ink)]">change</span>
+                <span className="!text-[var(--tnt-red)]">Beanie</span>
+                <span className="!text-[var(--tnt-blue-bright)]">X</span>
+                <span className="!text-[var(--tnt-ink)]">change</span>
               </span>
             </Link>
 
             <nav className="hidden xl:flex shrink-0 items-center gap-2 text-[0.95rem] font-bold whitespace-nowrap font-display">
               <Link
                 href="/browse"
-                className="rounded-full border-2 border-[var(--bx-ink)] bg-[var(--bx-blue-bright)] !text-ink px-3.5 py-1.5 shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform"
+                className="rounded-full border-2 border-[var(--tnt-ink)] bg-[var(--tnt-blue-bright)] !text-ink px-3.5 py-1.5 shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform"
               >
                 Marketplace
               </Link>
               <Link
                 href="/database"
-                className="rounded-full border-2 border-[var(--bx-ink)] bg-[var(--bx-green-bright)] !text-ink px-3.5 py-1.5 shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform"
+                className="rounded-full border-2 border-[var(--tnt-ink)] bg-[var(--tnt-green-bright)] !text-ink px-3.5 py-1.5 shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform"
               >
                 Database
               </Link>
               <Link
                 href="/authenticate"
-                className="rounded-full border-2 border-[var(--bx-ink)] bg-[var(--bx-pink)] !text-[var(--bx-ink)] px-3.5 py-1.5 shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform"
+                className="rounded-full border-2 border-[var(--tnt-ink)] bg-[var(--tnt-pink)] !text-[var(--tnt-ink)] px-3.5 py-1.5 shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform"
               >
                 Auth &amp; Grade
               </Link>
               <Link
                 href="/forum"
-                className="rounded-full border-2 border-[var(--bx-ink)] bg-[var(--bx-purple-bright)] !text-[var(--bx-ink)] px-3.5 py-1.5 shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform"
+                className="rounded-full border-2 border-[var(--tnt-ink)] bg-[var(--tnt-purple-bright)] !text-[var(--tnt-ink)] px-3.5 py-1.5 shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform"
               >
                 Community
               </Link>
               <Link
                 href="/blog"
-                className="rounded-full border-2 border-[var(--bx-ink)] bg-[var(--bx-yellow)] !text-ink px-3.5 py-1.5 shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform"
+                className="rounded-full border-2 border-[var(--tnt-ink)] bg-[var(--tnt-yellow)] !text-ink px-3.5 py-1.5 shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform"
               >
                 Blog
               </Link>
@@ -292,7 +292,7 @@ export default async function RootLayout({
                   type="button"
                   aria-haspopup="true"
                   aria-label="Resources menu"
-                  className="rounded-full border-2 border-[var(--bx-ink)] bg-white !text-ink px-3.5 py-1.5 shadow-[0_2px_0_var(--bx-ink)] inline-flex items-center gap-1 cursor-pointer font-display font-bold"
+                  className="rounded-full border-2 border-[var(--tnt-ink)] bg-white !text-ink px-3.5 py-1.5 shadow-[0_2px_0_var(--tnt-ink)] inline-flex items-center gap-1 cursor-pointer font-display font-bold"
                 >
                   Resources
                   <svg
@@ -311,35 +311,35 @@ export default async function RootLayout({
                 {/* focus-within keeps the menu reachable by keyboard — with
                     hover alone its links could never receive focus at all. */}
                 <div className="absolute left-0 top-full pt-2 hidden group-hover:block group-focus-within:block">
-                  <div className="bx-panel py-2 w-56 shadow-[var(--bx-shadow-lg)] font-sans font-medium normal-case">
+                  <div className="tnt-panel py-2 w-56 shadow-[var(--tnt-shadow-lg)] font-sans font-medium normal-case">
                     <Link
                       href="/beanie-info"
-                      className="block px-4 py-2 text-sm !text-[var(--bx-ink-soft)] hover:bg-[var(--bx-surface)] hover:!text-ink"
+                      className="block px-4 py-2 text-sm !text-[var(--tnt-ink-soft)] hover:bg-[var(--tnt-surface)] hover:!text-ink"
                     >
                       Beanie Info
                     </Link>
                     <Link
                       href="/rarity-guide"
-                      className="block px-4 py-2 text-sm !text-[var(--bx-ink-soft)] hover:bg-[var(--bx-surface)] hover:!text-ink"
+                      className="block px-4 py-2 text-sm !text-[var(--tnt-ink-soft)] hover:bg-[var(--tnt-surface)] hover:!text-ink"
                     >
                       Collecting / Rarity Guide
                     </Link>
                     <Link
                       href="/price-trends"
-                      className="block px-4 py-2 text-sm !text-[var(--bx-ink-soft)] hover:bg-[var(--bx-surface)] hover:!text-ink"
+                      className="block px-4 py-2 text-sm !text-[var(--tnt-ink-soft)] hover:bg-[var(--tnt-surface)] hover:!text-ink"
                     >
                       Price Trends
                     </Link>
                     <Link
                       href="/authentication-process"
-                      className="block px-4 py-2 text-sm !text-[var(--bx-ink-soft)] hover:bg-[var(--bx-surface)] hover:!text-ink"
+                      className="block px-4 py-2 text-sm !text-[var(--tnt-ink-soft)] hover:bg-[var(--tnt-surface)] hover:!text-ink"
                     >
                       How Authentication Works
                     </Link>
                     {/* Verify-cert / BX Registry — disabled with in-house authentication:
                     <Link
                       href="/registry"
-                      className="block px-4 py-2 text-sm !text-[var(--bx-ink-soft)] hover:bg-[var(--bx-surface)] hover:!text-ink"
+                      className="block px-4 py-2 text-sm !text-[var(--tnt-ink-soft)] hover:bg-[var(--tnt-surface)] hover:!text-ink"
                     >
                       BX Registry
                     </Link>
@@ -357,14 +357,14 @@ export default async function RootLayout({
                   {showAdminButton && (
                     <Link
                       href={adminHref}
-                      className="rounded-full bg-[var(--bx-red)] !text-[var(--bx-ink)] px-3 py-1.5 text-xs font-bold hover:bg-[var(--bx-red-dark)]"
+                      className="rounded-full bg-[var(--tnt-red)] !text-[var(--tnt-ink)] px-3 py-1.5 text-xs font-bold hover:bg-[var(--tnt-red-dark)]"
                     >
                       Admin
                     </Link>
                   )}
                   <Link
                     href="/dashboard"
-                    className="rounded-full border-2 border-[var(--bx-ink)] bg-[var(--bx-yellow)] !text-ink px-3.5 py-1.5 shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform font-display font-bold"
+                    className="rounded-full border-2 border-[var(--tnt-ink)] bg-[var(--tnt-yellow)] !text-ink px-3.5 py-1.5 shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform font-display font-bold"
                   >
                     Dashboard
                   </Link>
@@ -374,11 +374,11 @@ export default async function RootLayout({
                 <>
                   <Link
                     href="/auth/signin"
-                    className="bx-btn bx-btn--ghost !py-2 !px-4"
+                    className="tnt-btn tnt-btn--ghost !py-2 !px-4"
                   >
                     Log in
                   </Link>
-                  <Link href="/auth/signup" className="bx-btn !py-2 !px-4">
+                  <Link href="/auth/signup" className="tnt-btn !py-2 !px-4">
                     Sign up
                   </Link>
                 </>
@@ -388,7 +388,7 @@ export default async function RootLayout({
                   href="/messages"
                   aria-label={`Inbox${unreadMessages > 0 ? ` (${unreadMessages} unread)` : ""}`}
                   title="Inbox"
-                  className="relative rounded-full border-2 border-[var(--bx-ink)] bg-white !text-ink p-2 shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform"
+                  className="relative rounded-full border-2 border-[var(--tnt-ink)] bg-white !text-ink p-2 shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform"
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -404,7 +404,7 @@ export default async function RootLayout({
                     <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
                   </svg>
                   {unreadMessages > 0 && (
-                    <span className="absolute -top-2 -right-2 rounded-full bg-[var(--bx-red)] text-[var(--bx-ink)] text-[10px] font-bold leading-none px-1.5 py-1">
+                    <span className="absolute -top-2 -right-2 rounded-full bg-[var(--tnt-red)] text-[var(--tnt-ink)] text-[10px] font-bold leading-none px-1.5 py-1">
                       {unreadMessages > 99 ? "99+" : unreadMessages}
                     </span>
                   )}
@@ -416,7 +416,7 @@ export default async function RootLayout({
             {showAdminButton && (
               <Link
                 href={adminHref}
-                className="xl:hidden ml-auto inline-flex items-center h-11 rounded-full border-2 border-[var(--bx-ink)] bg-[var(--bx-red)] px-3 !text-[var(--bx-ink)] text-xs font-bold shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform"
+                className="xl:hidden ml-auto inline-flex items-center h-11 rounded-full border-2 border-[var(--tnt-ink)] bg-[var(--tnt-red)] px-3 !text-[var(--tnt-ink)] text-xs font-bold shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform"
               >
                 Admin
               </Link>
@@ -446,14 +446,14 @@ export default async function RootLayout({
           <ToastFromQuery />
         </Suspense>
 
-        <footer className="bg-[var(--bx-surface)] border-t border-[var(--bx-line)] py-12 text-sm text-muted">
+        <footer className="bg-[var(--tnt-surface)] border-t border-[var(--tnt-line)] py-12 text-sm text-muted">
           {/* Phones: brand full-width, then link sections paired 2-up — a
               single-column stack of 16 links made the footer ~4 screens tall. */}
           <div className="mx-auto max-w-6xl px-4 grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-5 lg:gap-8">
             <div className="space-y-3 col-span-2 lg:col-span-1">
               <Link href="/" className="!text-ink">
                 <span className="text-lg font-extrabold tracking-tight">
-                  Beanie<span className="!text-[var(--bx-red)]">Xchange</span>
+                  Beanie<span className="!text-[var(--tnt-red)]">Xchange</span>
                 </span>
               </Link>
               <p className="text-xs leading-relaxed max-w-xs">
@@ -541,7 +541,7 @@ export default async function RootLayout({
               </a>
             </div>
           </div>
-          <div className="mx-auto max-w-6xl px-4 mt-10 pt-6 border-t border-[var(--bx-line)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="mx-auto max-w-6xl px-4 mt-10 pt-6 border-t border-[var(--tnt-line)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <p>
               © {new Date().getFullYear()} BeanieXchange. All rights reserved.
             </p>

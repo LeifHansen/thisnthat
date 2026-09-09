@@ -11,7 +11,7 @@ export function MessageUserButton({
   userId,
   loggedIn,
   label = "Message",
-  className = "bx-btn bx-btn--ghost",
+  className = "tnt-btn tnt-btn--ghost",
   callbackPath,
 }: {
   userId: string;

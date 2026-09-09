@@ -11,7 +11,7 @@ import { useFormStatus } from "react-dom";
 export function FormSubmitButton({
   children,
   pendingLabel = "Working…",
-  className = "bx-btn",
+  className = "tnt-btn",
 }: {
   children: React.ReactNode;
   pendingLabel?: string;

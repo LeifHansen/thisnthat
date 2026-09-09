@@ -85,13 +85,13 @@ export default async function OrderPage({
       </div>
 
       <div className="grid sm:grid-cols-2 gap-6">
-        <div className="bx-panel p-5 space-y-3">
+        <div className="tnt-panel p-5 space-y-3">
           <h2 className="text-ink">Progress</h2>
           <Timeline status={order.status} />
         </div>
 
         <div className="space-y-4">
-          <div className="bx-panel p-5 space-y-1">
+          <div className="tnt-panel p-5 space-y-1">
             <h2 className="text-ink mb-1">
               {isSeller ? "Your payout" : "Totals"}
             </h2>
@@ -102,7 +102,7 @@ export default async function OrderPage({
                   l={`Platform fee (${PLATFORM_FEE_LABEL})`}
                   v={`− ${formatCents(order.platformFeeCents)}`}
                 />
-                <div className="border-t border-[var(--bx-line)] pt-1 flex justify-between text-yellow">
+                <div className="border-t border-[var(--tnt-line)] pt-1 flex justify-between text-yellow">
                   <span>You receive</span>
                   <span>{formatCents(sellerProceedsCents)}</span>
                 </div>
@@ -115,7 +115,7 @@ export default async function OrderPage({
               <>
                 <Row l="Item" v={formatCents(order.itemCents)} />
                 <Row l="Shipping" v={formatCents(order.shipToBuyerCents)} />
-                <div className="border-t border-[var(--bx-line)] pt-1 flex justify-between text-yellow">
+                <div className="border-t border-[var(--tnt-line)] pt-1 flex justify-between text-yellow">
                   <span>Total</span>
                   <span>{formatCents(order.totalCents)}</span>
                 </div>
@@ -123,7 +123,7 @@ export default async function OrderPage({
             )}
           </div>
 
-          <div className="bx-panel p-5 space-y-1 text-sm">
+          <div className="tnt-panel p-5 space-y-1 text-sm">
             <h2 className="text-ink mb-1">Ship to buyer</h2>
             <p className="text-muted">{order.shipName}</p>
             <p className="text-muted">{order.shipLine1}</p>
@@ -137,7 +137,7 @@ export default async function OrderPage({
         </div>
       </div>
 
-      <div className="bx-panel p-5 space-y-2">
+      <div className="tnt-panel p-5 space-y-2">
         <h2 className="text-ink">Authenticity</h2>
         <AuthBadge
           authType={order.listing.authType}
@@ -153,7 +153,7 @@ export default async function OrderPage({
       </div>
 
       {order.shipmentEvents.length > 0 && (
-        <div className="bx-panel p-5 space-y-1 text-sm">
+        <div className="tnt-panel p-5 space-y-1 text-sm">
           <h2 className="text-ink">Shipments</h2>
           {order.shipmentEvents.map((s) => (
             <p key={s.id} className="text-muted">
@@ -174,25 +174,25 @@ export default async function OrderPage({
       )}
 
       {sellerNeedsToShip && (
-        <div className="bx-panel p-5 space-y-3">
+        <div className="tnt-panel p-5 space-y-3">
           <h2 className="text-ink">Ship to the buyer</h2>
           <form action={sellerMarkShipped} className="space-y-2">
             <input type="hidden" name="orderId" value={order.id} />
             {/* Required: "shipped" unlocks the buyer's escrow release, so it
                 must carry real shipping evidence (enforced server-side too). */}
             <input
-              className="bx-input"
+              className="tnt-input"
               name="carrier"
               placeholder="carrier (USPS, UPS…)"
               required
             />
             <input
-              className="bx-input"
+              className="tnt-input"
               name="trackingNumber"
               placeholder="tracking number"
               required
             />
-            <button className="bx-btn w-full" type="submit">
+            <button className="tnt-btn w-full" type="submit">
               Mark Shipped
             </button>
           </form>
@@ -200,7 +200,7 @@ export default async function OrderPage({
       )}
 
       {canConfirm && order.status === "SHIPPED_TO_BUYER" && (
-        <form action={buyerConfirmReceipt} className="bx-panel p-5 space-y-2">
+        <form action={buyerConfirmReceipt} className="tnt-panel p-5 space-y-2">
           <h2 className="text-ink">Received your beanie?</h2>
           <p className="text-muted text-sm">
             Confirming releases the escrowed funds to the seller.
@@ -209,14 +209,14 @@ export default async function OrderPage({
           {isGuestBuyer && (
             <input type="hidden" name="token" value={order.guestToken ?? ""} />
           )}
-          <button className="bx-btn w-full" type="submit">
+          <button className="tnt-btn w-full" type="submit">
             Confirm Receipt &amp; Release Funds
           </button>
         </form>
       )}
 
       {canCancel && (
-        <details className="bx-panel p-5 space-y-2">
+        <details className="tnt-panel p-5 space-y-2">
           <summary className="cursor-pointer font-semibold text-ink">
             Cancel this order
           </summary>
@@ -228,7 +228,7 @@ export default async function OrderPage({
           <form action={cancelAndRefundOrder} className="pt-1">
             <input type="hidden" name="orderId" value={order.id} />
             <FormSubmitButton
-              className="bx-btn bx-btn--ghost w-full"
+              className="tnt-btn tnt-btn--ghost w-full"
               pendingLabel="Cancelling…"
             >
               {hasShipped
@@ -243,11 +243,11 @@ export default async function OrderPage({
           to attach a review to), once the order is COMPLETED. */}
       {isBuyer && order.status === "COMPLETED" && (
         order.review ? (
-          <div className="bx-panel p-5 space-y-2">
+          <div className="tnt-panel p-5 space-y-2">
             <h2 className="text-ink">Your review</h2>
             <p aria-label={`${order.review.rating} out of 5 stars`} className="text-[#f5a623] text-lg leading-none">
               {"★".repeat(order.review.rating)}
-              <span className="text-[var(--bx-line-strong)]">
+              <span className="text-[var(--tnt-line-strong)]">
                 {"★".repeat(5 - order.review.rating)}
               </span>
             </p>

@@ -56,7 +56,7 @@ ${preheader}
       <tr><td align="center" style="padding:8px 0 20px;">
         <a href="${SITE_URL}" style="text-decoration:none;">
           <img src="${absoluteUrl(
-            "/bx-logo.png",
+            "/tnt-logo.png",
           )}" width="56" height="56" alt="${SITE_NAME}" style="display:block;border:0;"/>
         </a>
       </td></tr>

@@ -69,7 +69,7 @@ export function RemovableRow({
           disabled={pending}
           aria-label={ariaLabel}
           title={ariaLabel}
-          className="rounded-full border-2 border-[var(--bx-ink)] bg-white p-1.5 text-[var(--bx-ink)] shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 hover:!text-[var(--bx-red)] transition-transform disabled:opacity-50 disabled:translate-y-0"
+          className="rounded-full border-2 border-[var(--tnt-ink)] bg-white p-1.5 text-[var(--tnt-ink)] shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 hover:!text-[var(--tnt-red)] transition-transform disabled:opacity-50 disabled:translate-y-0"
         >
           {pending ? (
             <span className="block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

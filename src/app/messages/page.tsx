@@ -30,14 +30,14 @@ export default async function MessagesPage() {
             <Link
               key={c.otherId}
               href={`/messages/${c.otherId}`}
-              className="bx-panel px-4 py-3 flex items-center justify-between gap-3 !text-ink hover:border-[var(--bx-line-strong)]"
+              className="tnt-panel px-4 py-3 flex items-center justify-between gap-3 !text-ink hover:border-[var(--tnt-line-strong)]"
             >
               <Avatar src={c.otherAvatarUrl} name={c.otherName} size={40} />
               <span className="min-w-0 flex-1">
                 <span className="font-semibold flex items-center gap-2">
                   {c.otherName}
                   {c.unread > 0 && (
-                    <span className="rounded-full bg-[var(--bx-red)] text-white text-xs font-bold px-2 py-0.5">
+                    <span className="rounded-full bg-[var(--tnt-red)] text-white text-xs font-bold px-2 py-0.5">
                       {c.unread}
                     </span>
                   )}

@@ -32,7 +32,7 @@ export function MakeOfferButton({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="bx-btn bx-btn--ghost w-full"
+          className="tnt-btn tnt-btn--ghost w-full"
         >
           Make an Offer
         </button>
@@ -41,7 +41,7 @@ export function MakeOfferButton({
       {open && (
         <form
           action={makeOffer}
-          className="bx-panel p-4 space-y-3 border border-[var(--bx-line-strong)]"
+          className="tnt-panel p-4 space-y-3 border border-[var(--tnt-line-strong)]"
         >
           <div className="flex items-baseline justify-between gap-2">
             <p className="font-display text-lg">Make an Offer</p>
@@ -65,7 +65,7 @@ export function MakeOfferButton({
               max={max}
               defaultValue={suggested}
               required
-              className="bx-input"
+              className="tnt-input"
             />
             <span className="text-muted text-xs">
               Listing is {formatCents(listingPriceCents)}. Offer must be below
@@ -78,17 +78,17 @@ export function MakeOfferButton({
               name="message"
               rows={2}
               maxLength={500}
-              className="bx-input"
+              className="tnt-input"
               placeholder="Why this price? Sellers respond better to context."
             />
           </label>
           {minAutoAcceptCents !== null && minAutoAcceptCents > 0 && (
-            <p className="text-xs text-[var(--bx-red)]">
+            <p className="text-xs text-[var(--tnt-red)]">
               Seller auto-accepts offers at or above{" "}
               <b>{formatCents(minAutoAcceptCents)}</b>.
             </p>
           )}
-          <FormSubmitButton className="bx-btn w-full" pendingLabel="Sending…">
+          <FormSubmitButton className="tnt-btn w-full" pendingLabel="Sending…">
             Send Offer
           </FormSubmitButton>
           <p className="text-muted text-xs">

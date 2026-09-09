@@ -214,7 +214,7 @@ export function ChatDock({
       <button
         type="button"
         onClick={() => openChat()}
-        className="fixed bottom-0 right-3 sm:right-6 z-40 flex items-center gap-2 rounded-t-2xl border-2 border-b-0 border-[var(--bx-ink)] bg-white px-4 py-2.5 text-sm font-bold !text-ink shadow-[0_-2px_10px_rgba(43,35,80,0.15)] hover:pb-3.5 transition-all"
+        className="fixed bottom-0 right-3 sm:right-6 z-40 flex items-center gap-2 rounded-t-2xl border-2 border-b-0 border-[var(--tnt-ink)] bg-white px-4 py-2.5 text-sm font-bold !text-ink shadow-[0_-2px_10px_rgba(43,35,80,0.15)] hover:pb-3.5 transition-all"
         aria-label={`Open messages${unread > 0 ? ` (${unread} unread)` : ""}`}
       >
         <svg
@@ -231,7 +231,7 @@ export function ChatDock({
         </svg>
         Messages
         {unread > 0 && (
-          <span className="rounded-full bg-[var(--bx-red)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+          <span className="rounded-full bg-[var(--tnt-red)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
             {unread > 99 ? "99+" : unread}
           </span>
         )}
@@ -242,12 +242,12 @@ export function ChatDock({
   // ── Open window ───────────────────────────────────────────────
   return (
     <div
-      className="fixed bottom-0 right-0 sm:right-6 z-40 flex h-[70vh] max-h-[32rem] w-full flex-col rounded-t-2xl border-2 border-b-0 border-[var(--bx-ink)] bg-white shadow-[0_-4px_24px_rgba(43,35,80,0.25)] sm:w-96 bx-dock-in"
+      className="fixed bottom-0 right-0 sm:right-6 z-40 flex h-[70vh] max-h-[32rem] w-full flex-col rounded-t-2xl border-2 border-b-0 border-[var(--tnt-ink)] bg-white shadow-[0_-4px_24px_rgba(43,35,80,0.25)] sm:w-96 tnt-dock-in"
       role="dialog"
       aria-label="Messages"
     >
       {/* Header */}
-      <div className="flex items-center gap-2 rounded-t-[14px] border-b-2 border-[var(--bx-ink)] bg-[var(--bx-surface)] px-3 py-2.5">
+      <div className="flex items-center gap-2 rounded-t-[14px] border-b-2 border-[var(--tnt-ink)] bg-[var(--tnt-surface)] px-3 py-2.5">
         {otherId ? (
           <>
             <button
@@ -319,8 +319,8 @@ export function ChatDock({
                   key={m.id}
                   className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-snug whitespace-pre-wrap break-words ${
                     m.mine
-                      ? "ml-auto bg-[var(--bx-blue-bright)] text-ink rounded-br-md"
-                      : "bg-[var(--bx-surface)] border border-[var(--bx-line)] rounded-bl-md"
+                      ? "ml-auto bg-[var(--tnt-blue-bright)] text-ink rounded-br-md"
+                      : "bg-[var(--tnt-surface)] border border-[var(--tnt-line)] rounded-bl-md"
                   } ${m.pending ? "opacity-60" : ""}`}
                 >
                   {m.body}
@@ -331,7 +331,7 @@ export function ChatDock({
               ))
             )}
           </div>
-          <div className="border-t border-[var(--bx-line)] p-2.5">
+          <div className="border-t border-[var(--tnt-line)] p-2.5">
             <div className="flex items-end gap-2">
               <textarea
                 ref={composerRef}
@@ -347,13 +347,13 @@ export function ChatDock({
                 maxLength={4000}
                 placeholder="Message…"
                 aria-label={`Message ${headerName}`}
-                className="bx-input !py-2 max-h-28 min-h-[2.5rem] flex-1 resize-none"
+                className="tnt-input !py-2 max-h-28 min-h-[2.5rem] flex-1 resize-none"
               />
               <button
                 type="button"
                 onClick={send}
                 disabled={sending || !draft.trim()}
-                className="bx-btn !px-4 !py-2 shrink-0 disabled:opacity-50"
+                className="tnt-btn !px-4 !py-2 shrink-0 disabled:opacity-50"
               >
                 Send
               </button>
@@ -381,7 +381,7 @@ export function ChatDock({
                 key={c.otherId}
                 type="button"
                 onClick={() => openChat(c.otherId)}
-                className="flex w-full items-center gap-3 border-b border-[var(--bx-line)] px-3 py-3 text-left hover:bg-[var(--bx-surface)]"
+                className="flex w-full items-center gap-3 border-b border-[var(--tnt-line)] px-3 py-3 text-left hover:bg-[var(--tnt-surface)]"
               >
                 <Avatar src={c.otherAvatarUrl} name={c.otherName} size={40} />
                 <span className="min-w-0 flex-1">
@@ -402,7 +402,7 @@ export function ChatDock({
                   </span>
                 </span>
                 {c.unread > 0 && (
-                  <span className="shrink-0 rounded-full bg-[var(--bx-red)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                  <span className="shrink-0 rounded-full bg-[var(--tnt-red)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
                     {c.unread > 99 ? "99+" : c.unread}
                   </span>
                 )}

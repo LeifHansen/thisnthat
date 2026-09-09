@@ -81,7 +81,7 @@ export function ListingOptimizer({
     result.photoPlan.recommendedOrder.some((v, i) => v !== i);
 
   return (
-    <div className="bx-panel p-4 space-y-3 bg-[var(--bx-surface)]">
+    <div className="tnt-panel p-4 space-y-3 bg-[var(--tnt-surface)]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="font-semibold text-ink">✨ Optimize for discoverability</p>
@@ -95,7 +95,7 @@ export function ListingOptimizer({
           type="button"
           onClick={run}
           disabled={busy}
-          className="bx-btn bx-btn--ghost shrink-0 disabled:opacity-60"
+          className="tnt-btn tnt-btn--ghost shrink-0 disabled:opacity-60"
         >
           {busy ? "Optimizing…" : result ? "Re-run" : "Optimize listing"}
         </button>
@@ -111,11 +111,11 @@ export function ListingOptimizer({
               <span className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Optimized title
               </span>
-              <span className="text-xs font-semibold text-[var(--bx-red)]">
+              <span className="text-xs font-semibold text-[var(--tnt-red)]">
                 ✓ Applied
               </span>
             </div>
-            <p className="text-sm text-ink bg-white rounded-lg border border-[var(--bx-line)] px-3 py-2">
+            <p className="text-sm text-ink bg-white rounded-lg border border-[var(--tnt-line)] px-3 py-2">
               {result.optimizedTitle}
             </p>
           </div>
@@ -126,11 +126,11 @@ export function ListingOptimizer({
               <span className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Optimized description
               </span>
-              <span className="text-xs font-semibold text-[var(--bx-red)]">
+              <span className="text-xs font-semibold text-[var(--tnt-red)]">
                 ✓ Applied
               </span>
             </div>
-            <p className="text-sm text-ink whitespace-pre-line bg-white rounded-lg border border-[var(--bx-line)] px-3 py-2">
+            <p className="text-sm text-ink whitespace-pre-line bg-white rounded-lg border border-[var(--tnt-line)] px-3 py-2">
               {result.optimizedDescription}
             </p>
           </div>
@@ -145,7 +145,7 @@ export function ListingOptimizer({
                 {result.keywords.map((k) => (
                   <span
                     key={k}
-                    className="rounded-full bg-white border border-[var(--bx-line-strong)] px-2.5 py-1 text-xs text-[var(--bx-ink-soft)]"
+                    className="rounded-full bg-white border border-[var(--tnt-line-strong)] px-2.5 py-1 text-xs text-[var(--tnt-ink-soft)]"
                   >
                     {k}
                   </span>
@@ -163,11 +163,11 @@ export function ListingOptimizer({
                 Photo presentation
               </span>
               {reordered && (
-                <div className="flex items-center justify-between gap-2 bg-white rounded-lg border border-[var(--bx-line)] px-3 py-2">
+                <div className="flex items-center justify-between gap-2 bg-white rounded-lg border border-[var(--tnt-line)] px-3 py-2">
                   <span className="text-sm text-ink">
                     Photos reordered best-first for a stronger cover image.
                   </span>
-                  <span className="text-xs font-semibold text-[var(--bx-red)] shrink-0">
+                  <span className="text-xs font-semibold text-[var(--tnt-red)] shrink-0">
                     ✓ Reordered
                   </span>
                 </div>

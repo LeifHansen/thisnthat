@@ -29,7 +29,7 @@ export function BuyBox({
           add(item);
           router.push("/checkout");
         }}
-        className="bx-btn w-full"
+        className="tnt-btn w-full"
       >
         <BasketIcon className="h-5 w-5" />
         Buy Now — {formatCents(totalCents)}

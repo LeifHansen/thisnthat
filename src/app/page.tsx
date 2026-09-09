@@ -92,12 +92,12 @@ const FAQ: { q: string; a: string }[] = [
 // they are now real rendered buttons overlaid on the image, colored to
 // match the header nav's sticker palette.
 const HERO_LINKS: { label: string; href: string; bg: string; fg: string }[] = [
-  { label: "Browse All Beanies", href: "/database", bg: "var(--bx-blue-bright)", fg: "var(--bx-ink)" },
-  { label: "Search & Filter", href: "/database", bg: "var(--bx-green-bright)", fg: "var(--bx-ink)" },
-  { label: "Chronological Order", href: "/database?sort=year", bg: "var(--bx-yellow)", fg: "var(--bx-ink)" },
-  { label: "View Details & Images", href: "/browse", bg: "var(--bx-pink)", fg: "#fff" },
-  { label: "Rarity & Value Insights", href: "/rarity-guide", bg: "var(--bx-purple-bright)", fg: "#fff" },
-  { label: "Join the Community", href: "/forum", bg: "var(--bx-red)", fg: "#fff" },
+  { label: "Browse All Beanies", href: "/database", bg: "var(--tnt-blue-bright)", fg: "var(--tnt-ink)" },
+  { label: "Search & Filter", href: "/database", bg: "var(--tnt-green-bright)", fg: "var(--tnt-ink)" },
+  { label: "Chronological Order", href: "/database?sort=year", bg: "var(--tnt-yellow)", fg: "var(--tnt-ink)" },
+  { label: "View Details & Images", href: "/browse", bg: "var(--tnt-pink)", fg: "#fff" },
+  { label: "Rarity & Value Insights", href: "/rarity-guide", bg: "var(--tnt-purple-bright)", fg: "#fff" },
+  { label: "Join the Community", href: "/forum", bg: "var(--tnt-red)", fg: "#fff" },
 ];
 
 /** Fisher–Yates shuffle (non-mutating). */
@@ -169,9 +169,9 @@ async function FeaturedGrid() {
 
   if (featured.length === 0) {
     return (
-      <div className="bx-panel p-10 text-center text-muted">
+      <div className="tnt-panel p-10 text-center text-muted">
         No listings yet — be the first to{" "}
-        <Link href="/sell" className="!text-[var(--bx-red)] font-semibold">
+        <Link href="/sell" className="!text-[var(--tnt-red)] font-semibold">
           list a Beanie Baby
         </Link>
         .
@@ -216,7 +216,7 @@ async function NewlyListedCarousel() {
     <section className="space-y-5">
       <div className="flex items-end justify-between">
         <h2 className="text-2xl sm:text-3xl font-bold">Newly Listed</h2>
-        <Link href="/browse" className="text-sm font-semibold !text-[var(--bx-red)]">
+        <Link href="/browse" className="text-sm font-semibold !text-[var(--tnt-red)]">
           See all →
         </Link>
       </div>
@@ -229,10 +229,10 @@ function NewlyListedSkeleton() {
   return (
     <div className="flex gap-3 overflow-hidden pb-2 -mx-1 px-1">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="shrink-0 w-40 sm:w-48 bx-panel p-2.5 space-y-2">
-          <div className="animate-pulse rounded-lg bg-[var(--bx-line)] aspect-square" />
-          <div className="animate-pulse rounded bg-[var(--bx-line)] h-4 w-3/4" />
-          <div className="animate-pulse rounded bg-[var(--bx-line)] h-5 w-1/2" />
+        <div key={i} className="shrink-0 w-40 sm:w-48 tnt-panel p-2.5 space-y-2">
+          <div className="animate-pulse rounded-lg bg-[var(--tnt-line)] aspect-square" />
+          <div className="animate-pulse rounded bg-[var(--tnt-line)] h-4 w-3/4" />
+          <div className="animate-pulse rounded bg-[var(--tnt-line)] h-5 w-1/2" />
         </div>
       ))}
     </div>
@@ -275,7 +275,7 @@ function ShopCollections() {
             // captions. The tile fill matches the artwork's cream field
             // (#fefaf1) rather than white, so those letterbox strips don't
             // read as a pale second border inside the tint one.
-            className="relative block aspect-square overflow-hidden rounded-2xl border-[3px] shadow-[0_3px_0_var(--bx-ink)] hover:-translate-y-1 hover:shadow-[var(--bx-shadow-lg)] transition-all bg-[#fefaf1]"
+            className="relative block aspect-square overflow-hidden rounded-2xl border-[3px] shadow-[0_3px_0_var(--tnt-ink)] hover:-translate-y-1 hover:shadow-[var(--tnt-shadow-lg)] transition-all bg-[#fefaf1]"
             style={{ borderColor: c.tint }}
           >
             {/* The artwork is the card's ONLY title + tagline, so a tile
@@ -363,7 +363,7 @@ async function RecentBlogPosts() {
         </div>
         <Link
           href="/blog"
-          className="hidden sm:inline text-sm font-semibold !text-[var(--bx-red)] shrink-0"
+          className="hidden sm:inline text-sm font-semibold !text-[var(--tnt-red)] shrink-0"
         >
           Read the blog →
         </Link>
@@ -373,9 +373,9 @@ async function RecentBlogPosts() {
           <Link
             key={p.slug}
             href={`/blog/${p.slug}`}
-            className="snap-start shrink-0 w-60 sm:w-72 bx-panel overflow-hidden !text-ink hover:shadow-[var(--bx-shadow-lg)] transition-shadow"
+            className="snap-start shrink-0 w-60 sm:w-72 tnt-panel overflow-hidden !text-ink hover:shadow-[var(--tnt-shadow-lg)] transition-shadow"
           >
-            <div className="relative aspect-[16/10] bg-[var(--bx-surface)]">
+            <div className="relative aspect-[16/10] bg-[var(--tnt-surface)]">
               <Image
                 src={p.coverImageUrl || "/blog-hero-image.webp"}
                 alt={p.title}
@@ -397,7 +397,7 @@ async function RecentBlogPosts() {
         ))}
       </div>
       <div className="sm:hidden text-center">
-        <Link href="/blog" className="text-sm font-semibold !text-[var(--bx-red)]">
+        <Link href="/blog" className="text-sm font-semibold !text-[var(--tnt-red)]">
           Read the blog →
         </Link>
       </div>
@@ -409,10 +409,10 @@ function FeaturedGridSkeleton() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="bx-panel p-3 flex flex-col gap-2.5">
-          <div className="animate-pulse rounded-lg bg-[var(--bx-line)] aspect-square" />
-          <div className="animate-pulse rounded bg-[var(--bx-line)] h-4 w-3/4" />
-          <div className="animate-pulse rounded bg-[var(--bx-line)] h-6 w-1/2" />
+        <div key={i} className="tnt-panel p-3 flex flex-col gap-2.5">
+          <div className="animate-pulse rounded-lg bg-[var(--tnt-line)] aspect-square" />
+          <div className="animate-pulse rounded bg-[var(--tnt-line)] h-4 w-3/4" />
+          <div className="animate-pulse rounded bg-[var(--tnt-line)] h-6 w-1/2" />
         </div>
       ))}
     </div>
@@ -459,14 +459,14 @@ async function ShopSection() {
           {lotCount > 0 && (
             <Link
               href="/browse?type=lots"
-              className="text-sm font-semibold !text-[var(--bx-purple-text)]"
+              className="text-sm font-semibold !text-[var(--tnt-purple-text)]"
             >
               🎁 Shop Lots →
             </Link>
           )}
           <Link
             href="/browse"
-            className="text-sm font-semibold !text-[var(--bx-red)]"
+            className="text-sm font-semibold !text-[var(--tnt-red)]"
           >
             Browse &amp; filter →
           </Link>
@@ -510,8 +510,8 @@ export default function Home() {
   const about = [
     {
       title: "What Are Beanie Babies?",
-      color: "var(--bx-red)",
-      bg: "var(--bx-red-soft)",
+      color: "var(--tnt-red)",
+      bg: "var(--tnt-red-soft)",
       cta: "Explore the Beanie Baby database",
       href: "/database",
       body: (
@@ -528,8 +528,8 @@ export default function Home() {
     },
     {
       title: "Buy & Sell Beanie Babies",
-      color: "var(--bx-green)",
-      bg: "var(--bx-green-soft)",
+      color: "var(--tnt-green)",
+      bg: "var(--tnt-green-soft)",
       cta: "Browse the marketplace",
       href: "/browse",
       body: (
@@ -546,7 +546,7 @@ export default function Home() {
     },
     {
       title: "Trade Beanie Babies",
-      color: "var(--bx-blue)",
+      color: "var(--tnt-blue)",
       bg: "#e6f4ff",
       cta: "Meet the community",
       href: "/forum",
@@ -563,7 +563,7 @@ export default function Home() {
     },
     {
       title: "Beanie Baby Authentication & Grading",
-      color: "var(--bx-purple)",
+      color: "var(--tnt-purple)",
       bg: "#ede9fe",
       cta: "Authenticate & grade your beanies",
       href: "/authenticate",
@@ -583,7 +583,7 @@ export default function Home() {
     },
     {
       title: "Track Beanie Baby Values",
-      color: "var(--bx-pink)",
+      color: "var(--tnt-pink)",
       bg: "#ffe6f1",
       cta: "Look up Beanie Baby values",
       href: "/database",
@@ -645,7 +645,7 @@ export default function Home() {
             a top+bottom scrim keeps text legible, and the search band that
             used to sit in a white strip below is overlaid transparent at the
             bottom. A flex spacer in the middle keeps the bears visible. */}
-        <div className="relative overflow-hidden rounded-2xl border-2 border-[var(--bx-ink)] shadow-[var(--bx-shadow)]">
+        <div className="relative overflow-hidden rounded-2xl border-2 border-[var(--tnt-ink)] shadow-[var(--tnt-shadow)]">
           <Image
             src="/hero-bears-july-2026.webp"
             alt="A lineup of classic Ty Beanie Babies — Princess, Peace, the Original 9-era bears, and more — beneath the Ty heart logo and a rainbow"
@@ -660,7 +660,7 @@ export default function Home() {
           />
           <div className="relative flex flex-col items-center text-center gap-2.5 px-4 sm:px-8 pt-6 sm:pt-9 pb-5 sm:pb-8 min-h-[30rem] sm:min-h-[38rem] lg:min-h-[44rem]">
             <Image
-              src="/brand/bx-heart-logo-v3.png"
+              src="/brand/tnt-heart-logo-v3.png"
               alt="BX heart logo"
               width={512}
               height={512}
@@ -693,9 +693,9 @@ export default function Home() {
                 name="q"
                 placeholder="Search the Beanie Database — name, animal, or category…"
                 aria-label="Search the Beanie Database"
-                className="bx-input !bg-white"
+                className="tnt-input !bg-white"
               />
-              <button type="submit" className="bx-btn shrink-0">
+              <button type="submit" className="tnt-btn shrink-0">
                 Search
               </button>
             </form>
@@ -705,7 +705,7 @@ export default function Home() {
                   key={h.label}
                   href={h.href}
                   style={{ background: h.bg, color: h.fg }}
-                  className="flex items-center justify-center rounded-full border-2 border-[var(--bx-ink)] px-3 py-2.5 text-center font-display text-xs font-bold shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform"
+                  className="flex items-center justify-center rounded-full border-2 border-[var(--tnt-ink)] px-3 py-2.5 text-center font-display text-xs font-bold shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform"
                 >
                   {h.label}
                 </Link>
@@ -764,10 +764,10 @@ export default function Home() {
       </Suspense>
 
       {/* ─── AUTH PROMO BANNER (centered) ─────────────────────── */}
-      <section className="bx-auth-banner rounded-2xl p-8 sm:p-12 text-center">
+      <section className="tnt-auth-banner rounded-2xl p-8 sm:p-12 text-center">
         <div className="mx-auto max-w-2xl flex flex-col items-center gap-5">
           <Image
-            src="/brand/bx-heart-logo-v3.png"
+            src="/brand/tnt-heart-logo-v3.png"
             alt="Beanie Xchange"
             width={512}
             height={512}
@@ -778,7 +778,7 @@ export default function Home() {
           </h2>
           <p className="text-muted">
             Protect your collection and prove its value. Choose in-house{" "}
-            <strong className="text-[var(--bx-red)]">BX Authentication</strong>{" "}
+            <strong className="text-[var(--tnt-red)]">BX Authentication</strong>{" "}
             — $5 per beanie plus shipping to us, return shipping included — or
             our True Blue Beans
             partner. Every authenticated item gets a sealed Certificate of
@@ -792,14 +792,14 @@ export default function Home() {
             <div className="space-y-1.5">
               <div className="flex h-20 items-center justify-center">
                 <Image
-                  src="/brand/bx-heart-logo-v3.png"
+                  src="/brand/tnt-heart-logo-v3.png"
                   alt="BX Authentication"
                   width={512}
                   height={512}
                   className="max-h-20 w-auto object-contain"
                 />
               </div>
-              <p className="font-bold text-[var(--bx-red)]">BX Authentication</p>
+              <p className="font-bold text-[var(--tnt-red)]">BX Authentication</p>
               <p className="text-3xl font-extrabold">
                 $5<span className="text-base font-semibold text-muted">/beanie</span>
               </p>
@@ -819,7 +819,7 @@ export default function Home() {
                   className="max-h-14 w-auto object-contain"
                 />
               </div>
-              <p className="font-bold text-[var(--bx-blue)]">True Blue Beans</p>
+              <p className="font-bold text-[var(--tnt-blue)]">True Blue Beans</p>
               <p className="text-3xl font-extrabold">
                 $18<span className="text-base font-semibold text-muted">/beanie</span>
               </p>
@@ -833,7 +833,7 @@ export default function Home() {
         {/* Outside the max-w-2xl copy column so the three CTAs share
             one row on desktop instead of orphaning the last one. */}
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Link href="/authenticate/bx" className="bx-btn">
+          <Link href="/authenticate/bx" className="tnt-btn">
             Start BX Authentication →
           </Link>
           {/* Tracked egress straight to True Blue's packages page —
@@ -842,11 +842,11 @@ export default function Home() {
             href={outboundHref("true-blue", "home-auth-banner")}
             target="_blank"
             rel="noopener noreferrer external"
-            className="bx-btn bx-btn--ghost"
+            className="tnt-btn tnt-btn--ghost"
           >
             Submit to True Blue ↗
           </a>
-          <Link href="/authentication-process" className="bx-btn bx-btn--ghost">
+          <Link href="/authentication-process" className="tnt-btn tnt-btn--ghost">
             How it works
           </Link>
         </div>
@@ -858,7 +858,7 @@ export default function Home() {
           <h2 className="text-2xl sm:text-3xl font-bold">Featured Listings</h2>
           <Link
             href="/browse"
-            className="text-sm font-semibold !text-[var(--bx-red)]"
+            className="text-sm font-semibold !text-[var(--tnt-red)]"
           >
             View all listings →
           </Link>
@@ -877,38 +877,38 @@ export default function Home() {
           {[
             {
               Icon: BasketIcon,
-              tint: "var(--bx-green)",
-              bg: "var(--bx-green-soft)",
+              tint: "var(--tnt-green)",
+              bg: "var(--tnt-green-soft)",
               title: "Shop the Marketplace",
               body: "Thousands of authenticated beanies — buy now or add to cart.",
               cta: "Shop Now",
               href: "/browse",
-              ctaColor: "var(--bx-green)",
+              ctaColor: "var(--tnt-green)",
             },
             {
               Icon: HeartTagIcon,
-              tint: "var(--bx-red)",
-              bg: "var(--bx-red-soft)",
+              tint: "var(--tnt-red)",
+              bg: "var(--tnt-red-soft)",
               title: "Authenticate & Grade",
               body: "Professional authentication and grading you can trust.",
               cta: "Learn More",
               href: "/authenticate",
-              ctaColor: "var(--bx-red)",
+              ctaColor: "var(--tnt-red)",
             },
             {
               Icon: PeaceIcon,
-              tint: "var(--bx-purple)",
+              tint: "var(--tnt-purple)",
               bg: "#ede9fe",
               title: "Community",
               body: "Connect, share, and grow your collection together.",
               cta: "Join the Community",
               href: "/forum",
-              ctaColor: "var(--bx-purple)",
+              ctaColor: "var(--tnt-purple)",
             },
           ].map(({ Icon, tint, bg, title, body, cta, href, ctaColor }) => (
             <div
               key={title}
-              className="bx-panel p-6 flex flex-col items-center text-center gap-3 border-2"
+              className="tnt-panel p-6 flex flex-col items-center text-center gap-3 border-2"
               style={{ borderColor: tint }}
             >
               <span
@@ -934,7 +934,7 @@ export default function Home() {
       </section>
 
       {/* ─── TRUST / FEATURE BAND ─────────────────────────────── */}
-      <section className="bx-stats px-6 py-8 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+      <section className="tnt-stats px-6 py-8 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
         {[
           { Icon: BasketIcon, stat: "Escrow", label: "On Every Sale" },
           { Icon: HeartTagIcon, stat: "2 Tiers", label: "Authentication" },
@@ -984,7 +984,7 @@ export default function Home() {
             <Link
               key={label}
               href={href}
-              className="bx-panel px-5 py-3 text-sm font-semibold hover:border-[var(--bx-muted)] !text-ink"
+              className="tnt-panel px-5 py-3 text-sm font-semibold hover:border-[var(--tnt-muted)] !text-ink"
             >
               {label}
             </Link>
@@ -998,7 +998,7 @@ export default function Home() {
           <h2 className="text-2xl sm:text-3xl font-bold">
             Buy, Sell, Trade &amp; Authenticate Beanie Babies
           </h2>
-          <p className="text-[var(--bx-ink-soft)] leading-relaxed">
+          <p className="text-[var(--tnt-ink-soft)] leading-relaxed">
             BeanieXchange is the world&apos;s resource for everything Beanie
             Babies — one place to <strong>buy Beanie Babies</strong> from
             trusted collectors, <strong>sell Beanie Babies</strong> to buyers
@@ -1012,28 +1012,28 @@ export default function Home() {
           {[
             {
               title: "Buy Beanie Babies",
-              color: "var(--bx-green)",
+              color: "var(--tnt-green)",
               cta: "Shop the marketplace",
               href: "/browse",
               body: "Shop authenticated Ty Beanie Babies with escrow protection on every order — your payment isn't released until you confirm the beanie arrived genuine and as described. Browse curated collections, filter by authentication, and buy from real collectors, not bulk resellers.",
             },
             {
               title: "Sell Beanie Babies",
-              color: "var(--bx-red)",
+              color: "var(--tnt-red)",
               cta: "List a beanie in minutes",
               href: "/sell",
               body: "Sell Beanie Babies to buyers who actually pay collector prices. List in minutes with a flat 10% seller fee — no listing fees, no surprises. Authenticated listings stand out, sell faster, and command more, and our value database helps you price with confidence.",
             },
             {
               title: "Trade Beanie Babies",
-              color: "var(--bx-blue)",
+              color: "var(--tnt-blue)",
               cta: "Make an offer",
               href: "/browse",
               body: "More than a store — BeanieXchange is a true exchange. Make and counter offers to trade Beanie Babies with collectors at prices both sides agree on. Sell your duplicates, complete a set, or upgrade condition on transparent terms.",
             },
             {
               title: "Authenticate Beanie Babies",
-              color: "var(--bx-purple)",
+              color: "var(--tnt-purple)",
               cta: "Start an authentication",
               href: "/authenticate",
               body: "Beanie Baby authentication through our True Blue Beans partnership examines tags, tag generation, embroidery, fabric, and known counterfeit markers — $18 per beanie, with return shipping calculated per order. Every authenticated item earns a sealed COA and a permanent BX Registry number.",
@@ -1041,13 +1041,13 @@ export default function Home() {
           ].map(({ title, color, cta, href, body }) => (
             <div
               key={title}
-              className="bx-panel p-6 space-y-2.5 border-2"
+              className="tnt-panel p-6 space-y-2.5 border-2"
               style={{ borderColor: color }}
             >
               <h3 className="text-lg font-bold" style={{ color }}>
                 {title}
               </h3>
-              <p className="text-sm text-[var(--bx-ink-soft)] leading-relaxed">
+              <p className="text-sm text-[var(--tnt-ink-soft)] leading-relaxed">
                 {body}
               </p>
               <Link
@@ -1060,11 +1060,11 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <div className="bx-panel p-6 sm:p-8 max-w-3xl mx-auto space-y-3">
+        <div className="tnt-panel p-6 sm:p-8 max-w-3xl mx-auto space-y-3">
           <h3 className="text-lg sm:text-xl font-bold">
             How much is my Beanie Baby worth?
           </h3>
-          <p className="text-sm text-[var(--bx-ink-soft)] leading-relaxed">
+          <p className="text-sm text-[var(--tnt-ink-soft)] leading-relaxed">
             It&apos;s the question every collector asks — and the honest
             answer is: it depends on rarity, tag generation, condition, and
             verified authenticity. Most common Beanie Babies are worth
@@ -1094,7 +1094,7 @@ export default function Home() {
           <h2 className="text-2xl sm:text-3xl font-bold">
             About BeanieXchange — The Beanie Baby Exchange
           </h2>
-          <p className="text-[var(--bx-ink-soft)] leading-relaxed">
+          <p className="text-[var(--tnt-ink-soft)] leading-relaxed">
             <strong>BeanieXchange</strong> is the dedicated{" "}
             <strong>Beanie Baby Exchange</strong> — a trusted online marketplace
             and collector community where you can{" "}
@@ -1104,7 +1104,7 @@ export default function Home() {
             registry, and an active community, so every Ty Beanie Baby that
             changes hands here is backed by proof — not guesswork.
           </p>
-          <p className="text-[var(--bx-ink-soft)] leading-relaxed">
+          <p className="text-[var(--tnt-ink-soft)] leading-relaxed">
             From the height of the 1990s craze to today&apos;s collector
             market, Beanie Babies have never stopped changing hands — what
             changed is how hard it became to know what&apos;s genuine and what
@@ -1118,13 +1118,13 @@ export default function Home() {
             lives.
           </p>
         </div>
-        <div className="bx-panel p-6 sm:p-8 max-w-3xl mx-auto text-left divide-y divide-[var(--bx-line)]">
+        <div className="tnt-panel p-6 sm:p-8 max-w-3xl mx-auto text-left divide-y divide-[var(--tnt-line)]">
           {about.map(({ title, color, cta, href, body }) => (
             <div key={title} className="py-5 first:pt-0 last:pb-0 space-y-2">
               <h3 className="text-lg font-bold" style={{ color }}>
                 {title}
               </h3>
-              <p className="text-sm text-[var(--bx-ink-soft)] leading-relaxed">
+              <p className="text-sm text-[var(--tnt-ink-soft)] leading-relaxed">
                 {body}{" "}
                 <Link
                   href={href}
@@ -1141,7 +1141,7 @@ export default function Home() {
             <h3 className="text-lg font-bold">
               The marketplace and community for Beanie Babies
             </h3>
-            <p className="text-sm text-[var(--bx-ink-soft)] leading-relaxed">
+            <p className="text-sm text-[var(--tnt-ink-soft)] leading-relaxed">
               BeanieXchange is the trusted place to{" "}
               <strong>buy and sell Beanie Babies</strong>{" "}online. Whether
               you&apos;re hunting the Original 9, chasing a Princess Diana bear, or
@@ -1157,7 +1157,7 @@ export default function Home() {
             <h3 className="text-lg font-bold">
               Trade Beanie Babies with a community that gets it
             </h3>
-            <p className="text-sm text-[var(--bx-ink-soft)] leading-relaxed">
+            <p className="text-sm text-[var(--tnt-ink-soft)] leading-relaxed">
               More than a store, BeanieXchange is a{" "}
               <strong>Beanie Baby community</strong>. Join the forums to ask
               questions, show off your collection, swap duplicates, and compare
@@ -1172,7 +1172,7 @@ export default function Home() {
             <h3 className="text-lg font-bold">
               Beanie Baby authentication &amp; grading you can trust
             </h3>
-            <p className="text-sm text-[var(--bx-ink-soft)] leading-relaxed">
+            <p className="text-sm text-[var(--tnt-ink-soft)] leading-relaxed">
               Real value starts with proof. Our{" "}
               <strong>Beanie Baby authentication</strong> and{" "}
               <strong>grading</strong> examine tag generations, embroidery, fabric,
@@ -1186,7 +1186,7 @@ export default function Home() {
 
           <div className="py-5 first:pt-0 last:pb-0 space-y-2">
             <h3 className="text-lg font-bold">How much are Beanie Babies worth?</h3>
-            <p className="text-sm text-[var(--bx-ink-soft)] leading-relaxed">
+            <p className="text-sm text-[var(--tnt-ink-soft)] leading-relaxed">
               Most Beanie Babies are common and sell for about $5–$15, but
               genuinely rare and retired pieces — in excellent condition with a
               clean swing tag — can bring $50 to several thousand dollars. Worth
@@ -1213,12 +1213,12 @@ export default function Home() {
         </h2>
         <div className="space-y-3">
           {FAQ.map(({ q, a }) => (
-            <details key={q} className="bx-panel p-5 group">
+            <details key={q} className="tnt-panel p-5 group">
               <summary className="font-semibold cursor-pointer list-none flex justify-between items-center gap-3">
                 <span>{q}</span>
                 <span
                   aria-hidden
-                  className="text-[var(--bx-red)] text-xl group-open:rotate-45 transition-transform"
+                  className="text-[var(--tnt-red)] text-xl group-open:rotate-45 transition-transform"
                 >
                   +
                 </span>

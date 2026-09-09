@@ -4,7 +4,7 @@
 // summary stats. We use it to ground price data in real sales instead of static
 // estimates. Configure with RAPIDAPI_KEY (and optionally RAPIDAPI_EBAY_HOST).
 
-// Either name works, matching the existing listing-assist integration.
+// Either name works (both spellings have been used in deployments).
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || process.env.RAPID_API_KEY || "";
 const HOST =
   process.env.RAPIDAPI_EBAY_HOST || "ebay-average-selling-price.p.rapidapi.com";
@@ -149,4 +149,47 @@ export async function fetchCompletedItems(
     responseUrl: typeof d.response_url === "string" ? d.response_url : null,
     products,
   };
+}
+
+/**
+ * Best-effort sold-price summary for a search: the median and how many sales
+ * it rests on, or null when the API isn't configured, the call fails, or the
+ * sample is too thin to mean anything. Never throws — callers layer it onto a
+ * price suggestion as an enrichment, so a comps outage must not fail them.
+ */
+export type SoldPriceSummary = {
+  /** Median sale price in whole dollars. */
+  median: number;
+  /** Number of completed sales behind the median. */
+  count: number;
+};
+
+export async function soldPriceSummary(
+  keywords: string,
+  opts: { minCount?: number; excludedKeywords?: string; timeoutMs?: number } = {},
+): Promise<SoldPriceSummary | null> {
+  const q = keywords.trim();
+  if (!q || !isEbaySoldConfigured()) return null;
+  const minCount = opts.minCount ?? 3;
+  try {
+    const result = await Promise.race([
+      fetchCompletedItems({
+        keywords: q,
+        excludedKeywords: opts.excludedKeywords ?? "lot bundle fake repro reproduction",
+        maxResults: 120,
+        removeOutliers: true,
+      }),
+      // fetchCompletedItems has its own 30s cap; comps are an enrichment, so
+      // callers can ask for something tighter.
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), opts.timeoutMs ?? 15_000),
+      ),
+    ]);
+    if (result.medianCents == null) return null;
+    const count = result.results || result.products.length;
+    if (count < minCount) return null;
+    return { median: Math.round(result.medianCents / 100), count };
+  } catch {
+    return null;
+  }
 }

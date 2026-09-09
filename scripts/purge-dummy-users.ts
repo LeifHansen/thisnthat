@@ -58,9 +58,6 @@ async function main() {
     offersByDummy,
     messagesByDummy,
     convos,
-    forumThreads,
-    forumPosts,
-    forumVotes,
     authReqs,
     registry,
     tradesByDummy,
@@ -73,22 +70,6 @@ async function main() {
     prisma.message.count({ where: { senderId: { in: ids } } }),
     prisma.conversation.count({
       where: { OR: [{ userAId: { in: ids } }, { userBId: { in: ids } }] },
-    }),
-    prisma.forumThread.count({ where: { authorId: { in: ids } } }),
-    prisma.forumPost.count({ where: { authorId: { in: ids } } }),
-    prisma.forumVote.count({ where: { userId: { in: ids } } }),
-    prisma.authenticationRequest.count({ where: { userId: { in: ids } } }),
-    prisma.registryEntry.count({ where: { ownerId: { in: ids } } }),
-    prisma.tradeOffer.count({
-      where: { OR: [{ proposerId: { in: ids } }, { ownerId: { in: ids } }] },
-    }),
-    prisma.tradeOffer.count({
-      where: {
-        OR: [
-          { targetListingId: { in: listingIds } },
-          { offeredListingId: { in: listingIds } },
-        ],
-      },
     }),
   ]);
 
@@ -106,7 +87,6 @@ async function main() {
   console.log(`  trades (by/on them): ${tradesByDummy}/${tradesOnDummyListings}`);
   console.log(`  messages:            ${messagesByDummy}`);
   console.log(`  conversations:       ${convos}`);
-  console.log(`  forum threads/posts/votes: ${forumThreads}/${forumPosts}/${forumVotes}`);
   console.log(`  auth requests:       ${authReqs}`);
   console.log(`  registry entries:    ${registry}`);
 
@@ -126,19 +106,8 @@ async function main() {
 
   await prisma.$transaction(async (tx) => {
     // Listing-scoped children first.
-    await tx.tradeOffer.deleteMany({
-      where: {
-        OR: [
-          { targetListingId: { in: listingIds } },
-          { offeredListingId: { in: listingIds } },
-          { proposerId: { in: ids } },
-          { ownerId: { in: ids } },
-        ],
-      },
-    });
     // AuthenticationRequest references orders + listings (no cascade), so it
     // must go before them.
-    await tx.authenticationRequest.deleteMany({
       where: { OR: [{ userId: { in: ids } }, { listingId: { in: listingIds } }] },
     });
     await tx.offer.deleteMany({
@@ -157,10 +126,6 @@ async function main() {
     await tx.conversation.deleteMany({
       where: { OR: [{ userAId: { in: ids } }, { userBId: { in: ids } }] },
     });
-    await tx.forumVote.deleteMany({ where: { userId: { in: ids } } });
-    await tx.forumPost.deleteMany({ where: { authorId: { in: ids } } });
-    await tx.forumThread.deleteMany({ where: { authorId: { in: ids } } });
-    await tx.registryEntry.deleteMany({ where: { ownerId: { in: ids } } });
     await tx.listing.deleteMany({ where: { id: { in: listingIds } } });
     const del = await tx.user.deleteMany({ where: { id: { in: ids } } });
     console.log(`\n✅ Deleted ${del.count} dummy users and their data.`);

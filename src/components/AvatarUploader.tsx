@@ -60,7 +60,7 @@ export function AvatarUploader({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className="bx-btn bx-btn--ghost !py-2 !px-4 text-sm"
+          className="tnt-btn tnt-btn--ghost !py-2 !px-4 text-sm"
           disabled={busy}
           onClick={() => fileInput.current?.click()}
         >
@@ -69,7 +69,7 @@ export function AvatarUploader({
         {url && (
           <button
             type="button"
-            className="text-sm font-semibold !text-[var(--bx-red)]"
+            className="text-sm font-semibold !text-[var(--tnt-red)]"
             disabled={busy}
             onClick={() => setUrl("")}
           >

@@ -73,18 +73,18 @@ export function SignupPrompt({ loggedIn }: { loggedIn: boolean }) {
         onClick={dismiss}
         className="absolute inset-0 bg-black/40 cursor-default"
       />
-      <div className="relative bx-panel w-full max-w-md p-6 sm:p-8 text-center shadow-[var(--bx-shadow-lg)]">
+      <div className="relative tnt-panel w-full max-w-md p-6 sm:p-8 text-center shadow-[var(--tnt-shadow-lg)]">
         <button
           type="button"
           onClick={dismiss}
           aria-label="Close"
-          className="absolute top-3 right-3 w-8 h-8 rounded-full border-2 border-[var(--bx-ink)] bg-white text-ink text-lg leading-none hover:bg-[var(--bx-surface)]"
+          className="absolute top-3 right-3 w-8 h-8 rounded-full border-2 border-[var(--tnt-ink)] bg-white text-ink text-lg leading-none hover:bg-[var(--tnt-surface)]"
         >
           ×
         </button>
 
         <Image
-          src="/brand/bx-heart-logo-v3.png"
+          src="/brand/tnt-heart-logo-v3.png"
           alt=""
           width={512}
           height={512}
@@ -104,13 +104,13 @@ export function SignupPrompt({ loggedIn }: { loggedIn: boolean }) {
         </p>
 
         <div className="mt-5 flex flex-col gap-2">
-          <Link href="/auth/signup" onClick={dismiss} className="bx-btn w-full">
+          <Link href="/auth/signup" onClick={dismiss} className="tnt-btn w-full">
             Create your free account
           </Link>
           <Link
             href="/auth/signin"
             onClick={dismiss}
-            className="bx-btn bx-btn--ghost w-full"
+            className="tnt-btn tnt-btn--ghost w-full"
           >
             I already have an account
           </Link>

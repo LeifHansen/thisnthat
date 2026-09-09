@@ -88,8 +88,8 @@ export default async function AdminListingsPage({
             href={filterHref(s)}
             className={`rounded-full px-3 py-1 text-xs font-bold border ${
               status === s
-                ? "bg-[var(--bx-dark)] !text-white border-[var(--bx-dark)]"
-                : "!text-ink border-[var(--bx-line)] hover:bg-black/5"
+                ? "bg-[var(--tnt-dark)] !text-white border-[var(--tnt-dark)]"
+                : "!text-ink border-[var(--tnt-line)] hover:bg-black/5"
             }`}
           >
             {s.replace(/_/g, " ")}
@@ -100,8 +100,8 @@ export default async function AdminListingsPage({
           href={filterHref("all")}
           className={`rounded-full px-3 py-1 text-xs font-bold border ${
             status === "all"
-              ? "bg-[var(--bx-dark)] !text-white border-[var(--bx-dark)]"
-              : "!text-ink border-[var(--bx-line)] hover:bg-black/5"
+              ? "bg-[var(--tnt-dark)] !text-white border-[var(--tnt-dark)]"
+              : "!text-ink border-[var(--tnt-line)] hover:bg-black/5"
           }`}
         >
           ALL
@@ -109,30 +109,30 @@ export default async function AdminListingsPage({
         <form className="ml-auto flex gap-2" action="/admin/listings" method="get">
           {status !== "ACTIVE" && <input type="hidden" name="status" value={status} />}
           <input
-            className="bx-input !py-1.5 max-w-[220px]"
+            className="tnt-input !py-1.5 max-w-[220px]"
             name="q"
             defaultValue={q}
             placeholder="Search title / beanie / seller"
           />
-          <button className="bx-btn !py-1.5 !px-3 !text-sm" type="submit">
+          <button className="tnt-btn !py-1.5 !px-3 !text-sm" type="submit">
             Search
           </button>
         </form>
       </div>
 
       {loadError ? (
-        <div className="bx-panel p-8 text-center text-[var(--bx-red)]">
+        <div className="tnt-panel p-8 text-center text-[var(--tnt-red)]">
           Couldn&apos;t load listings.
         </div>
       ) : listings.length === 0 ? (
-        <div className="bx-panel p-8 text-center text-muted">
+        <div className="tnt-panel p-8 text-center text-muted">
           No listings match.
         </div>
       ) : (
-        <div className="bx-panel overflow-x-auto">
+        <div className="tnt-panel overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-muted text-xs uppercase tracking-wide border-b border-[var(--bx-line)]">
+              <tr className="text-left text-muted text-xs uppercase tracking-wide border-b border-[var(--tnt-line)]">
                 <th className="p-3">Listing</th>
                 <th className="p-3">Seller</th>
                 <th className="p-3">Price</th>
@@ -145,14 +145,14 @@ export default async function AdminListingsPage({
               {listings.map((l) => (
                 <tr
                   key={l.id}
-                  className="border-b border-[var(--bx-line)] last:border-0 align-middle"
+                  className="border-b border-[var(--tnt-line)] last:border-0 align-middle"
                 >
                   <td className="p-3">
                     <Link
                       href={`/listings/${l.id}`}
-                      className="flex items-center gap-3 !text-ink hover:!text-[var(--bx-red)] min-w-0"
+                      className="flex items-center gap-3 !text-ink hover:!text-[var(--tnt-red)] min-w-0"
                     >
-                      <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[var(--bx-line)] bg-[var(--bx-surface)]">
+                      <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[var(--tnt-line)] bg-[var(--tnt-surface)]">
                         {l.photos[0] ? (
                           <Image
                             src={l.photos[0]}
@@ -170,7 +170,7 @@ export default async function AdminListingsPage({
                       <span className="min-w-0">
                         <span className="flex items-center gap-1.5 max-w-[260px]">
                           {l.isLot && (
-                            <span className="shrink-0 rounded-full bg-[var(--bx-purple)] text-white text-[9px] font-bold px-1.5 py-0.5">
+                            <span className="shrink-0 rounded-full bg-[var(--tnt-purple)] text-white text-[9px] font-bold px-1.5 py-0.5">
                               LOT
                             </span>
                           )}
@@ -190,7 +190,7 @@ export default async function AdminListingsPage({
                     {superadmin ? (
                       <Link
                         href={`/admin/users/${l.sellerId}`}
-                        className="!text-ink hover:!text-[var(--bx-red)] font-medium"
+                        className="!text-ink hover:!text-[var(--tnt-red)] font-medium"
                       >
                         {l.seller.name}
                       </Link>
@@ -209,9 +209,9 @@ export default async function AdminListingsPage({
                     <span
                       className={`text-xs font-bold ${
                         l.status === "ACTIVE"
-                          ? "text-[var(--bx-green)]"
+                          ? "text-[var(--tnt-green)]"
                           : l.status === "SOLD"
-                            ? "text-[var(--bx-red)]"
+                            ? "text-[var(--tnt-red)]"
                             : "text-muted"
                       }`}
                     >

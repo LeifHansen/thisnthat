@@ -12,11 +12,11 @@ export function displayNameOf(u: {
 
 /** Deterministic avatar tint for users without a photo. */
 const AVATAR_TINTS = [
-  "var(--bx-red)",
-  "var(--bx-blue)",
-  "var(--bx-green)",
-  "var(--bx-purple)",
-  "var(--bx-pink)",
+  "var(--tnt-red)",
+  "var(--tnt-blue)",
+  "var(--tnt-green)",
+  "var(--tnt-purple)",
+  "var(--tnt-pink)",
   "#b7791f",
 ];
 

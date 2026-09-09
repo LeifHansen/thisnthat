@@ -7,8 +7,8 @@ import sharp from "sharp";
  *   1. removeBackground() — cuts the item out of its background using a
  *      SEGMENTATION provider (remove.bg or a self-hosted endpoint). This
  *      preserves the item's real pixels; it never regenerates the item.
- *      That honesty matters on an authentication-first marketplace — a
- *      studio photo must still show the actual beanie the buyer receives.
+ *      That honesty matters on a resale marketplace — a studio photo must
+ *      still show the actual item the buyer receives.
  *   2. studioComposite() — takes the transparent cutout and stages it like a
  *      product shot: trimmed, centered on a soft light-sweep backdrop, with a
  *      blurred drop shadow. Pure local sharp work, no network.
@@ -47,7 +47,7 @@ function toBlob(bytes: Uint8Array, mime: string): Blob {
  * (and the studio path runs it again before a cutout it didn't upload itself):
  * amateur phone photos are often dim or flat, and sharp's normalize stretches
  * the tonal range (1st–99th percentile) so the item is well-exposed.
- * Deliberately gentle — a collectibles marketplace needs honest color, not a
+ * Deliberately gentle — a resale marketplace needs honest color, not a
  * beautify filter, so this only corrects exposure, it doesn't recolor.
  * EXIF orientation is baked in so the rest of the pipeline sees it upright.
  * Best-effort: returns the original bytes unchanged if sharp can't decode.
@@ -235,7 +235,7 @@ export async function studioComposite(cutoutPng: Buffer): Promise<Buffer> {
     .png()
     .toBuffer();
 
-  // Center the subject, biased slightly up so the shadow reads below it.
+  // Center the item, biased slightly up so the shadow reads below it.
   const left = clamp(Math.round((CANVAS - sw) / 2), CANVAS - sw);
   const top = clamp(
     Math.round((CANVAS - sh) / 2) - Math.round(CANVAS * 0.02),

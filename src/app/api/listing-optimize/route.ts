@@ -1,39 +1,32 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
-import { resolveBeanie } from "@/lib/beanie-id";
+import { getCategory, readAttributes, attributeEntries } from "@/lib/categories";
+import { canonicalCondition, conditionLabel } from "@/lib/listingOptions";
 
 // AI listing OPTIMIZER. Distinct from /api/listing-assist (which drafts a
 // listing from scratch). This takes a seller's EXISTING listing and makes it
 // "more likely to be seen" — a keyword-rich, search-optimized title and
-// description grounded in collector search behavior, plus a non-destructive
-// photo presentation plan (best-first ordering, per-shot tips, missing-shot
+// description grounded in how buyers search, plus a non-destructive photo
+// presentation plan (best-first ordering, per-shot tips, missing-shot
 // checklist). It never edits the seller's photos; it advises on presentation.
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY || process.env.OPEN_AI_API_KEY;
 
-// Confident catalogue resolution only — the old loose substring matcher here
-// false-matched single-letter alphabet bears ("M", "P") and grounded the
-// optimizer in the wrong beanie's facts. Tries the title when the name
-// doesn't resolve.
-function findBeanie(name: string, title: string) {
-  return resolveBeanie(name) ?? resolveBeanie(title) ?? undefined;
-}
-
-const SYSTEM_PROMPT = `You are a Ty Beanie Baby marketplace SEO specialist and merchandiser for BeanieXchange.
+const SYSTEM_PROMPT = `You are a marketplace SEO specialist and merchandiser for This'n'that, a general resale marketplace where people sell anything they own.
 Your job is to make an existing listing MORE DISCOVERABLE and better presented so it sells.
 
 DISCOVERABILITY rules for title + description:
-- Lead the title with the terms collectors actually search: brand ("Ty"), the beanie's name, animal, year, and the Ty style number when known (collectors search style numbers like "4300"). Include high-signal modifiers that are TRUE for this item only: "retired", "vintage", "rare", "MWMT" (mint with mint tags), "PVC pellets", "1st gen tag", "errors", tag generation. Never invent claims not supported by the listing or photos.
+- Lead the title with the terms buyers actually search: brand, what the item is, model or style name, size, colour, era and other attributes given. Include high-signal modifiers only when they are TRUE for this item per the details or photos ("vintage", "deadstock", "complete in box", "first edition", "handmade"...). Never invent claims not supported by the listing or photos.
 - Title <= 80 chars, front-load the most-searched words, no ALL CAPS spam, no emoji.
-- Description: 2-4 short, scannable sentences/lines. Naturally weave in searchable terms (name, animal, year, style number, tag generation, condition shorthand) without keyword-stuffing. Stay honest about condition and flaws. End with a soft trust/CTA line appropriate to a collector marketplace.
-- keywords: 8-15 lowercase search phrases a buyer would type (include the style number, "ty beanie baby <name>", "<name> the <animal>", year, variations). No duplicates.
+- Description: 2-4 short, scannable sentences/lines. Naturally weave in searchable terms (brand, item, model, size, material, era, condition) without keyword-stuffing. Stay honest about condition and flaws. End with a soft, friendly closing line.
+- keywords: 8-15 lowercase search phrases a buyer would type (brand + item, model numbers, size, colour, era, common synonyms). No duplicates.
 
 PHOTO PRESENTATION rules (NON-DESTRUCTIVE — never claim to edit the image):
-- recommendedOrder: array of 0-based indices reordering the GIVEN photos best-first. The strongest cover is a sharp, well-lit, centered full-front shot on a clean background. Tag close-ups and flaw shots come after the hero.
+- recommendedOrder: array of 0-based indices reordering the GIVEN photos best-first. The strongest cover is a sharp, well-lit, centered full shot of the item on a clean background. Detail shots, labels and flaw shots come after the hero.
 - coverIndex: which given index should be the cover (usually recommendedOrder[0]).
-- tips: 3-6 concrete, friendly presentation tips based on what you SEE (lighting, background clutter, blur, framing, glare on tag protector). Be specific to these photos.
-- missingShots: collector-expected shots that appear to be MISSING (e.g. "swing/hang tag close-up", "tush tag close-up", "full front on white background", "close-up of any flaw"). Empty array if all key shots are present.
+- tips: 3-6 concrete, friendly presentation tips based on what you SEE (lighting, background clutter, blur, framing, glare). Be specific to these photos.
+- missingShots: shots buyers expect for this kind of item that appear to be MISSING (e.g. "label or maker's mark close-up", "back of the item", "full front on a plain background", "close-up of any flaw", "size tag"). Empty array if all key shots are present.
 
 Respond ONLY with a JSON object with these exact keys:
 {
@@ -58,47 +51,52 @@ export async function POST(req: Request) {
   }
   if (!OPENAI_KEY) {
     return NextResponse.json(
-      { error: "AI optimizer is not configured (OPENAI_API_KEY missing)." },
+      { error: "AI optimizer isn't set up on this server (OPENAI_API_KEY missing)." },
       { status: 503 },
     );
   }
 
   const body = await req.json().catch(() => ({}));
   const str = (v: unknown, n = 300) =>
-    typeof v === "string" ? v.slice(0, n) : "";
-  const beanieName = str(body?.beanieName, 120);
+    typeof v === "string" ? v.trim().slice(0, n) : "";
   const title = str(body?.title, 200);
+  const brand = str(body?.brand, 80);
+  const itemName = str(body?.itemName, 160);
+  const categorySlug = str(body?.categorySlug, 60);
   const description = str(body?.description, 4000);
-  const condition = str(body?.condition, 200);
-  const year = body?.year ? String(body.year).slice(0, 8) : "";
+  const condition = canonicalCondition(body?.condition);
+  const category = getCategory(categorySlug);
+  const attrs = category
+    ? attributeEntries(category, readAttributes(body?.attributes)).filter((e) =>
+        category.attributes.some((f) => f.key === e.key),
+      )
+    : [];
   const photos: string[] = Array.isArray(body?.photos)
     ? body.photos.filter((p: unknown) => typeof p === "string").slice(0, 4)
     : [];
   // OpenAI can only fetch absolute http(s) image URLs. Relative paths (e.g. the
-  // "/bx-logo.png" placeholder) make the API return 400, which we'd surface as
-  // a confusing 502. Index space (n) below stays based on `photos` so the photo
-  // plan still lines up with what the client sent.
+  // placeholder) make the API return 400, which we'd surface as a confusing
+  // 502. Index space (n) below stays based on `photos` so the photo plan still
+  // lines up with what the client sent.
   const apiPhotos = photos.filter((u) => /^https?:\/\//i.test(u));
 
-  if (!title && !description && !beanieName) {
+  if (!title && !description && !itemName) {
     return NextResponse.json(
-      { error: "Add a title, name, or description to optimize." },
+      { error: "Add a title, item name, or description to optimize." },
       { status: 400 },
     );
   }
 
-  const db = findBeanie(beanieName, title);
-  const dbContext = db
-    ? `Known catalogue facts for this beanie — name: ${db.name}; animal: ${db.animal}; intro year: ${db.year ?? "?"}; style number: ${db.styleNumber ?? "?"}; Ty birthday: ${db.birthday ?? "?"}${db.valueLow != null ? `; typical value $${db.valueLow}-$${db.valueHigh}` : ""}${db.note ? `; note: ${db.note}` : ""}.`
-    : "No exact catalogue match — rely on the listing details and photos.";
-
   const userText = [
-    "Optimize this BeanieXchange listing for discoverability and presentation.",
-    dbContext,
+    "Optimize this listing for discoverability and presentation.",
     `Current title: ${title || "(none)"}`,
-    `Beanie name: ${beanieName || "(none)"}`,
-    `Year: ${year || "(none)"}`,
-    `Condition: ${condition || "(none)"}`,
+    `Item: ${itemName || "(none)"}`,
+    `Brand: ${brand || "(none)"}`,
+    `Category: ${category?.name ?? "(none)"}`,
+    `Condition: ${condition ? conditionLabel(condition) : "(none)"}`,
+    attrs.length
+      ? `Details: ${attrs.map((a) => `${a.label}: ${a.value}`).join("; ")}`
+      : "Details: (none)",
     `Current description: ${description || "(none)"}`,
     photos.length
       ? `There are ${photos.length} photo(s), provided in order (index 0 first).`
@@ -208,8 +206,5 @@ export async function POST(req: Request) {
       tips: cleanStrArr(plan.tips, 6),
       missingShots: cleanStrArr(plan.missingShots, 6),
     },
-    databaseMatch: db
-      ? { name: db.name, styleNumber: db.styleNumber ?? null, low: db.valueLow ?? null, high: db.valueHigh ?? null }
-      : null,
   });
 }

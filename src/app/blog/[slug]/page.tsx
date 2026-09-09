@@ -91,7 +91,7 @@ export default async function BlogPostPage({
               name: "Beanie Xchange",
               logo: {
                 "@type": "ImageObject",
-                url: `${SITE_URL}/bx-logo.png`,
+                url: `${SITE_URL}/tnt-logo.png`,
               },
             },
             mainEntityOfPage: `${SITE_URL}/blog/${post.slug}`,
@@ -111,12 +111,12 @@ export default async function BlogPostPage({
           {post.authorDisplayName ?? "BeanieX Team"} · {formatDate(published)}
         </p>
         {post.excerpt && (
-          <p className="text-lg text-[var(--bx-ink-soft)]">{post.excerpt}</p>
+          <p className="text-lg text-[var(--tnt-ink-soft)]">{post.excerpt}</p>
         )}
       </header>
 
       {post.coverImageUrl && (
-        <div className="relative w-full aspect-[16/9] overflow-hidden rounded-xl bg-[var(--bx-surface)]">
+        <div className="relative w-full aspect-[16/9] overflow-hidden rounded-xl bg-[var(--tnt-surface)]">
           <Image
             src={post.coverImageUrl}
             alt={post.title}
@@ -131,7 +131,7 @@ export default async function BlogPostPage({
       <BlogContent content={post.content} />
 
       {post.sourceUrl && (
-        <p className="text-xs text-muted border-t border-[var(--bx-line)] pt-4">
+        <p className="text-xs text-muted border-t border-[var(--tnt-line)] pt-4">
           Based on reporting from{" "}
           <a
             href={post.sourceUrl}
@@ -146,7 +146,7 @@ export default async function BlogPostPage({
       )}
 
       <div className="pt-2">
-        <Link href="/blog" className="bx-btn bx-btn--ghost">
+        <Link href="/blog" className="tnt-btn tnt-btn--ghost">
           ← More from the blog
         </Link>
       </div>

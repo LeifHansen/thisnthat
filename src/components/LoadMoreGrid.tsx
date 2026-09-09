@@ -66,7 +66,7 @@ export function LoadMoreGrid({
             type="button"
             onClick={loadMore}
             disabled={loading}
-            className="bx-btn bx-btn--ghost"
+            className="tnt-btn tnt-btn--ghost"
           >
             {loading ? "Loading…" : "Load more beanies"}
           </button>

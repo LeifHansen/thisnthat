@@ -52,8 +52,8 @@ export default async function ThreadPage({
               key={m.id}
               className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
                 m.mine
-                  ? "ml-auto bg-[var(--bx-blue-bright)] text-ink"
-                  : "bg-[var(--bx-surface)] border border-[var(--bx-line)]"
+                  ? "ml-auto bg-[var(--tnt-blue-bright)] text-ink"
+                  : "bg-[var(--tnt-surface)] border border-[var(--tnt-line)]"
               }`}
             >
               <p className="whitespace-pre-wrap break-words">{m.body}</p>
@@ -71,7 +71,7 @@ export default async function ThreadPage({
 
       <form
         action={sendMessage}
-        className="flex gap-2 items-end sticky bottom-0 bg-[var(--bx-bg)] py-3"
+        className="flex gap-2 items-end sticky bottom-0 bg-[var(--tnt-bg)] py-3"
       >
         <input type="hidden" name="toUserId" value={thread.other.id} />
         <textarea
@@ -80,9 +80,9 @@ export default async function ThreadPage({
           rows={2}
           maxLength={4000}
           placeholder={`Message ${thread.other.name}…`}
-          className="flex-1 rounded-xl border border-[var(--bx-line)] bg-white px-3 py-2 text-sm resize-y focus:outline-none focus:border-[var(--bx-line-strong)]"
+          className="flex-1 rounded-xl border border-[var(--tnt-line)] bg-white px-3 py-2 text-sm resize-y focus:outline-none focus:border-[var(--tnt-line-strong)]"
         />
-        <button type="submit" className="bx-btn">
+        <button type="submit" className="tnt-btn">
           Send
         </button>
       </form>

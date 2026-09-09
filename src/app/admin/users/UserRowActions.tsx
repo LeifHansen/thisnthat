@@ -26,7 +26,7 @@ export function UserRowActions({
       <form action={setUserRole}>
         <input type="hidden" name="userId" value={id} />
         <input type="hidden" name="role" value={role === "ADMIN" ? "USER" : "ADMIN"} />
-        <button className="bx-btn bx-btn--ghost !py-1 !px-2.5 !text-xs" type="submit">
+        <button className="tnt-btn tnt-btn--ghost !py-1 !px-2.5 !text-xs" type="submit">
           {role === "ADMIN" ? "Demote" : "Make admin"}
         </button>
       </form>
@@ -35,8 +35,8 @@ export function UserRowActions({
         <input type="hidden" name="userId" value={id} />
         <input type="hidden" name="suspend" value={suspended ? "false" : "true"} />
         <button
-          className={`bx-btn !py-1 !px-2.5 !text-xs ${
-            suspended ? "bx-btn--green" : "bx-btn--ghost"
+          className={`tnt-btn !py-1 !px-2.5 !text-xs ${
+            suspended ? "tnt-btn--green" : "tnt-btn--ghost"
           }`}
           type="submit"
         >
@@ -58,7 +58,7 @@ export function UserRowActions({
       >
         <input type="hidden" name="userId" value={id} />
         <button
-          className="bx-btn !py-1 !px-2.5 !text-xs !bg-[var(--bx-red)] !text-white disabled:opacity-40"
+          className="tnt-btn !py-1 !px-2.5 !text-xs !bg-[var(--tnt-red)] !text-white disabled:opacity-40"
           type="submit"
           disabled={!deletable}
           title={

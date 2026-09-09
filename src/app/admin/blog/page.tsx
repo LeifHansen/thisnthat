@@ -47,9 +47,9 @@ export default async function AdminBlogPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--bx-dark)] text-white px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--tnt-dark)] text-white px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-[var(--bx-red)] px-2.5 py-1 text-xs font-bold">
+          <span className="rounded-full bg-[var(--tnt-red)] px-2.5 py-1 text-xs font-bold">
             SUPERADMIN
           </span>
           <span className="text-sm font-semibold">AI Blog Generator</span>
@@ -63,7 +63,7 @@ export default async function AdminBlogPage({
       </div>
 
       {ok && (
-        <div className="bx-panel p-3 text-sm text-green border-l-4 border-[var(--bx-green)]">
+        <div className="tnt-panel p-3 text-sm text-green border-l-4 border-[var(--tnt-green)]">
           {ok === "created"
             ? "Article created."
             : ok === "saved"
@@ -72,7 +72,7 @@ export default async function AdminBlogPage({
         </div>
       )}
       {err && (
-        <div className="bx-panel p-3 text-sm text-[var(--bx-red)] border-l-4 border-[var(--bx-red)]">
+        <div className="tnt-panel p-3 text-sm text-[var(--tnt-red)] border-l-4 border-[var(--tnt-red)]">
           {err === "missing"
             ? "A title and body are required."
             : "Something went wrong."}
@@ -94,10 +94,10 @@ export default async function AdminBlogPage({
           <summary className="cursor-pointer select-none list-none">
             <span className="inline-flex items-center gap-2">
               <h2 className="text-ink text-xl inline">Write a post manually</h2>
-              <span className="bx-btn bx-btn--ghost !py-1 !px-3 text-xs group-open:hidden">
+              <span className="tnt-btn tnt-btn--ghost !py-1 !px-3 text-xs group-open:hidden">
                 ✍️ Open editor
               </span>
-              <span className="bx-btn bx-btn--ghost !py-1 !px-3 text-xs hidden group-open:inline-flex">
+              <span className="tnt-btn tnt-btn--ghost !py-1 !px-3 text-xs hidden group-open:inline-flex">
                 Collapse
               </span>
             </span>
@@ -114,12 +114,12 @@ export default async function AdminBlogPage({
       <section className="space-y-3">
         <h2 className="text-ink text-xl">All posts</h2>
         {postsError ? (
-          <div className="bx-panel p-6 text-center text-[var(--bx-red)]">
+          <div className="tnt-panel p-6 text-center text-[var(--tnt-red)]">
             Couldn&apos;t load blog posts. The database schema may be out of date
             in this environment.
           </div>
         ) : posts.length === 0 ? (
-          <div className="bx-panel p-6 text-center text-muted">
+          <div className="tnt-panel p-6 text-center text-muted">
             No posts yet. Generate your first one above.
           </div>
         ) : (
@@ -127,13 +127,13 @@ export default async function AdminBlogPage({
             {posts.map((p) => (
               <div
                 key={p.id}
-                className="bx-panel p-4 flex flex-wrap items-center justify-between gap-3"
+                className="tnt-panel p-4 flex flex-wrap items-center justify-between gap-3"
               >
                 <div className="min-w-0">
                   <p className="font-bold text-ink truncate">{p.title}</p>
                   <p className="text-muted text-xs">
                     <span
-                      className={`bx-badge mr-2 ${
+                      className={`tnt-badge mr-2 ${
                         p.status === "PUBLISHED" ? "text-green" : "text-yellow"
                       }`}
                     >
@@ -146,7 +146,7 @@ export default async function AdminBlogPage({
                   {p.status === "PUBLISHED" && (
                     <Link
                       href={`/blog/${p.slug}`}
-                      className="bx-btn bx-btn--ghost !py-1.5 !px-4"
+                      className="tnt-btn tnt-btn--ghost !py-1.5 !px-4"
                     >
                       View
                     </Link>
@@ -154,7 +154,7 @@ export default async function AdminBlogPage({
                   <form action={toggleBlogPublish}>
                     <input type="hidden" name="id" value={p.id} />
                     <button
-                      className="bx-btn !py-1.5 !px-4"
+                      className="tnt-btn !py-1.5 !px-4"
                       type="submit"
                     >
                       {p.status === "PUBLISHED" ? "Unpublish" : "Publish"}
@@ -163,7 +163,7 @@ export default async function AdminBlogPage({
                   <form action={deleteBlogPost}>
                     <input type="hidden" name="id" value={p.id} />
                     <button
-                      className="bx-btn bx-btn--ghost !py-1.5 !px-4 !text-[var(--bx-red)]"
+                      className="tnt-btn tnt-btn--ghost !py-1.5 !px-4 !text-[var(--tnt-red)]"
                       type="submit"
                     >
                       Delete

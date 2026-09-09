@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
   }
 
-  // `kind=avatar` uploads a single profile photo: no BX watermark, stored
+  // `kind=avatar` uploads a single profile photo: no watermark, stored
   // under avatars/ instead of listings/. `kind=blog` is an editorial hero
   // image: no watermark, stored under blog/. Default remains listing photos.
   const rawKind = form.get("kind");
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
       let mime = file.type;
       let studioApplied = false;
 
-      // Auto-level every listing photo, studio or not: sellers shoot beanies
+      // Auto-level every listing photo, studio or not: sellers shoot items
       // indoors under a lamp, so the file that arrives is usually dim and
       // flat, and `normalize` stretches its tonal range back out. It has to be
       // its own pass — sharp composites before it normalises, so folding this
@@ -132,9 +132,9 @@ export async function POST(req: Request) {
         }
       }
 
-      // Stamp the BX logo on listing photos; avatars and blog heroes stay
-      // unmarked. Fall back to the original bytes (e.g. GIFs or undecodable
-      // files) rather than failing the upload.
+      // Stamp the This'n'that mark on listing photos; avatars and blog heroes
+      // stay unmarked. Fall back to the original bytes (GIFs, undecodable
+      // files, or a missing watermark asset) rather than failing the upload.
       const marked =
         kind === "listing" ? await watermarkImage(bytes, mime) : null;
       const ext =

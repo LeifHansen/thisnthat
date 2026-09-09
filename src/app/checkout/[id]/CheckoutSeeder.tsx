@@ -15,7 +15,7 @@ export function CheckoutSeeder({ item }: { item: CartItem }) {
   }, [ready, add, item, router]);
 
   return (
-    <div className="bx-panel p-10 text-center text-muted">
+    <div className="tnt-panel p-10 text-center text-muted">
       Taking you to checkout…
     </div>
   );

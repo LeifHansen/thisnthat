@@ -285,8 +285,8 @@ export function PhotoPicker({
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
         }}
-        className={`bx-panel p-6 text-center cursor-pointer transition-colors ${
-          dragOver ? "bx-panel--accent" : ""
+        className={`tnt-panel p-6 text-center cursor-pointer transition-colors ${
+          dragOver ? "tnt-panel--accent" : ""
         } ${blocked ? "opacity-70 pointer-events-none" : ""}`}
       >
         <input
@@ -310,7 +310,7 @@ export function PhotoPicker({
       <div className="flex gap-2 flex-wrap">
         <button
           type="button"
-          className="bx-btn bx-btn--ghost !py-2 !px-4"
+          className="tnt-btn tnt-btn--ghost !py-2 !px-4"
           onClick={() => inputRef.current?.click()}
           disabled={blocked}
         >
@@ -318,7 +318,7 @@ export function PhotoPicker({
         </button>
         <button
           type="button"
-          className="bx-btn bx-btn--ghost !py-2 !px-4"
+          className="tnt-btn tnt-btn--ghost !py-2 !px-4"
           onClick={addUrl}
           disabled={blocked}
         >
@@ -358,11 +358,11 @@ export function PhotoPicker({
                   dragIndex.current = null;
                   setDragOverIndex(null);
                 }}
-                className={`relative bx-panel p-1 overflow-hidden transition-[outline,transform] ${
+                className={`relative tnt-panel p-1 overflow-hidden transition-[outline,transform] ${
                   items.length > 1 && !disabled ? "cursor-move" : ""
                 } ${
                   dragOverIndex === i
-                    ? "outline outline-2 outline-[var(--bx-red)]"
+                    ? "outline outline-2 outline-[var(--tnt-red)]"
                     : ""
                 }`}
               >
@@ -374,7 +374,7 @@ export function PhotoPicker({
                   className="w-full aspect-square object-cover rounded-md pointer-events-none"
                 />
                 {i === 0 && (
-                  <span className="absolute top-1.5 left-1.5 rounded-full bg-[var(--bx-ink)] text-white text-[9px] font-bold px-1.5 py-0.5">
+                  <span className="absolute top-1.5 left-1.5 rounded-full bg-[var(--tnt-ink)] text-white text-[9px] font-bold px-1.5 py-0.5">
                     COVER
                   </span>
                 )}
@@ -383,7 +383,7 @@ export function PhotoPicker({
                   onClick={() => rotate(p.id)}
                   aria-label={`Rotate ${p.label ?? "photo"} right`}
                   title="Rotate right"
-                  className="absolute top-9 right-1.5 w-6 h-6 rounded-full bg-[var(--bx-ink)] text-white grid place-items-center hover:bg-[var(--bx-red)] transition-colors disabled:opacity-60"
+                  className="absolute top-9 right-1.5 w-6 h-6 rounded-full bg-[var(--tnt-ink)] text-white grid place-items-center hover:bg-[var(--tnt-red)] transition-colors disabled:opacity-60"
                   disabled={blocked || rotating !== null}
                 >
                   <RotateIcon
@@ -396,7 +396,7 @@ export function PhotoPicker({
                   type="button"
                   onClick={() => remove(p.id)}
                   aria-label={`Remove ${p.label ?? "photo"}`}
-                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[var(--bx-ink)] text-white text-sm leading-none hover:bg-[var(--bx-red)] transition-colors"
+                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[var(--tnt-ink)] text-white text-sm leading-none hover:bg-[var(--tnt-red)] transition-colors"
                   disabled={disabled}
                 >
                   ×

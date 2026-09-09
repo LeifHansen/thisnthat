@@ -26,7 +26,7 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
           href={m[5]}
           target="_blank"
           rel="noopener noreferrer"
-          className="!text-[var(--bx-red)] underline"
+          className="!text-[var(--tnt-red)] underline"
         >
           {m[4]}
         </a>,
@@ -52,7 +52,7 @@ export function BlogContent({ content }: { content: string }) {
     if (paragraph.length) {
       const text = paragraph.join(" ");
       blocks.push(
-        <p key={`p${key++}`} className="leading-relaxed text-[var(--bx-ink-soft)]">
+        <p key={`p${key++}`} className="leading-relaxed text-[var(--tnt-ink-soft)]">
           {renderInline(text, `p${key}`)}
         </p>,
       );
@@ -66,11 +66,11 @@ export function BlogContent({ content }: { content: string }) {
       ));
       blocks.push(
         list.ordered ? (
-          <ol key={`ol${key++}`} className="list-decimal pl-6 space-y-1 text-[var(--bx-ink-soft)]">
+          <ol key={`ol${key++}`} className="list-decimal pl-6 space-y-1 text-[var(--tnt-ink-soft)]">
             {items}
           </ol>
         ) : (
-          <ul key={`ul${key++}`} className="list-disc pl-6 space-y-1 text-[var(--bx-ink-soft)]">
+          <ul key={`ul${key++}`} className="list-disc pl-6 space-y-1 text-[var(--tnt-ink-soft)]">
             {items}
           </ul>
         ),
@@ -83,7 +83,7 @@ export function BlogContent({ content }: { content: string }) {
       blocks.push(
         <blockquote
           key={`q${key++}`}
-          className="border-l-4 border-[var(--bx-line-strong)] pl-4 italic text-muted"
+          className="border-l-4 border-[var(--tnt-line-strong)] pl-4 italic text-muted"
         >
           {renderInline(quote.join(" "), `q${key}`)}
         </blockquote>,

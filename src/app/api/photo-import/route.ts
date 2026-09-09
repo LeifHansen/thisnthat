@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   let res: Response;
   try {
     res = await fetchPublicUrl(raw, {
-      headers: { "User-Agent": "Mozilla/5.0 (BeanieXchange image import)" },
+      headers: { "User-Agent": "Mozilla/5.0 (thisnthat image import)" },
     });
   } catch {
     return NextResponse.json(
@@ -94,8 +94,9 @@ export async function POST(req: Request) {
     );
   }
 
-  // Stamp the BX logo; fall back to the original bytes (e.g. GIFs or
-  // undecodable files) rather than failing the import.
+  // Stamp the This'n'that mark; fall back to the original bytes (GIFs,
+  // undecodable files, or a missing watermark asset) rather than failing
+  // the import.
   const marked = await watermarkImage(buf, mime);
   const ext = marked?.ext ?? EXT_BY_MIME[mime] ?? ".img";
   const key = `listings/${session.user.id}/import-${Date.now()}-${Math.random()

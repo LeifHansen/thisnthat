@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE_NAME, SUPPORT_EMAIL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Return & Refund Policy",
-  description:
-    "How returns, refunds, and disputes work on the Beanie Xchange marketplace across authenticated, True Blue, COA, and as-is listings.",
+  description: `How returns, refunds, cancellations, and disputes work on the ${SITE_NAME} marketplace.`,
   alternates: { canonical: "/returns" },
 };
 
-const UPDATED = "July 1, 2026";
+const UPDATED = "September 9, 2026";
+
+// These numbers are mirrored by the MerchantReturnPolicy JSON-LD on the
+// listing page (src/app/listings/[id]/page.tsx): 3-day window from delivery,
+// return by mail, buyer pays return shipping, $5 restocking fee. Change them
+// together.
+const RETURN_WINDOW_DAYS = 3;
+const RESTOCKING_FEE = "$5";
 
 export default function ReturnsPage() {
   return (
@@ -19,12 +26,12 @@ export default function ReturnsPage() {
       </header>
 
       <p>
-        Beanie Xchange is a marketplace that connects buyers and sellers of
-        Beanie Babies. Because how a sale is fulfilled depends on how the item
-        was listed, returns and refunds work differently for each listing type.
-        This policy explains what to expect and how to start a return. It works
+        {SITE_NAME} is a marketplace that connects independent sellers with
+        buyers. Every item ships directly from the seller, and every sale is
+        between the buyer and the seller. This policy explains what protection
+        buyers have, when a return is accepted, and how to start one. It works
         alongside our{" "}
-        <Link href="/terms" className="!text-[var(--bx-red)]">
+        <Link href="/terms" className="!text-[var(--tnt-red)]">
           Terms of Service
         </Link>
         .
@@ -32,81 +39,73 @@ export default function ReturnsPage() {
 
       <Section title="1. Buyer protection at a glance">
         <p>
-          Payments are held through Stripe escrow. For authenticated listings,
-          your funds are captured only after you confirm receipt of an
-          undamaged, authenticated item — so you are protected before the money
-          ever leaves escrow. If something is wrong, contact us before
-          confirming receipt.
+          Your card is authorized at checkout, but the money is not captured
+          &mdash; and the seller is not paid &mdash; until the item is
+          delivered: when you confirm receipt in your dashboard, or when the
+          carrier reports delivery, whichever comes first. If something is
+          wrong with the item, contact the seller before confirming receipt.
         </p>
         <p>
-          <strong>Returns are accepted within 3 days of delivery, subject to a
-          $5 restocking fee</strong> deducted from your refund. The restocking
-          fee is <strong>waived</strong> whenever the return is due to our
-          error or a seller misrepresentation — for example, the wrong item,
-          undisclosed damage, a failed post-sale authentication, or a package
-          lost or damaged in transit. As-is listings are final sale (see
-          section&nbsp;2.3).
+          <strong>
+            Returns are accepted within {RETURN_WINDOW_DAYS} days of delivery,
+            subject to a {RESTOCKING_FEE} restocking fee
+          </strong>{" "}
+          deducted from your refund. Returns are sent back to the seller by
+          mail, and the buyer pays return shipping. The restocking fee and
+          return shipping are <strong>waived</strong> whenever the return is
+          due to a seller misrepresentation &mdash; for example, the wrong
+          item, undisclosed damage, or a condition materially worse than
+          described.
         </p>
       </Section>
 
-      <Section title="2. Returns by listing type">
-        <h3>2.1 BX-Authenticated listings</h3>
+      <Section title="2. What qualifies for a return">
         <p>
-          These ship from our authentication center with tracking and
-          insurance. If the item you receive does not match the authenticated
-          condition and description — or fails post-sale authentication (for
-          example, the item was swapped between approval and shipment) — you are
-          eligible for a full refund. Report the issue within{" "}
-          <strong>3 days of delivery</strong> and do not confirm receipt; the
-          escrow authorization is canceled and you are refunded in full,
-          including return shipping when the fault is ours.
+          You may open a return within {RETURN_WINDOW_DAYS} days of delivery if
+          the item:
         </p>
-        <h3>2.2 True Blue &amp; third-party COA listings</h3>
+        <ul>
+          <li>is not the item shown in the listing;</li>
+          <li>has damage, wear, missing parts, or a fault that the listing did not disclose;</li>
+          <li>is in a condition materially worse than the condition the seller selected;</li>
+          <li>is a counterfeit or otherwise not what the listing claimed it to be; or</li>
+          <li>never arrived, and the tracking shows it was not delivered.</li>
+        </ul>
         <p>
-          These ship directly seller-to-buyer. If an item arrives materially
-          not as described (wrong item, undisclosed damage, or a
-          misrepresented tag or authentication state), you may open a dispute
-          within <strong>3 days of delivery</strong>. Approved returns are
-          refunded once the item is returned to the seller in its received
-          condition; buyer-paid return shipping applies unless the item was
-          misrepresented.
-        </p>
-        <h3>2.3 As-is listings</h3>
-        <p>
-          Items sold as-is are final sale. The buyer assumes all risk, and
-          refunds are at the seller&apos;s sole discretion. We encourage buyers
-          to review photos and ask questions before purchasing an as-is item.
+          {SITE_NAME} does not inspect or verify items before sale, so the
+          listing&apos;s photos, description, and condition are the standard a
+          return is judged against.
         </p>
       </Section>
 
       <Section title="3. What is not covered">
         <ul>
-          <li>Buyer&apos;s remorse or a change of mind on final-sale (as-is) items.</li>
-          <li>Minor condition variance already disclosed in the listing.</li>
+          <li>Buyer&apos;s remorse or a change of mind, unless the seller agrees to take the item back.</li>
+          <li>Minor condition variance already disclosed in the listing photos or description.</li>
+          <li>Sizing or fit on apparel and shoes when the listed size was accurate.</li>
           <li>Items damaged after delivery or altered by the buyer.</li>
-          <li>Off-platform sales that bypass the Beanie Xchange checkout.</li>
+          <li>Returns opened after the {RETURN_WINDOW_DAYS}-day window has closed.</li>
+          <li>Off-platform sales that bypass the {SITE_NAME} checkout.</li>
         </ul>
       </Section>
 
-      <Section title="4. Authentication fees">
+      <Section title="4. Cancellations before shipping">
         <p>
-          The examination fee for items submitted for authentication is
-          non-refundable, including when an item fails authentication. Inbound
-          shipping is refunded only if the item is determined to have been
-          affected by a Beanie Xchange handling error. See the{" "}
-          <Link href="/authenticate" className="!text-[var(--bx-red)]">
-            Authenticate
-          </Link>{" "}
-          page for current fees.
+          Either the buyer or the seller may cancel an order before it ships.
+          The authorization on your card is released in full and nothing is
+          charged. Once the seller has added tracking, the order can no longer
+          be cancelled; use the return process instead.
         </p>
       </Section>
 
       <Section title="5. Lost or damaged in transit">
         <p>
-          For items shipped on a Beanie Xchange path, if a package is lost or
-          damaged in transit we will work with the carrier and, at our
-          discretion, refund or reship. Keep all packaging and photograph any
-          damage before contacting us.
+          If the tracking never shows delivery, or the package arrives
+          damaged, contact the seller through messages within{" "}
+          {RETURN_WINDOW_DAYS} days of the expected or actual delivery date.
+          Keep all packaging and photograph any damage before contacting
+          anyone. Lost and transit-damaged orders are refunded in full with
+          no restocking fee.
         </p>
       </Section>
 
@@ -114,43 +113,65 @@ export default function ReturnsPage() {
         <ol>
           <li>
             Go to your{" "}
-            <Link href="/dashboard" className="!text-[var(--bx-red)]">
+            <Link href="/dashboard" className="!text-[var(--tnt-red)]">
               dashboard
             </Link>{" "}
             and open the relevant order.
           </li>
-          <li>Message the seller, or contact us directly for authenticated orders.</li>
           <li>
-            If unresolved, email{" "}
+            Message the seller from the order page, describing the problem
+            and including photos. Most issues are resolved directly between
+            buyer and seller.
+          </li>
+          <li>
+            If you and the seller agree on a return, ship the item back to the
+            seller with tracking. The refund is issued once the seller
+            receives it in the condition it was delivered.
+          </li>
+          <li>
+            If you cannot reach agreement, email{" "}
             <a
-              href="mailto:support@beaniexchange.com"
-              className="!text-[var(--bx-red)] underline"
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="!text-[var(--tnt-red)] underline"
             >
-              support@beaniexchange.com
+              {SUPPORT_EMAIL}
             </a>{" "}
-            with your order number and photos. Our determinations on
-            authenticity and condition are final.
+            with your order number and photos. We review the listing, the
+            order, and your messages, and our determination on whether the
+            item was materially as described is final.
           </li>
         </ol>
       </Section>
 
       <Section title="7. Refund timing">
         <p>
-          Approved refunds are issued to your original payment method through
-          Stripe, less the $5 restocking fee where it applies. Depending on your
-          bank or card issuer, it may take <strong>5–10 business days</strong>{" "}
-          for the credit to appear after we process it.
+          Refunds are issued through the order&apos;s cancel/refund path to
+          your original payment method via Stripe, less the {RESTOCKING_FEE}{" "}
+          restocking fee where it applies. If the payment had not yet been
+          captured, the authorization is simply released. Depending on your
+          bank or card issuer, it may take <strong>5&ndash;10 business days</strong>{" "}
+          for the credit to appear after it is processed.
         </p>
       </Section>
 
-      <Section title="8. Contact">
+      <Section title="8. For sellers">
+        <p>
+          Accurate listings are your best protection. Photograph flaws, pick
+          the condition honestly, and answer buyer questions before the sale.
+          A return that is approved because an item was not as described is
+          refunded from your proceeds, and repeated not-as-described returns
+          may lead to suspension.
+        </p>
+      </Section>
+
+      <Section title="9. Contact">
         <p>
           Questions about a return or refund:{" "}
           <a
-            href="mailto:support@beaniexchange.com"
-            className="!text-[var(--bx-red)] underline"
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="!text-[var(--tnt-red)] underline"
           >
-            support@beaniexchange.com
+            {SUPPORT_EMAIL}
           </a>
           .
         </p>
@@ -158,11 +179,11 @@ export default function ReturnsPage() {
 
       <p className="text-sm text-muted">
         See also our{" "}
-        <Link href="/terms" className="!text-[var(--bx-red)]">
+        <Link href="/terms" className="!text-[var(--tnt-red)]">
           Terms of Service
         </Link>{" "}
         and{" "}
-        <Link href="/privacy" className="!text-[var(--bx-red)]">
+        <Link href="/privacy" className="!text-[var(--tnt-red)]">
           Privacy Policy
         </Link>
         .

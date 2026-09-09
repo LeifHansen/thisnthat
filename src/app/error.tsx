@@ -18,16 +18,16 @@ export default function Error({
 
   return (
     <div className="max-w-lg mx-auto text-center space-y-4 py-16">
-      <p className="bx-badge mx-auto">Something went wrong</p>
+      <p className="tnt-badge mx-auto">Something went wrong</p>
       <h1 className="text-3xl">This page hit an unexpected error</h1>
       <p className="text-muted">
         Sorry about that. Try again, or head back to the marketplace.
       </p>
       <div className="flex gap-3 justify-center pt-2">
-        <button className="bx-btn" onClick={reset}>
+        <button className="tnt-btn" onClick={reset}>
           Try again
         </button>
-        <Link className="bx-btn bx-btn--ghost" href="/">
+        <Link className="tnt-btn tnt-btn--ghost" href="/">
           Go home
         </Link>
       </div>

@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE_NAME, SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description:
-    "How Beanie Xchange collects, uses, and protects your personal information.",
+  description: `How ${SITE_NAME} collects, uses, and protects your personal information.`,
   alternates: { canonical: "/privacy" },
 };
 
-const UPDATED = "May 23, 2026";
+const UPDATED = "September 9, 2026";
+
+// Display form of the canonical origin, e.g. "thisnthat.fly.dev".
+const SITE_HOST = SITE_URL.replace(/^https?:\/\//, "");
 
 export default function PrivacyPage() {
   return (
@@ -19,18 +22,18 @@ export default function PrivacyPage() {
       </header>
 
       <p>
-        Beanie Xchange (&ldquo;<strong>Beanie Xchange</strong>,&rdquo;
+        {SITE_NAME} (&ldquo;<strong>{SITE_NAME}</strong>,&rdquo;
         &ldquo;<strong>we</strong>,&rdquo; &ldquo;<strong>us</strong>,&rdquo; or
         &ldquo;<strong>our</strong>&rdquo;) operates the website at{" "}
-        <Link href="/" className="!text-[var(--bx-red)]">
-          beaniexchange.com
+        <Link href="/" className="!text-[var(--tnt-red)]">
+          {SITE_HOST}
         </Link>{" "}
-        (the &ldquo;<strong>Service</strong>&rdquo;), an online marketplace for
-        buying, selling, authenticating, and grading Beanie Babies. This
-        Privacy Policy explains what personal information we collect, how we
-        use it, who we share it with, and the rights you have over it. By
-        creating an account or otherwise using the Service, you agree to the
-        practices described here.
+        (the &ldquo;<strong>Service</strong>&rdquo;), an online marketplace
+        where members list and buy secondhand goods. This Privacy Policy
+        explains what personal information we collect, how we use it, who we
+        share it with, and the rights you have over it. By creating an account
+        or otherwise using the Service, you agree to the practices described
+        here.
       </p>
 
       <Section title="1. Information we collect">
@@ -38,19 +41,27 @@ export default function PrivacyPage() {
         <h3>1.1 Information you give us</h3>
         <ul>
           <li>
-            <strong>Account information:</strong> name, email address, password
-            (stored only as a one-way bcrypt hash), and your purpose for using
-            the Service (buying, selling, or both).
+            <strong>Account information:</strong> name, email address, and
+            password (stored only as a one-way bcrypt hash).
           </li>
           <li>
-            <strong>Profile and shipping information:</strong> street address,
-            city, state, and ZIP/postal code for shipping listings and
-            authentication submissions.
+            <strong>Profile information:</strong> an optional display name,
+            bio, and avatar image shown on your public profile.
           </li>
           <li>
-            <strong>Listing content:</strong> photos, descriptions, condition
-            notes, prices, certificate IDs, and other content you submit when
-            you create a listing or authentication request.
+            <strong>Shipping information:</strong> street address, city,
+            state, ZIP/postal code, and country, used to ship orders to you
+            and, for sellers, a ship-from ZIP used to rate shipping.
+          </li>
+          <li>
+            <strong>Listing content:</strong> photos, titles, descriptions,
+            condition notes, prices, and category details you submit when you
+            create a listing.
+          </li>
+          <li>
+            <strong>Orders, offers, reviews, and messages:</strong> the items
+            you buy or sell, offers you make or receive, reviews you leave,
+            and messages you exchange with other members through the Service.
           </li>
           <li>
             <strong>Communications:</strong> messages you send us through
@@ -60,20 +71,18 @@ export default function PrivacyPage() {
 
         <h3>1.2 Information from payments</h3>
         <p>
-          Payments on Beanie Xchange are processed by{" "}
+          Payments on {SITE_NAME} are processed by{" "}
           <strong>Stripe, Inc.</strong> We do not see, store, or transmit your
           full card number, CVC, or bank account details. Stripe provides us a
-          token reference, the last 4 digits of the payment method, and the
-          payment status (authorized, captured, refunded, failed). Sellers who
-          set up payouts complete{" "}
-          <strong>Stripe Connect Express</strong> onboarding directly with
-          Stripe; that flow may collect identity and tax information governed
-          by{" "}
+          token reference and the payment status (authorized, captured,
+          refunded, failed). Sellers who set up payouts complete{" "}
+          <strong>Stripe Connect</strong> onboarding directly with Stripe;
+          that flow may collect identity and tax information governed by{" "}
           <a
             href="https://stripe.com/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="!text-[var(--bx-red)] underline"
+            className="!text-[var(--tnt-red)] underline"
           >
             Stripe&apos;s Privacy Policy
           </a>
@@ -87,19 +96,18 @@ export default function PrivacyPage() {
             authentication system to keep you signed in.
           </li>
           <li>
-            <strong>Analytics cookies (Google Analytics 4):</strong> we use
-            Google Analytics 4 to understand aggregate site traffic — which
-            pages people visit, how they arrived, and how long they stay.
-            Google Analytics sets first-party <code>_ga</code> /{" "}
-            <code>_ga_*</code> cookies and sends pseudonymized event data to
-            Google. IP addresses are truncated by Google for privacy. We have
-            not enabled Google Signals, Demographics, or advertising features.
-            See{" "}
+            <strong>Analytics (Google Analytics 4), where configured:</strong>{" "}
+            we may use Google Analytics 4 to understand aggregate site traffic
+            &mdash; which pages people visit, how they arrived, and how long
+            they stay. When enabled, Google Analytics sets first-party{" "}
+            <code>_ga</code> / <code>_ga_*</code> cookies and sends
+            pseudonymized event data to Google. We have not enabled Google
+            Signals, Demographics, or advertising features. See{" "}
             <a
               href="https://policies.google.com/privacy"
               target="_blank"
               rel="noopener noreferrer"
-              className="!text-[var(--bx-red)] underline"
+              className="!text-[var(--tnt-red)] underline"
             >
               Google&apos;s Privacy Policy
             </a>{" "}
@@ -111,19 +119,15 @@ export default function PrivacyPage() {
             paths, timestamps, and response codes for security, abuse
             prevention, and debugging.
           </li>
-          <li>
-            <strong>CDN telemetry:</strong> aggregate traffic and threat
-            metrics from Cloudflare (our CDN/DNS provider).
-          </li>
         </ul>
       </Section>
 
       <Section title="2. How we use information">
         <ul>
-          <li>To operate the Service: create accounts, host listings, process orders, run escrow, route shipments, and issue certificates of authenticity.</li>
-          <li>To authenticate, grade, and assign registry numbers to items submitted for Beanie Xchange Authentication.</li>
-          <li>To prevent fraud, identify counterfeit listings, detect abuse, and enforce our Terms.</li>
-          <li>To communicate transactional updates (order status, shipment, authentication results, payout notifications).</li>
+          <li>To operate the Service: create accounts, host listings, process orders and offers, hold and release payments, and deliver messages between members.</li>
+          <li>To rate shipping and purchase shipping labels for orders, and to track their delivery.</li>
+          <li>To prevent fraud, identify counterfeit or prohibited listings, detect abuse, and enforce our Terms.</li>
+          <li>To send transactional email (order status, shipment and delivery updates, offers, messages, payout notifications) and, unless you opt out, occasional product tips.</li>
           <li>To comply with legal obligations, respond to lawful requests, and protect our rights and the rights of others.</li>
         </ul>
         <p>
@@ -136,31 +140,45 @@ export default function PrivacyPage() {
         <p>We share the minimum information necessary with the following service providers:</p>
         <ul>
           <li>
-            <strong>Stripe</strong> — payment processing, payouts, and
-            anti-fraud.
+            <strong>Stripe</strong> &mdash; payment processing, seller payouts,
+            and anti-fraud.
           </li>
           <li>
-            <strong>Neon</strong> — managed PostgreSQL database hosting.
+            <strong>EasyPost</strong> &mdash; shipping rates, label purchase,
+            and delivery tracking. The buyer&apos;s name and shipping address
+            and the seller&apos;s ship-from address are shared to produce a
+            label.
           </li>
           <li>
-            <strong>Fly.io</strong> — application hosting.
+            <strong>SendGrid</strong> &mdash; delivery of transactional email
+            to the address on your account.
           </li>
           <li>
-            <strong>Cloudflare</strong> — DNS, CDN, and edge security.
+            <strong>Cloudflare R2</strong> &mdash; storage of listing photos,
+            avatars, and blog images you upload.
           </li>
           <li>
-            <strong>Cloudflare R2</strong> — listing photo storage.
+            <strong>Neon</strong> &mdash; managed PostgreSQL database hosting.
           </li>
           <li>
-            <strong>Google (Google Analytics 4)</strong> — pseudonymized usage
-            analytics. We send page views and event metadata, not your
-            account profile.
+            <strong>Fly.io</strong> &mdash; application hosting.
+          </li>
+          <li>
+            <strong>Google (Google Analytics 4)</strong>, where configured
+            &mdash; pseudonymized usage analytics. We send page views and
+            event metadata, not your account profile.
+          </li>
+          <li>
+            <strong>Other members</strong> &mdash; when you buy, the seller
+            receives your name and shipping address to fulfil the order; when
+            you sell, the buyer sees your display name and profile. Messages
+            you send are visible to their recipient.
           </li>
         </ul>
         <p>
           We may also disclose information when required by law, subpoena, or
           court order; to investigate fraud or violations of our Terms; or to
-          protect the rights, property, or safety of Beanie Xchange, our users,
+          protect the rights, property, or safety of {SITE_NAME}, our users,
           or the public. In the event of a merger, acquisition, or asset sale,
           your information may be transferred to the acquiring entity subject
           to this Privacy Policy.
@@ -168,24 +186,22 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="4. Cookies and tracking">
-        <p>
-          We use two categories of cookies:
-        </p>
+        <p>We use two categories of cookies:</p>
         <ul>
           <li>
             <strong>Strictly necessary:</strong> a first-party session cookie
             to keep you signed in. Blocking this will prevent sign-in.
           </li>
           <li>
-            <strong>Analytics (Google Analytics 4):</strong> first-party{" "}
-            <code>_ga</code> and <code>_ga_*</code> cookies that store a
-            pseudonymized client identifier so Google Analytics can deduplicate
-            page views and sessions. You can opt out using the{" "}
+            <strong>Analytics (Google Analytics 4), where configured:</strong>{" "}
+            first-party <code>_ga</code> and <code>_ga_*</code> cookies that
+            store a pseudonymized client identifier so Google Analytics can
+            deduplicate page views and sessions. You can opt out using the{" "}
             <a
               href="https://tools.google.com/dlpage/gaoptout"
               target="_blank"
               rel="noopener noreferrer"
-              className="!text-[var(--bx-red)] underline"
+              className="!text-[var(--tnt-red)] underline"
             >
               Google Analytics Opt-out Browser Add-on
             </a>{" "}
@@ -201,11 +217,13 @@ export default function PrivacyPage() {
 
       <Section title="5. Data retention">
         <p>
-          We keep account, listing, order, and authentication-request records
-          for as long as your account is active and for a reasonable period
-          afterward to comply with tax, accounting, fraud-prevention, and
-          dispute-resolution obligations. You may request deletion of your
-          account at any time, subject to legal retention requirements.
+          We keep account, listing, order, and message records for as long as
+          your account is active and for a reasonable period afterward to
+          comply with tax, accounting, fraud-prevention, and
+          dispute-resolution obligations. When you delete your account, your
+          profile is scrubbed and your listings are removed; order records
+          that form part of another member&apos;s purchase or sale history are
+          retained in anonymized form.
         </p>
       </Section>
 
@@ -221,18 +239,23 @@ export default function PrivacyPage() {
       <Section title="7. Your rights">
         <p>You may at any time:</p>
         <ul>
-          <li>Access the personal information in your account through your dashboard.</li>
+          <li>Access the personal information in your account through your dashboard and settings.</li>
           <li>Correct or update your name, email, address, or profile information.</li>
-          <li>Request export of your data or deletion of your account.</li>
-          <li>Opt out of non-essential email; transactional messages cannot be opted out of while you have active orders.</li>
+          <li>Delete your account from your settings, or request export of your data.</li>
+          <li>
+            Opt out of any email category from your notification settings or
+            via the unsubscribe link in any email. Transactional messages about
+            an order in progress cannot be opted out of while that order is
+            open.
+          </li>
         </ul>
         <p>
           To exercise these rights, email{" "}
           <a
-            href="mailto:privacy@beaniexchange.com"
-            className="!text-[var(--bx-red)] underline"
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="!text-[var(--tnt-red)] underline"
           >
-            privacy@beaniexchange.com
+            {SUPPORT_EMAIL}
           </a>
           . We respond within 30 days.
         </p>
@@ -275,7 +298,7 @@ export default function PrivacyPage() {
 
       <Section title="11. International transfers">
         <p>
-          Beanie Xchange is operated from the United States. By using the
+          {SITE_NAME} is operated from the United States. By using the
           Service, you understand that your information may be transferred to
           and processed in the United States and other countries that may have
           different data-protection laws than your country of residence.
@@ -296,10 +319,10 @@ export default function PrivacyPage() {
         <p>
           Privacy questions:{" "}
           <a
-            href="mailto:privacy@beaniexchange.com"
-            className="!text-[var(--bx-red)] underline"
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="!text-[var(--tnt-red)] underline"
           >
-            privacy@beaniexchange.com
+            {SUPPORT_EMAIL}
           </a>
           .
         </p>
@@ -307,7 +330,7 @@ export default function PrivacyPage() {
 
       <p className="text-sm text-muted">
         See also our{" "}
-        <Link href="/terms" className="!text-[var(--bx-red)]">
+        <Link href="/terms" className="!text-[var(--tnt-red)]">
           Terms of Service
         </Link>
         .

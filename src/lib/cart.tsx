@@ -14,7 +14,7 @@ export type CartItem = {
   sellerId: string;
 };
 
-const STORAGE_KEY = "bx-cart-v1";
+const STORAGE_KEY = "tnt-cart-v1";
 const EMPTY: CartItem[] = [];
 
 // ── Module-level external store ──────────────────────────────────────

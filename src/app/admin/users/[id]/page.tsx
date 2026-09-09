@@ -80,7 +80,7 @@ export default async function AdminUserDetailPage({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-muted text-xs">
-            <Link href="/admin/users" className="!text-[var(--bx-red)] font-semibold">
+            <Link href="/admin/users" className="!text-[var(--tnt-red)] font-semibold">
               ← All users
             </Link>
           </p>
@@ -88,13 +88,13 @@ export default async function AdminUserDetailPage({
             {user.name}
             <span
               className={`text-xs font-bold ${
-                user.role === "ADMIN" ? "text-[var(--bx-red)]" : "text-muted"
+                user.role === "ADMIN" ? "text-[var(--tnt-red)]" : "text-muted"
               }`}
             >
               {isSuperadmin(user) ? "SUPERADMIN" : user.role}
             </span>
             {user.suspended && (
-              <span className="rounded-full bg-red-100 text-[var(--bx-red)] text-[10px] font-bold px-1.5 py-0.5">
+              <span className="rounded-full bg-red-100 text-[var(--tnt-red)] text-[10px] font-bold px-1.5 py-0.5">
                 SUSPENDED
               </span>
             )}
@@ -120,7 +120,7 @@ export default async function AdminUserDetailPage({
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
-        <section className="bx-panel p-4 space-y-1 text-sm">
+        <section className="tnt-panel p-4 space-y-1 text-sm">
           <h2 className="text-ink font-bold mb-1">Account</h2>
           <Row l="Joined" v={user.createdAt.toISOString().slice(0, 10)} />
           <Row l="Last updated" v={user.updatedAt.toISOString().slice(0, 10)} />
@@ -130,7 +130,7 @@ export default async function AdminUserDetailPage({
           />
           <Row l="Registry entries" v={String(user._count.registry)} />
         </section>
-        <section className="bx-panel p-4 space-y-1 text-sm">
+        <section className="tnt-panel p-4 space-y-1 text-sm">
           <h2 className="text-ink font-bold mb-1">Address</h2>
           {user.addressLine1 ? (
             <>
@@ -160,7 +160,7 @@ export default async function AdminUserDetailPage({
         {user.listings.length === 0 ? (
           <p className="text-muted text-sm">None.</p>
         ) : (
-          <div className="bx-panel divide-y divide-[var(--bx-line)]">
+          <div className="tnt-panel divide-y divide-[var(--tnt-line)]">
             {user.listings.map((l) => (
               <div
                 key={l.id}
@@ -190,7 +190,7 @@ export default async function AdminUserDetailPage({
         {user.authRequests.length === 0 ? (
           <p className="text-muted text-sm">None.</p>
         ) : (
-          <div className="bx-panel divide-y divide-[var(--bx-line)]">
+          <div className="tnt-panel divide-y divide-[var(--tnt-line)]">
             {user.authRequests.map((r) => (
               <div
                 key={r.id}
@@ -212,7 +212,7 @@ export default async function AdminUserDetailPage({
       {user.offers.length > 0 && (
         <section className="space-y-2">
           <h2 className="text-ink text-lg">Recent offers made</h2>
-          <div className="bx-panel divide-y divide-[var(--bx-line)]">
+          <div className="tnt-panel divide-y divide-[var(--tnt-line)]">
             {user.offers.map((o) => (
               <div
                 key={o.id}
@@ -235,9 +235,9 @@ export default async function AdminUserDetailPage({
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="bx-panel p-3">
+    <div className="tnt-panel p-3">
       <p className="text-muted text-[11px] font-semibold uppercase tracking-wide">{label}</p>
-      <p className={`mt-0.5 text-xl font-bold ${accent ? "text-[var(--bx-red)]" : "text-ink"}`}>
+      <p className={`mt-0.5 text-xl font-bold ${accent ? "text-[var(--tnt-red)]" : "text-ink"}`}>
         {value}
       </p>
     </div>
@@ -256,9 +256,9 @@ function Row({ l, v }: { l: string; v: string }) {
 function StatusBadge({ status }: { status: string }) {
   const color =
     status === "ACTIVE"
-      ? "text-[var(--bx-green)]"
+      ? "text-[var(--tnt-green)]"
       : status === "SOLD"
-        ? "text-[var(--bx-red)]"
+        ? "text-[var(--tnt-red)]"
         : "text-muted";
   return <span className={`font-semibold ${color}`}>{status}</span>;
 }
@@ -282,7 +282,7 @@ function OrderSection({
       {orders.length === 0 ? (
         <p className="text-muted text-sm">None.</p>
       ) : (
-        <div className="bx-panel divide-y divide-[var(--bx-line)]">
+        <div className="tnt-panel divide-y divide-[var(--tnt-line)]">
           {orders.map((o) => (
             <div
               key={o.id}

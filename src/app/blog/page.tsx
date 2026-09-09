@@ -81,7 +81,7 @@ export default async function BlogIndex() {
       </header>
 
       {posts.length === 0 ? (
-        <div className="bx-panel p-10 text-center text-muted">
+        <div className="tnt-panel p-10 text-center text-muted">
           No posts yet — check back soon.
         </div>
       ) : (
@@ -89,10 +89,10 @@ export default async function BlogIndex() {
           {/* Featured (newest) post */}
           <Link
             href={`/blog/${featured.slug}`}
-            className="bx-panel block overflow-hidden !text-ink hover:border-[var(--bx-line-strong)]"
+            className="tnt-panel block overflow-hidden !text-ink hover:border-[var(--tnt-line-strong)]"
           >
             {featured.coverImageUrl && (
-              <div className="relative w-full aspect-[16/7] bg-[var(--bx-surface)]">
+              <div className="relative w-full aspect-[16/7] bg-[var(--tnt-surface)]">
                 <Image
                   src={featured.coverImageUrl}
                   alt={featured.title}
@@ -109,7 +109,7 @@ export default async function BlogIndex() {
               </p>
               <h2 className="font-display text-2xl">{featured.title}</h2>
               <p className="text-muted">{featured.excerpt}</p>
-              <span className="text-[var(--bx-red)] font-semibold text-sm">
+              <span className="text-[var(--tnt-red)] font-semibold text-sm">
                 Read article →
               </span>
             </div>
@@ -122,10 +122,10 @@ export default async function BlogIndex() {
                 <Link
                   key={p.id}
                   href={`/blog/${p.slug}`}
-                  className="bx-panel block overflow-hidden !text-ink hover:border-[var(--bx-line-strong)]"
+                  className="tnt-panel block overflow-hidden !text-ink hover:border-[var(--tnt-line-strong)]"
                 >
                   {p.coverImageUrl && (
-                    <div className="relative w-full aspect-[16/9] bg-[var(--bx-surface)]">
+                    <div className="relative w-full aspect-[16/9] bg-[var(--tnt-surface)]">
                       <Image
                         src={p.coverImageUrl}
                         alt={p.title}

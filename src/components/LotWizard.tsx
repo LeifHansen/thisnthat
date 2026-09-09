@@ -204,7 +204,7 @@ export function LotWizard({
           <h1 className="text-3xl">List a Lot</h1>
           <Link
             href="/sell"
-            className="text-sm font-semibold !text-[var(--bx-red)]"
+            className="text-sm font-semibold !text-[var(--tnt-red)]"
           >
             ← Sell a single beanie
           </Link>
@@ -216,10 +216,10 @@ export function LotWizard({
         </p>
       </div>
 
-      <div className="bx-panel p-6 space-y-5">
+      <div className="tnt-panel p-6 space-y-5">
         <Field label="Lot title">
           <input
-            className="bx-input"
+            className="tnt-input"
             value={title}
             maxLength={160}
             onChange={(e) => setTitle(e.target.value)}
@@ -259,7 +259,7 @@ export function LotWizard({
                   }
                 />
                 {row.linked && (
-                  <p className="text-xs text-[var(--bx-green)] mt-1 truncate">
+                  <p className="text-xs text-[var(--tnt-green)] mt-1 truncate">
                     ✓ {row.linked.name}
                     {row.linked.styleNumber
                       ? ` · #${row.linked.styleNumber}`
@@ -270,7 +270,7 @@ export function LotWizard({
               <label className="shrink-0">
                 <span className="sr-only">Quantity</span>
                 <input
-                  className="bx-input w-16 text-center"
+                  className="tnt-input w-16 text-center"
                   type="number"
                   min={1}
                   max={999}
@@ -287,7 +287,7 @@ export function LotWizard({
                 onClick={() => removeRow(row.key)}
                 disabled={rows.length <= 1}
                 aria-label="Remove this beanie"
-                className="shrink-0 w-9 h-9 grid place-items-center rounded-lg border-2 border-[var(--bx-line-strong)] text-lg leading-none text-muted hover:text-[var(--bx-red)] hover:border-[var(--bx-red)] disabled:opacity-40"
+                className="shrink-0 w-9 h-9 grid place-items-center rounded-lg border-2 border-[var(--tnt-line-strong)] text-lg leading-none text-muted hover:text-[var(--tnt-red)] hover:border-[var(--tnt-red)] disabled:opacity-40"
               >
                 ×
               </button>
@@ -297,7 +297,7 @@ export function LotWizard({
           <button
             type="button"
             onClick={addRow}
-            className="bx-btn bx-btn--ghost !py-1.5 !px-3 !text-sm"
+            className="tnt-btn tnt-btn--ghost !py-1.5 !px-3 !text-sm"
           >
             + Add another beanie
           </button>
@@ -309,7 +309,7 @@ export function LotWizard({
 
         <Field label="Overall condition">
           <select
-            className="bx-input"
+            className="tnt-input"
             value={condition}
             onChange={(e) => setCondition(e.target.value)}
           >
@@ -324,7 +324,7 @@ export function LotWizard({
 
         <Field label="Description (optional)">
           <textarea
-            className="bx-input"
+            className="tnt-input"
             rows={4}
             value={description}
             maxLength={4000}
@@ -336,7 +336,7 @@ export function LotWizard({
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Whole-lot price (USD)">
             <input
-              className="bx-input"
+              className="tnt-input"
               type="number"
               step="0.01"
               min="1"
@@ -346,7 +346,7 @@ export function LotWizard({
           </Field>
           <Field label="Authentication">
             <select
-              className="bx-input"
+              className="tnt-input"
               value={authType}
               onChange={(e) => setAuthType(e.target.value as LotAuth)}
             >
@@ -358,7 +358,7 @@ export function LotWizard({
         {authType === "THIRD_PARTY_COA" && (
           <Field label="COA image URL">
             <input
-              className="bx-input"
+              className="tnt-input"
               value={coaImageUrl}
               onChange={(e) => setCoaImageUrl(e.target.value)}
               placeholder="https://…"
@@ -393,7 +393,7 @@ export function LotWizard({
                 when your photos upload.
               </p>
               {studioNote && (
-                <p className="text-xs font-medium text-[var(--bx-ink-soft)]">
+                <p className="text-xs font-medium text-[var(--tnt-ink-soft)]">
                   {studioNote}
                 </p>
               )}
@@ -401,7 +401,7 @@ export function LotWizard({
           </label>
         </Field>
 
-        <div className="bx-panel p-4 space-y-2 border border-[var(--bx-line)]">
+        <div className="tnt-panel p-4 space-y-2 border border-[var(--tnt-line)]">
           <label className="flex items-start gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -422,7 +422,7 @@ export function LotWizard({
           {autoAcceptOn && (
             <Field label="Minimum auto-accept price (USD)">
               <input
-                className="bx-input"
+                className="tnt-input"
                 type="number"
                 step="0.01"
                 min="1"
@@ -435,7 +435,7 @@ export function LotWizard({
         </div>
 
         {/* Live summary */}
-        <div className="bx-panel bx-panel--accent p-4 flex items-center justify-between gap-3">
+        <div className="tnt-panel tnt-panel--accent p-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-muted font-semibold">
               This lot
@@ -449,7 +449,7 @@ export function LotWizard({
             <p className="text-xs uppercase tracking-wide text-muted font-semibold">
               Price
             </p>
-            <p className="font-display text-2xl font-semibold text-[var(--bx-red)]">
+            <p className="font-display text-2xl font-semibold text-[var(--tnt-red)]">
               {priceCents > 0 ? formatCents(priceCents) : "—"}
             </p>
           </div>
@@ -462,7 +462,7 @@ export function LotWizard({
             type="button"
             onClick={() => submit("draft")}
             disabled={busy || photoBusy}
-            className="bx-btn bx-btn--ghost flex-1 disabled:opacity-60"
+            className="tnt-btn tnt-btn--ghost flex-1 disabled:opacity-60"
           >
             {busy ? "Saving…" : "Save as Draft"}
           </button>
@@ -470,7 +470,7 @@ export function LotWizard({
             type="button"
             onClick={() => submit("post")}
             disabled={busy || photoBusy}
-            className="bx-btn flex-1 disabled:opacity-60"
+            className="tnt-btn flex-1 disabled:opacity-60"
           >
             {busy
               ? "Posting…"

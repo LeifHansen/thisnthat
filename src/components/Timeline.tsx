@@ -13,8 +13,8 @@ export function Timeline({ status }: { status: OrderStatus }) {
         return (
           <li key={s.status} className="flex items-start gap-3">
             <span
-              className={`bx-badge ${
-                current ? "bx-badge--on !text-white" : ""
+              className={`tnt-badge ${
+                current ? "tnt-badge--on !text-white" : ""
               }`}
             >
               {done ? "✓" : current ? "▶" : "•"}
@@ -23,9 +23,9 @@ export function Timeline({ status }: { status: OrderStatus }) {
               <p
                 className={
                   current
-                    ? "font-semibold text-[var(--bx-red)]"
+                    ? "font-semibold text-[var(--tnt-red)]"
                     : done
-                      ? "text-[var(--bx-success)]"
+                      ? "text-[var(--tnt-success)]"
                       : "text-muted"
                 }
               >
@@ -37,7 +37,7 @@ export function Timeline({ status }: { status: OrderStatus }) {
         );
       })}
       {failed && (
-        <li className="bx-badge !text-red-600 !border-red-600">✗ {status}</li>
+        <li className="tnt-badge !text-red-600 !border-red-600">✗ {status}</li>
       )}
     </ol>
   );

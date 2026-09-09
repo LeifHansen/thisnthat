@@ -53,7 +53,7 @@ export function ConnectButton({ status }: { status: PayoutStatus }) {
 
   return (
     <div className="space-y-2">
-      <button className="bx-btn" onClick={go} disabled={busy}>
+      <button className="tnt-btn" onClick={go} disabled={busy}>
         {busy ? "Redirecting…" : LABELS[status]}
       </button>
       {err && (

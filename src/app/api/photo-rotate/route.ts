@@ -23,7 +23,7 @@ import { fetchPublicUrl } from "@/lib/ssrf";
 // origin, so a canvas in the browser would be tainted and refuse to hand the
 // rotated bytes back.
 //
-// The BX watermark is already baked into these pixels and turns with the photo
+// The watermark is already baked into these pixels and turns with the photo
 // (it can't be un-stamped, and stamping again would leave two marks). An
 // upright photo with its logo in a different corner still beats a sideways one.
 
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
   let res: Response;
   try {
     res = await fetchPublicUrl(raw, {
-      headers: { "User-Agent": "Mozilla/5.0 (BeanieXchange photo rotate)" },
+      headers: { "User-Agent": "Mozilla/5.0 (thisnthat photo rotate)" },
     });
   } catch {
     return NextResponse.json(

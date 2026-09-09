@@ -125,14 +125,14 @@ export function BlogGenerator() {
   return (
     <div className="space-y-5">
       {/* ── Inputs ── */}
-      <div className="bx-panel p-5 space-y-4">
+      <div className="tnt-panel p-5 space-y-4">
         <div className="space-y-1">
           <label className="text-sm font-semibold text-ink">
             Reference article URL
           </label>
           <input
             type="url"
-            className="bx-input"
+            className="tnt-input"
             placeholder="https://example.com/some-beanie-baby-article"
             value={sourceUrl}
             onChange={(e) => setSourceUrl(e.target.value)}
@@ -151,7 +151,7 @@ export function BlogGenerator() {
           <div className="flex flex-wrap items-center gap-2">
             <input
               type="url"
-              className="bx-input flex-1 min-w-[220px]"
+              className="tnt-input flex-1 min-w-[220px]"
               placeholder="https://…/cover.jpg"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
@@ -167,7 +167,7 @@ export function BlogGenerator() {
             />
             <button
               type="button"
-              className="bx-btn bx-btn--ghost !py-2 !px-4 shrink-0"
+              className="tnt-btn tnt-btn--ghost !py-2 !px-4 shrink-0"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
@@ -175,7 +175,7 @@ export function BlogGenerator() {
             </button>
             <button
               type="button"
-              className="bx-btn bx-btn--ghost !py-2 !px-4 shrink-0"
+              className="tnt-btn tnt-btn--ghost !py-2 !px-4 shrink-0"
               onClick={generateHero}
               disabled={heroBusy || uploading || !hasDraft}
               title={
@@ -193,7 +193,7 @@ export function BlogGenerator() {
           </p>
           {uploadErr && <p className="text-pink text-sm">{uploadErr}</p>}
           {validImage && (
-            <div className="relative mt-2 w-full max-w-sm aspect-[16/9] overflow-hidden rounded-lg border border-[var(--bx-line)] bg-[var(--bx-surface)]">
+            <div className="relative mt-2 w-full max-w-sm aspect-[16/9] overflow-hidden rounded-lg border border-[var(--tnt-line)] bg-[var(--tnt-surface)]">
               <Image
                 src={imageUrl}
                 alt="Cover preview"
@@ -213,9 +213,9 @@ export function BlogGenerator() {
               <button
                 type="button"
                 onClick={() => setMode("rewrite")}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold border-2 border-[var(--bx-ink)] ${
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold border-2 border-[var(--tnt-ink)] ${
                   mode === "rewrite"
-                    ? "bg-[var(--bx-blue-bright)] !text-ink"
+                    ? "bg-[var(--tnt-blue-bright)] !text-ink"
                     : "bg-white !text-muted"
                 }`}
               >
@@ -224,9 +224,9 @@ export function BlogGenerator() {
               <button
                 type="button"
                 onClick={() => setMode("fresh")}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold border-2 border-[var(--bx-ink)] ${
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold border-2 border-[var(--tnt-ink)] ${
                   mode === "fresh"
-                    ? "bg-[var(--bx-green-bright)] !text-ink"
+                    ? "bg-[var(--tnt-green-bright)] !text-ink"
                     : "bg-white !text-muted"
                 }`}
               >
@@ -243,7 +243,7 @@ export function BlogGenerator() {
           </label>
           <input
             type="text"
-            className="bx-input"
+            className="tnt-input"
             placeholder="e.g. focus on value trends for first-gen tags"
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
@@ -256,7 +256,7 @@ export function BlogGenerator() {
           type="button"
           onClick={generate}
           disabled={busy || sourceUrl.trim().length < 8}
-          className="bx-btn disabled:opacity-60"
+          className="tnt-btn disabled:opacity-60"
         >
           {busy ? "Writing…" : hasDraft ? "Re-generate" : "✨ Generate article"}
         </button>
@@ -264,7 +264,7 @@ export function BlogGenerator() {
 
       {/* ── Editable draft + save form ── */}
       {hasDraft && (
-        <form action={saveBlogPost} className="bx-panel p-5 space-y-4">
+        <form action={saveBlogPost} className="tnt-panel p-5 space-y-4">
           <input type="hidden" name="coverImageUrl" value={imageUrl} />
           <input type="hidden" name="sourceUrl" value={sourceUrl} />
 
@@ -279,7 +279,7 @@ export function BlogGenerator() {
             <label className="text-sm font-semibold text-ink">Title</label>
             <input
               name="title"
-              className="bx-input"
+              className="tnt-input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
@@ -293,7 +293,7 @@ export function BlogGenerator() {
             </label>
             <textarea
               name="excerpt"
-              className="bx-input"
+              className="tnt-input"
               rows={2}
               value={excerpt}
               onChange={(e) => setExcerpt(e.target.value)}
@@ -308,7 +308,7 @@ export function BlogGenerator() {
             </label>
             <textarea
               name="content"
-              className="bx-input font-mono text-sm"
+              className="tnt-input font-mono text-sm"
               rows={18}
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -321,7 +321,7 @@ export function BlogGenerator() {
               type="submit"
               name="intent"
               value="publish"
-              className="bx-btn bx-btn--green"
+              className="tnt-btn tnt-btn--green"
             >
               Publish
             </button>
@@ -329,7 +329,7 @@ export function BlogGenerator() {
               type="submit"
               name="intent"
               value="draft"
-              className="bx-btn bx-btn--ghost"
+              className="tnt-btn tnt-btn--ghost"
             >
               Save as draft
             </button>

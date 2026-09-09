@@ -10,10 +10,10 @@ export function CartButton({ className = "" }: { className?: string }) {
     <Link
       href="/cart"
       aria-label={`Cart${count ? ` (${count} item${count === 1 ? "" : "s"})` : ""}`}
-      className={`relative inline-flex items-center justify-center h-11 w-11 rounded-full border-2 border-[var(--bx-ink)] bg-white !text-ink shadow-[0_2px_0_var(--bx-ink)] hover:-translate-y-0.5 transition-transform ${className}`}
+      className={`relative inline-flex items-center justify-center h-11 w-11 rounded-full border-2 border-[var(--tnt-ink)] bg-white !text-ink shadow-[0_2px_0_var(--tnt-ink)] hover:-translate-y-0.5 transition-transform ${className}`}
     >
       <BasketIcon className="h-5 w-5" />
-      {ready && count > 0 && <span className="bx-cartdot">{count}</span>}
+      {ready && count > 0 && <span className="tnt-cartdot">{count}</span>}
     </Link>
   );
 }

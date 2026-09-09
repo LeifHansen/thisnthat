@@ -76,12 +76,12 @@ export default async function AdminUsersPage({
       {totalPages > 1 && (
         <div className="flex gap-2 text-sm">
           {page > 1 && (
-            <Link href={`/admin/users?page=${page - 1}`} className="bx-btn bx-btn--ghost !py-1.5 !px-4">
+            <Link href={`/admin/users?page=${page - 1}`} className="tnt-btn tnt-btn--ghost !py-1.5 !px-4">
               ← Newer
             </Link>
           )}
           {page < totalPages && (
-            <Link href={`/admin/users?page=${page + 1}`} className="bx-btn bx-btn--ghost !py-1.5 !px-4">
+            <Link href={`/admin/users?page=${page + 1}`} className="tnt-btn tnt-btn--ghost !py-1.5 !px-4">
               Older →
             </Link>
           )}
@@ -94,21 +94,21 @@ export default async function AdminUsersPage({
         </div>
       )}
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 text-[var(--bx-red)] px-4 py-2 text-sm">
+        <div className="rounded-lg bg-red-50 border border-red-200 text-[var(--tnt-red)] px-4 py-2 text-sm">
           {error}
         </div>
       )}
 
       {usersError ? (
-        <div className="bx-panel p-8 text-center text-[var(--bx-red)]">
+        <div className="tnt-panel p-8 text-center text-[var(--tnt-red)]">
           Couldn&apos;t load users. The database schema may be out of date in
           this environment.
         </div>
       ) : (
-        <div className="bx-panel overflow-x-auto">
+        <div className="tnt-panel overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-muted text-xs uppercase tracking-wide border-b border-[var(--bx-line)]">
+              <tr className="text-left text-muted text-xs uppercase tracking-wide border-b border-[var(--tnt-line)]">
                 <th className="p-3">Account</th>
                 <th className="p-3">Role</th>
                 <th className="p-3 whitespace-nowrap">Listings / Orders</th>
@@ -127,24 +127,24 @@ export default async function AdminUsersPage({
                 return (
                   <tr
                     key={u.id}
-                    className="border-b border-[var(--bx-line)] last:border-0 align-middle"
+                    className="border-b border-[var(--tnt-line)] last:border-0 align-middle"
                   >
                     <td className="p-3">
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/admin/users/${u.id}`}
-                          className="font-semibold !text-ink hover:!text-[var(--bx-red)]"
+                          className="font-semibold !text-ink hover:!text-[var(--tnt-red)]"
                         >
                           {u.name}
                         </Link>
                         {u.suspended && (
-                          <span className="rounded-full bg-red-100 text-[var(--bx-red)] text-[10px] font-bold px-1.5 py-0.5">
+                          <span className="rounded-full bg-red-100 text-[var(--tnt-red)] text-[10px] font-bold px-1.5 py-0.5">
                             SUSPENDED
                           </span>
                         )}
                         {u.stripeConnectId && (
                           <span
-                            className="rounded-full bg-[var(--bx-blue-bright)]/20 text-[var(--bx-blue-bright)] text-[10px] font-bold px-1.5 py-0.5"
+                            className="rounded-full bg-[var(--tnt-blue-bright)]/20 text-[var(--tnt-blue-bright)] text-[10px] font-bold px-1.5 py-0.5"
                             title="Stripe Connect linked"
                           >
                             STRIPE
@@ -157,7 +157,7 @@ export default async function AdminUsersPage({
                       <span
                         className={`text-xs font-bold ${
                           u.role === "ADMIN"
-                            ? "text-[var(--bx-red)]"
+                            ? "text-[var(--tnt-red)]"
                             : "text-muted"
                         }`}
                       >

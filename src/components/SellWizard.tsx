@@ -367,7 +367,7 @@ export function SellWizard({
         </div>
         <div className="flex items-center gap-3 text-xs font-semibold text-muted">
           <Step n={1} label="Details" active={step === 0} done={step > 0} />
-          <span className="w-8 h-px bg-[var(--bx-line-strong)]" />
+          <span className="w-8 h-px bg-[var(--tnt-line-strong)]" />
           <Step n={2} label="Preview" active={step === 1} done={false} />
         </div>
       </div>
@@ -375,21 +375,21 @@ export function SellWizard({
       {step === 0 && (
         <Link
           href="/sell/lot"
-          className="bx-panel p-4 flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-transform"
+          className="tnt-panel p-4 flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-transform"
           style={{
-            background: "var(--bx-purple-soft)",
-            borderColor: "var(--bx-purple)",
+            background: "var(--tnt-purple-soft)",
+            borderColor: "var(--tnt-purple)",
           }}
         >
           <span className="text-sm">
-            <span className="font-bold text-[var(--bx-purple-text)]">
+            <span className="font-bold text-[var(--tnt-purple-text)]">
               🎁 Selling a bundle?
             </span>{" "}
             <span className="text-ink">
               Group many beanies into one Lot for a single price.
             </span>
           </span>
-          <span className="font-semibold text-[var(--bx-purple-text)] shrink-0">
+          <span className="font-semibold text-[var(--tnt-purple-text)] shrink-0">
             Create a Lot →
           </span>
         </Link>
@@ -397,7 +397,7 @@ export function SellWizard({
 
       {step === 0 && (
         <>
-          <div className="bx-panel p-6 space-y-4">
+          <div className="tnt-panel p-6 space-y-4">
             <Field label="Start with photos — let AI do the rest">
               <PhotoPicker items={items} onChange={setItems} disabled={photoBusy} />
               <label className="mt-3 flex items-start gap-2 cursor-pointer">
@@ -428,7 +428,7 @@ export function SellWizard({
                     your originals.
                   </p>
                   {studioNote && (
-                    <p className="text-xs font-medium text-[var(--bx-ink-soft)]">
+                    <p className="text-xs font-medium text-[var(--tnt-ink-soft)]">
                       {studioNote}
                     </p>
                   )}
@@ -439,7 +439,7 @@ export function SellWizard({
                   type="button"
                   onClick={autofill}
                   disabled={aiBusy || photoBusy || items.length === 0}
-                  className="bx-btn bx-btn--purple !py-2 disabled:opacity-50"
+                  className="tnt-btn tnt-btn--purple !py-2 disabled:opacity-50"
                 >
                   {aiBusy ? "Analyzing photos…" : "✨ Auto-fill listing from photos"}
                 </button>
@@ -449,7 +449,7 @@ export function SellWizard({
                   review before publishing.
                 </p>
                 {aiNote && (
-                  <p className="mt-2 text-xs font-medium text-[var(--bx-ink-soft)]">
+                  <p className="mt-2 text-xs font-medium text-[var(--tnt-ink-soft)]">
                     {aiNote}
                   </p>
                 )}
@@ -476,7 +476,7 @@ export function SellWizard({
               </Field>
               <Field label="Year (optional)">
                 <input
-                  className="bx-input"
+                  className="tnt-input"
                   type="number"
                   value={f.year}
                   onChange={(e) => set("year", e.target.value)}
@@ -486,13 +486,13 @@ export function SellWizard({
             </div>
             {linkedBeanie && (
               <div
-                className="bx-panel p-4 space-y-1"
+                className="tnt-panel p-4 space-y-1"
                 style={{
-                  background: "var(--bx-green-soft)",
-                  borderColor: "var(--bx-green)",
+                  background: "var(--tnt-green-soft)",
+                  borderColor: "var(--tnt-green)",
                 }}
               >
-                <p className="text-sm font-semibold text-[var(--bx-green)]">
+                <p className="text-sm font-semibold text-[var(--tnt-green)]">
                   ✓ Linked to the BX catalogue: {linkedBeanie.name}
                 </p>
                 <p className="text-muted text-xs">
@@ -518,7 +518,7 @@ export function SellWizard({
             )}
             <Field label="Hang Tag">
               <select
-                className="bx-input"
+                className="tnt-input"
                 value={f.hangTag}
                 onChange={(e) =>
                   set("hangTag", e.target.value as FormState["hangTag"])
@@ -534,7 +534,7 @@ export function SellWizard({
             </Field>
             <Field label="Condition">
               <select
-                className="bx-input"
+                className="tnt-input"
                 value={f.condition}
                 onChange={(e) => set("condition", e.target.value)}
               >
@@ -555,7 +555,7 @@ export function SellWizard({
                   disabled={aiDescBusy}
                   title="Generate a description from the details above"
                   aria-label="Generate description with AI"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--bx-purple)] hover:opacity-80 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--tnt-purple)] hover:opacity-80 disabled:opacity-50"
                 >
                   <SparkleIcon
                     className={`w-3.5 h-3.5 ${aiDescBusy ? "animate-pulse" : ""}`}
@@ -564,7 +564,7 @@ export function SellWizard({
                 </button>
               </div>
               <textarea
-                className="bx-input"
+                className="tnt-input"
                 rows={4}
                 maxLength={3950}
                 value={f.description}
@@ -572,14 +572,14 @@ export function SellWizard({
                 placeholder="Story, condition notes, anything a buyer would want to know."
               />
               {aiDescNote && (
-                <p className="text-xs font-medium text-[var(--bx-ink-soft)]">
+                <p className="text-xs font-medium text-[var(--tnt-ink-soft)]">
                   {aiDescNote}
                 </p>
               )}
             </div>
             <Field label="Price (USD)">
               <input
-                className="bx-input"
+                className="tnt-input"
                 type="number"
                 step="0.01"
                 min="1"
@@ -590,7 +590,7 @@ export function SellWizard({
 
             <Field label="Quantity (optional)">
               <input
-                className="bx-input"
+                className="tnt-input"
                 type="number"
                 step="1"
                 min="1"
@@ -606,7 +606,7 @@ export function SellWizard({
 
             <Field label="Is this beanie authenticated?">
               <select
-                className="bx-input"
+                className="tnt-input"
                 value={f.authType}
                 onChange={(e) =>
                   set("authType", e.target.value as AuthChoice)
@@ -634,7 +634,7 @@ export function SellWizard({
             {f.authType === "TRUE_BLUE" && (
               <Field label="True Blue cert ID">
                 <input
-                  className="bx-input"
+                  className="tnt-input"
                   value={f.trueBlueCertId}
                   onChange={(e) => set("trueBlueCertId", e.target.value)}
                   placeholder="TBB-…"
@@ -644,7 +644,7 @@ export function SellWizard({
             {f.authType === "THIRD_PARTY_COA" && (
               <Field label="COA image URL">
                 <input
-                  className="bx-input"
+                  className="tnt-input"
                   value={f.coaImageUrl}
                   onChange={(e) => set("coaImageUrl", e.target.value)}
                   placeholder="https://…"
@@ -652,7 +652,7 @@ export function SellWizard({
               </Field>
             )}
 
-            <div className="bx-panel p-4 space-y-2 border border-[var(--bx-line)]">
+            <div className="tnt-panel p-4 space-y-2 border border-[var(--tnt-line)]">
               <label className="flex items-start gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -674,7 +674,7 @@ export function SellWizard({
               {f.autoAcceptOn && (
                 <Field label="Minimum auto-accept price (USD)">
                   <input
-                    className="bx-input"
+                    className="tnt-input"
                     type="number"
                     step="0.01"
                     min="1"
@@ -693,7 +693,7 @@ export function SellWizard({
                 type="button"
                 onClick={goPreview}
                 disabled={photoBusy}
-                className="bx-btn flex-1 disabled:opacity-60"
+                className="tnt-btn flex-1 disabled:opacity-60"
               >
                 {photoBusy
                   ? studio
@@ -713,13 +713,13 @@ export function SellWizard({
             save as a draft for later, or post it now.
           </p>
 
-          <article className="bx-panel p-5 space-y-5">
+          <article className="tnt-panel p-5 space-y-5">
             {previewListing.photos.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
                 {previewListing.photos.map((p, i) => (
                   <div
                     key={p + i}
-                    className="group relative aspect-square rounded-lg overflow-hidden border border-[var(--bx-line-strong)] bg-[var(--bx-surface)]"
+                    className="group relative aspect-square rounded-lg overflow-hidden border border-[var(--tnt-line-strong)] bg-[var(--tnt-surface)]"
                   >
                     <Image
                       src={p}
@@ -733,7 +733,7 @@ export function SellWizard({
                       onClick={() => removePhoto(p)}
                       aria-label={`Remove photo ${i + 1}`}
                       title="Remove this photo"
-                      className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-[var(--bx-ink)]/80 text-white text-base leading-none grid place-items-center hover:bg-[var(--bx-red)] transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
+                      className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-[var(--tnt-ink)]/80 text-white text-base leading-none grid place-items-center hover:bg-[var(--tnt-red)] transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
                     >
                       ×
                     </button>
@@ -741,7 +741,7 @@ export function SellWizard({
                 ))}
               </div>
             ) : (
-              <div className="aspect-video rounded-lg border border-dashed border-[var(--bx-line-strong)] flex items-center justify-center text-muted text-sm">
+              <div className="aspect-video rounded-lg border border-dashed border-[var(--tnt-line-strong)] flex items-center justify-center text-muted text-sm">
                 No photos
               </div>
             )}
@@ -780,11 +780,11 @@ export function SellWizard({
               )}
             </div>
 
-            <div className="border-t border-[var(--bx-line)] pt-3 flex justify-between items-baseline">
+            <div className="border-t border-[var(--tnt-line)] pt-3 flex justify-between items-baseline">
               <span className="text-xs uppercase tracking-wide text-muted font-semibold">
                 Listed Price
               </span>
-              <span className="font-display text-3xl font-semibold text-[var(--bx-red)]">
+              <span className="font-display text-3xl font-semibold text-[var(--tnt-red)]">
                 {priceCents > 0 ? formatCents(priceCents) : "—"}
               </span>
             </div>
@@ -796,7 +796,7 @@ export function SellWizard({
             <button
               type="button"
               onClick={() => setStep(0)}
-              className="bx-btn bx-btn--ghost flex-1"
+              className="tnt-btn tnt-btn--ghost flex-1"
               disabled={busy}
             >
               ← Edit
@@ -804,7 +804,7 @@ export function SellWizard({
             <button
               type="button"
               onClick={() => submit("draft")}
-              className="bx-btn bx-btn--ghost flex-1"
+              className="tnt-btn tnt-btn--ghost flex-1"
               disabled={busy}
             >
               {busy ? "Saving…" : "Save as Draft"}
@@ -812,7 +812,7 @@ export function SellWizard({
             <button
               type="button"
               onClick={() => submit("post")}
-              className="bx-btn flex-1"
+              className="tnt-btn flex-1"
               disabled={busy}
             >
               {busy ? "Posting…" : "Post Listing"}
@@ -823,7 +823,7 @@ export function SellWizard({
             Drafts live in your{" "}
             <Link
               href="/dashboard"
-              className="!text-[var(--bx-red)] font-semibold"
+              className="!text-[var(--tnt-red)] font-semibold"
             >
               dashboard
             </Link>{" "}
@@ -864,8 +864,8 @@ function Step({
   return (
     <span className="flex items-center gap-2">
       <span
-        className={`bx-step ${
-          active ? "bx-step--active" : done ? "bx-step--done" : ""
+        className={`tnt-step ${
+          active ? "tnt-step--active" : done ? "tnt-step--done" : ""
         }`}
       >
         {done ? "✓" : n}

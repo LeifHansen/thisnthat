@@ -16,11 +16,11 @@ type Tone = "green" | "blue" | "purple" | "pink" | "amber";
 // Soft tint / value color / border, drawn from the brand palette. Blue and
 // amber have no `-soft` var yet, so their tints are inlined here.
 const TONES: Record<Tone, { bg: string; fg: string; ring: string }> = {
-  green: { bg: "var(--bx-green-soft)", fg: "var(--bx-green)", ring: "var(--bx-green)" },
-  blue: { bg: "#e7f0fc", fg: "var(--bx-blue)", ring: "var(--bx-blue)" },
-  purple: { bg: "var(--bx-purple-soft)", fg: "var(--bx-purple-text)", ring: "var(--bx-purple)" },
-  pink: { bg: "var(--bx-red-soft)", fg: "var(--bx-red)", ring: "var(--bx-red)" },
-  amber: { bg: "#fbf1d6", fg: "#a9790f", ring: "var(--bx-yellow)" },
+  green: { bg: "var(--tnt-green-soft)", fg: "var(--tnt-green)", ring: "var(--tnt-green)" },
+  blue: { bg: "#e7f0fc", fg: "var(--tnt-blue)", ring: "var(--tnt-blue)" },
+  purple: { bg: "var(--tnt-purple-soft)", fg: "var(--tnt-purple-text)", ring: "var(--tnt-purple)" },
+  pink: { bg: "var(--tnt-red-soft)", fg: "var(--tnt-red)", ring: "var(--tnt-red)" },
+  amber: { bg: "#fbf1d6", fg: "#a9790f", ring: "var(--tnt-yellow)" },
 };
 
 export function AdminOverview({
@@ -45,7 +45,7 @@ export function AdminOverview({
       </div>
 
       {!kpis ? (
-        <div className="bx-panel p-8 text-center text-[var(--bx-red)]">
+        <div className="tnt-panel p-8 text-center text-[var(--tnt-red)]">
           Couldn&apos;t load metrics. The database schema may be out of date in
           this environment.
         </div>
@@ -218,14 +218,14 @@ function Tile({
       <Link
         href={href}
         style={style}
-        className="bx-panel p-4 block transition-transform hover:-translate-y-0.5"
+        className="tnt-panel p-4 block transition-transform hover:-translate-y-0.5"
       >
         {body}
       </Link>
     );
   }
   return (
-    <div style={style} className="bx-panel p-4">
+    <div style={style} className="tnt-panel p-4">
       {body}
     </div>
   );

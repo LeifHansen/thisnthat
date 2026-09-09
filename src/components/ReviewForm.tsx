@@ -46,7 +46,7 @@ export function ReviewForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="bx-panel p-4 space-y-3">
+    <form onSubmit={onSubmit} className="tnt-panel p-4 space-y-3">
       <p className="font-display text-sm">How was your {beanieName}?</p>
       <div className="flex items-center gap-1" role="radiogroup" aria-label="Star rating">
         {[1, 2, 3, 4, 5].map((n) => (
@@ -60,7 +60,7 @@ export function ReviewForm({
             onMouseEnter={() => setHover(n)}
             onMouseLeave={() => setHover(0)}
             className={`text-2xl leading-none transition-colors ${
-              n <= (hover || rating) ? "text-[#f5a623]" : "text-[var(--bx-line-strong)]"
+              n <= (hover || rating) ? "text-[#f5a623]" : "text-[var(--tnt-line-strong)]"
             }`}
           >
             ★
@@ -68,7 +68,7 @@ export function ReviewForm({
         ))}
       </div>
       <textarea
-        className="bx-input"
+        className="tnt-input"
         rows={3}
         maxLength={2000}
         value={body}
@@ -76,7 +76,7 @@ export function ReviewForm({
         placeholder="Condition as described? Packaging, shipping speed, anything future buyers should know. (Optional)"
       />
       {err && <p className="text-red-600 text-sm">{err}</p>}
-      <button type="submit" className="bx-btn !py-2" disabled={busy}>
+      <button type="submit" className="tnt-btn !py-2" disabled={busy}>
         {busy ? "Saving…" : "Submit review"}
       </button>
     </form>

@@ -10,7 +10,7 @@ export function CartView() {
   const { items, remove, ready } = useCart();
 
   if (!ready) {
-    return <div className="bx-panel p-10 text-center text-muted">Loading…</div>;
+    return <div className="tnt-panel p-10 text-center text-muted">Loading…</div>;
   }
 
   if (items.length === 0) {
@@ -18,11 +18,11 @@ export function CartView() {
       <div className="max-w-2xl mx-auto space-y-6 text-center">
         <h1 className="text-2xl sm:text-3xl">Your cart is empty</h1>
         <p className="text-muted">
-          Find an authenticated beanie you love and add it to your cart.
+          Find something you love and add it to your cart.
         </p>
-        <Link href="/browse" className="bx-btn inline-flex">
+        <Link href="/browse" className="tnt-btn inline-flex">
           <BasketIcon className="h-5 w-5" />
-          Shop Beanies
+          Browse listings
         </Link>
       </div>
     );
@@ -43,11 +43,11 @@ export function CartView() {
         {items.map((item) => (
           <div
             key={item.listingId}
-            className="bx-panel p-3 flex items-center gap-3 sm:gap-4"
+            className="tnt-panel p-3 flex items-center gap-3 sm:gap-4"
           >
             <Link
               href={`/listings/${item.listingId}`}
-              className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-lg border border-[var(--bx-line)] bg-[var(--bx-surface)]"
+              className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-lg border border-[var(--tnt-line)] bg-[var(--tnt-surface)]"
             >
               {item.photo ? (
                 <Image
@@ -70,14 +70,14 @@ export function CartView() {
               >
                 {item.title}
               </Link>
-              <p className="text-[var(--bx-red)] font-extrabold mt-1">
+              <p className="text-[var(--tnt-red)] font-extrabold mt-1">
                 {formatCents(item.priceCents)}
               </p>
             </div>
             <button
               type="button"
               onClick={() => remove(item.listingId)}
-              className="shrink-0 text-xs font-semibold text-muted hover:!text-[var(--bx-red)] underline"
+              className="shrink-0 text-xs font-semibold text-muted hover:!text-[var(--tnt-red)] underline"
             >
               Remove
             </button>
@@ -85,7 +85,7 @@ export function CartView() {
         ))}
       </div>
 
-      <div className="bx-panel p-5 space-y-3">
+      <div className="tnt-panel p-5 space-y-3">
         <div className="flex justify-between">
           <span className="text-muted">Subtotal</span>
           <span className="font-bold">{formatCents(subtotalCents)}</span>
@@ -94,13 +94,13 @@ export function CartView() {
           Shipping is calculated at checkout. No account required — you can
           check out as a guest.
         </p>
-        <Link href="/checkout" className="bx-btn w-full">
+        <Link href="/checkout" className="tnt-btn w-full">
           <BasketIcon className="h-5 w-5" />
           Proceed to Checkout
         </Link>
         <Link
           href="/browse"
-          className="block text-center text-sm font-semibold !text-[var(--bx-red)]"
+          className="block text-center text-sm font-semibold !text-[var(--tnt-red)]"
         >
           ← Continue shopping
         </Link>

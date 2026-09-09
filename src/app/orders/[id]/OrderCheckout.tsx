@@ -72,7 +72,7 @@ export function OrderCheckout({
 
   if (authorized) {
     return (
-      <div className="bx-panel p-5 space-y-2">
+      <div className="tnt-panel p-5 space-y-2">
         <h2 className="text-ink">Payment authorized ✓</h2>
         <p className="text-muted text-sm">
           Your card is authorized and the funds are held in escrow. Updating
@@ -84,7 +84,7 @@ export function OrderCheckout({
 
   if (clientSecret && stripePromise) {
     return (
-      <div className="bx-panel p-5 space-y-3">
+      <div className="tnt-panel p-5 space-y-3">
         <h2 className="text-ink">Pay for your order</h2>
         <Elements stripe={stripePromise} options={{ clientSecret }}>
           <PayForm
@@ -97,7 +97,7 @@ export function OrderCheckout({
   }
 
   return (
-    <div className="bx-panel p-5 space-y-3">
+    <div className="tnt-panel p-5 space-y-3">
       <h2 className="text-ink">Payment</h2>
       <p className="text-muted text-sm">
         Your offer was accepted at this price. Authorize payment to reserve the
@@ -110,7 +110,7 @@ export function OrderCheckout({
           Card payments are temporarily unavailable. Please try again shortly.
         </p>
       ) : (
-        <button className="bx-btn w-full" disabled={busy} onClick={start}>
+        <button className="tnt-btn w-full" disabled={busy} onClick={start}>
           {busy ? "Preparing…" : `Continue to Payment — ${totalLabel}`}
         </button>
       )}
@@ -145,7 +145,7 @@ function PayForm({ total, onPaid }: { total: string; onPaid: () => void }) {
     <form onSubmit={pay} className="space-y-4">
       <PaymentElement />
       {err && <p className="text-red-600 text-sm">{err}</p>}
-      <button className="bx-btn w-full" disabled={busy || !stripe} type="submit">
+      <button className="tnt-btn w-full" disabled={busy || !stripe} type="submit">
         {busy ? "Processing…" : `Authorize ${total}`}
       </button>
     </form>

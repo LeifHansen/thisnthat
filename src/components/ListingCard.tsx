@@ -2,66 +2,69 @@ import Link from "next/link";
 import type { Listing } from "@prisma/client";
 import { formatCents } from "@/lib/fees";
 import { firstRealPhoto } from "@/lib/photos";
-import { AuthBadge } from "@/components/AuthBadge";
+import { ConditionBadge } from "@/components/ConditionBadge";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { PhotoCarousel } from "@/components/PhotoCarousel";
 
 // The subset of Listing a card actually renders. Accepting a Pick (rather than
-// the full Prisma model) lets the same card render from a server query OR from
-// the JSON the /api/listings load-more endpoint returns.
+// the full Prisma model) lets the same card render from a server query
+// (CARD_SELECT in src/lib/listings.ts selects exactly this) OR from the JSON
+// the /api/listings load-more endpoint returns.
 export type ListingCardData = Pick<
   Listing,
   | "id"
   | "title"
-  | "beanieName"
   | "priceCents"
   | "photos"
-  | "authType"
-  | "registrationNumber"
-  | "grade"
+  | "condition"
   | "sellerId"
   | "status"
   | "quantity"
+  | "isLot"
+  | "categoryId"
 >;
 
 export function ListingCard({ listing }: { listing: ListingCardData }) {
   const photo = firstRealPhoto(listing.photos);
+  const soldOut = listing.status === "SOLD" || listing.quantity <= 0;
+  const href = `/listings/${listing.id}`;
 
   return (
-    <div className="bx-panel p-3 h-full flex flex-col gap-2.5 transition-shadow hover:shadow-[var(--bx-shadow-lg)]">
-      <Link
-        href={`/listings/${listing.id}`}
-        aria-label={`View ${listing.title}`}
-        className="block"
-      >
-        <PhotoCarousel
-          photos={listing.photos}
-          alt={listing.title}
-          compact
-          sizes="(max-width:768px) 50vw, 25vw"
-        />
-      </Link>
+    <div className="tnt-panel p-3 h-full flex flex-col gap-2.5 transition-shadow hover:shadow-[var(--tnt-shadow-lg)]">
+      <div className="relative">
+        <Link href={href} aria-label={`View ${listing.title}`} className="block">
+          <PhotoCarousel
+            photos={listing.photos}
+            alt={listing.title}
+            compact
+            sizes="(max-width:768px) 50vw, 25vw"
+          />
+        </Link>
+        {/* A lot rendered through the plain card (e.g. "More from this
+            seller") still needs to read as a bundle; LotCard adds the count. */}
+        {listing.isLot && (
+          <span className="absolute top-2 left-2 z-10 rounded-full bg-[var(--tnt-purple)] text-white text-[11px] font-bold px-2 py-0.5 shadow-[var(--tnt-shadow-sm)]">
+            Lot
+          </span>
+        )}
+      </div>
 
-      <Link href={`/listings/${listing.id}`} className="!text-ink">
+      <Link href={href} className="!text-ink">
         <h3 className="text-sm font-bold leading-tight line-clamp-2 hover:opacity-80">
           {listing.title}
         </h3>
       </Link>
 
       <div className="flex items-center justify-between gap-2">
-        <p className="text-lg font-extrabold text-[var(--bx-red)] leading-none">
+        <p className="text-lg font-extrabold text-[var(--tnt-red)] leading-none">
           {formatCents(listing.priceCents)}
         </p>
-        <AuthBadge
-          authType={listing.authType}
-          registrationNumber={listing.registrationNumber}
-          grade={listing.grade}
-        />
+        <ConditionBadge condition={listing.condition} />
       </div>
 
       <div className="mt-auto pt-0.5">
-        {listing.status === "SOLD" || listing.quantity <= 0 ? (
-          <p className="bx-badge bx-badge--error w-full justify-center text-center">
+        {soldOut ? (
+          <p className="tnt-badge tnt-badge--error w-full justify-center text-center">
             Sold Out
           </p>
         ) : (

@@ -8,7 +8,7 @@ export default function RootLoading() {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-24">
       <span
-        className="h-10 w-10 rounded-full border-4 border-[var(--bx-line)] border-t-[var(--bx-red)] animate-spin"
+        className="h-10 w-10 rounded-full border-4 border-[var(--tnt-line)] border-t-[var(--tnt-red)] animate-spin"
         role="status"
         aria-label="Loading"
       />
