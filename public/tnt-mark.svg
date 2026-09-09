@@ -2,13 +2,13 @@
   
   <g transform="translate(0 0) scale(1)">
     <g transform="translate(256 256) rotate(-32) translate(-256 -256) translate(-22 -58)">
-      <path d="M 96 256 L 176 176 H 404 Q 432 176 432 204 V 308 Q 432 336 404 336 H 176 Z" fill="#1f7a8c" />
-      <circle cx="158" cy="256" r="17" fill="#ffffff"/>
+      <path d="M 96 256 L 176 176 H 404 Q 432 176 432 204 V 308 Q 432 336 404 336 H 176 Z" fill="#00e5ff" stroke="#0a0a0a" stroke-width="14" stroke-linejoin="round"/>
+      <circle cx="158" cy="256" r="17" fill="#ffffff" stroke="#0a0a0a" stroke-width="8"/>
     </g>
     <g transform="translate(256 256) rotate(-32) translate(-256 -256) translate(26 50)">
-      <path d="M 96 256 L 176 176 H 404 Q 432 176 432 204 V 308 Q 432 336 404 336 H 176 Z" fill="#d9553b" stroke="#ffffff" stroke-width="10" stroke-linejoin="round"/>
-      <circle cx="158" cy="256" r="17" fill="#ffffff"/>
-      <g fill="#ffffff">
+      <path d="M 96 256 L 176 176 H 404 Q 432 176 432 204 V 308 Q 432 336 404 336 H 176 Z" fill="#ff3eb5" stroke="#0a0a0a" stroke-width="14" stroke-linejoin="round"/>
+      <circle cx="158" cy="256" r="17" fill="#ffffff" stroke="#0a0a0a" stroke-width="8"/>
+      <g fill="#fff200" stroke="#0a0a0a" stroke-width="6" stroke-linejoin="round">
        <circle cx="318" cy="232" r="24"/>
        <path d="M 294.48 236.8
                 Q 315.6 277.6 285.6 298

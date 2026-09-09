@@ -145,42 +145,61 @@ uploads are disabled and listings show the placeholder image.
 
 ## Deploy (Fly.io)
 
-The app is `thisnthat` (`fly.toml`); its public URL is
-`https://thisnthat.fly.dev` until a domain is attached (then update
-`NEXT_PUBLIC_APP_URL` in `fly.toml` and set `SITE_URL`). Pushing to `main`
-deploys via `.github/workflows/fly-deploy.yml`, which passes the GA ID as a
-build arg. The release command (`scripts/release.sh`) runs
-`prisma migrate deploy` and the seed — both non-fatal — and
-`docker-entrypoint.js` re-runs the migration as a backstop once the server
-holds the port.
+`fly.toml` describes the app (`thisnthat`), `Dockerfile` builds it, and
+`scripts/release.sh` runs the Prisma migrations + the idempotent seed on every
+release. `scripts/fly-setup.sh` does the first-time provisioning in one go.
 
-Set every secret with `fly secrets set`: `DATABASE_URL`, `DIRECT_URL`,
-`AUTH_SECRET`, `STRIPE_*`, `EASYPOST_*`, `SENDGRID_*`, `R2_*`,
-`SUPERADMIN_EMAIL`, `SITE_URL`, `SUPPORT_EMAIL` and the optional keys above.
+### First deploy
 
-### Nothing may sit in front of the port
+1. Install flyctl and sign in: https://fly.io/docs/flyctl/install/ then `fly auth login`.
+2. Copy `.env.example` to `.env.fly` (gitignored) and fill in the **live**
+   values: Stripe secret + publishable keys, SendGrid, R2, `SITE_URL`,
+   `SUPERADMIN_EMAIL`. Leave `STRIPE_WEBHOOK_SECRET` for step 4.
+3. From the repo root:
 
-`min_machines_running` pins only the primary region, so every other region
-autostops to zero and cold-starts on the next request. Fly's proxy waits about
-8.4s for `:8080` and then answers the visitor with *"instance refused
-connection. is your app listening on 0.0.0.0:8080?"* — the whole cold start has
-to fit in that budget, and the machine itself takes ~1.2s of it.
+   ```bash
+   bash scripts/fly-setup.sh          # or: APP=my-app REGION=lhr bash scripts/fly-setup.sh
+   ```
 
-So the container execs the `next` binary directly rather than `npm run start`,
-and the entrypoint's migration backstop does not run until the port is already
-accepting connections. Anything added to the boot path has to hold that line;
-the read-only `prod-diagnostics` workflow (manual trigger) prints the boot
-logs, probes the public endpoints, and runs Lighthouse against the origin.
+   It creates the app, a Fly Postgres cluster (`thisnthat-db`, attached as
+   `DATABASE_URL`), a random `AUTH_SECRET`, every secret from `.env.fly`, then
+   deploys. Re-running is safe. Bring your own Postgres instead by setting
+   `DATABASE_URL` (and `DIRECT_URL`) in `.env.fly` before the first run.
+4. Stripe → Developers → Webhooks: add
+   `https://<app>.fly.dev/api/stripe/webhook` for
+   `payment_intent.amount_capturable_updated`, `payment_intent.succeeded`,
+   `payment_intent.canceled`, `charge.dispute.created`, then
+   `fly secrets set STRIPE_WEBHOOK_SECRET=whsec_…`. Enable **Connect**
+   (Express) — sellers only need the `transfers` capability.
+5. EasyPost → Webhooks: `https://<app>.fly.dev/api/easypost/webhook`, then
+   `fly secrets set EASYPOST_WEBHOOK_SECRET=…`.
+6. Sign in as `SUPERADMIN_EMAIL` and open `/api/health` — it lists anything
+   still missing or in test mode.
 
-### If a CDN/WAF is ever put in front of the origin
+### Custom domain
 
-Stripe and EasyPost call `POST /api/stripe/webhook` and
-`POST /api/easypost/webhook` server-to-server. A managed challenge on those
-paths silently blocks every webhook — the money is authorized at Stripe
-either way, so nothing fails loudly, but capture and payouts stall until the
-buyer clicks "confirm receipt". Add a skip rule for `/api/*/webhook` and
-verify with the diagnostics workflow's endpoint-probe step (expect
-`400 Missing stripe-signature header`, not `403`).
+```bash
+fly certs add yourdomain.com
+fly secrets set SITE_URL=https://yourdomain.com SENDGRID_FROM=notifications@yourdomain.com
+```
+
+and change `NEXT_PUBLIC_APP_URL` in `fly.toml` `[build.args]` (it is inlined at
+build time), then redeploy.
+
+### Deploys from GitHub
+
+`.github/workflows/fly-deploy.yml` deploys on every push to `main` (and, until
+the default branch is renamed, `claude/gallant-hopper-kzsuj4`), or manually
+from the Actions tab. It needs two repository secrets:
+
+- `FLY_API_TOKEN` — `fly tokens create deploy -x 999999h`
+- `NEXT_PUBLIC_GA_ID` — optional GA4 measurement id (build arg)
+
+Everything except the `NEXT_PUBLIC_*` build args is a runtime secret
+(`fly secrets set …`), so keys can be rotated without a rebuild — including
+the Stripe publishable key, which is read per request in
+`src/lib/stripePublic.ts`. `/api/live` is the liveness check Fly uses; it
+never depends on configuration.
 
 ## CI
 

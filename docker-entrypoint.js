@@ -13,6 +13,12 @@ if (!env.DATABASE_URL && env.DEV_DATABASE_URL) {
   env.DATABASE_URL = env.DEV_DATABASE_URL;
   env.DIRECT_URL ||= env.DEV_DATABASE_URL.replace("-pooler", "");
 }
+// Fly Postgres (`fly postgres attach`) sets only DATABASE_URL, and the schema
+// declares `directUrl = env("DIRECT_URL")`, which Prisma refuses to start
+// without. Derive it the same way: identical URL, minus any pooler suffix.
+if (env.DATABASE_URL && !env.DIRECT_URL) {
+  env.DIRECT_URL = env.DATABASE_URL.replace("-pooler", "");
+}
 
 // The port Fly's proxy waits on (fly.toml `internal_port`). Same default Next
 // itself uses, so this matches wherever the app ends up listening.

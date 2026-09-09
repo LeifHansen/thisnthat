@@ -29,7 +29,15 @@ export const metadata: Metadata = {
 
 const PAGE_SIZE = 12;
 
-const sectionLink = "text-sm font-semibold !text-[var(--tnt-red)] shrink-0";
+const sectionLink = "text-sm font-bold !text-[var(--tnt-red)] shrink-0";
+
+// Category tiles cycle through the neon palette for the glyph square.
+const NEON = [
+  "var(--tnt-neon-green)",
+  "var(--tnt-neon-pink)",
+  "var(--tnt-neon-blue)",
+  "var(--tnt-neon-yellow)",
+] as const;
 
 // ── Data sections (each streams in behind its own Suspense boundary) ──
 
@@ -48,7 +56,7 @@ async function CategoryTiles() {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-      {CATEGORIES.map((c) => {
+      {CATEGORIES.map((c, i) => {
         const n = bySlug.get(c.slug) ?? 0;
         return (
           <Link
@@ -57,7 +65,11 @@ async function CategoryTiles() {
             title={c.blurb}
             className="tnt-card p-4 flex items-center gap-3 !text-ink"
           >
-            <span className="text-3xl leading-none" aria-hidden>
+            <span
+              className="text-2xl leading-none grid place-items-center h-12 w-12 shrink-0 rounded-xl border-[3px] border-[var(--tnt-ink)]"
+              style={{ background: NEON[i % NEON.length] }}
+              aria-hidden
+            >
               {c.emoji}
             </span>
             <span className="min-w-0">
@@ -370,12 +382,16 @@ export default function Home() {
   return (
     <div className="space-y-14 sm:space-y-20">
       {/* Hero — static, so it paints and hydrates before any query resolves. */}
-      <section className="text-center max-w-3xl mx-auto space-y-6 pt-2 sm:pt-8">
-        <p className="tnt-badge mx-auto">
+      <section className="tnt-hero px-5 py-10 sm:px-10 sm:py-16 text-center space-y-6">
+        <p className="tnt-badge tnt-sticker mx-auto relative">
           Free to list · {PLATFORM_FEE_LABEL} when it sells
         </p>
-        <h1 className="text-4xl sm:text-6xl text-balance">{SITE_TAGLINE}</h1>
-        <p className="text-lg text-muted max-w-xl mx-auto text-balance">
+        <h1 className="relative text-4xl sm:text-6xl lg:text-7xl text-balance !text-white leading-[1.05]">
+          <span className="tnt-neon-pink">Sell what you have.</span>
+          <br />
+          <span className="tnt-neon-green">Find what you need.</span>
+        </h1>
+        <p className="relative text-lg sm:text-xl text-white/85 max-w-xl mx-auto text-balance font-semibold">
           A marketplace for everything you&apos;re done with — and everything
           you&apos;re after.
         </p>
@@ -383,7 +399,7 @@ export default function Home() {
           action="/browse"
           method="get"
           role="search"
-          className="flex gap-2 max-w-xl mx-auto"
+          className="relative flex gap-2 max-w-xl mx-auto"
         >
           <label htmlFor="home-search" className="sr-only">
             Search listings
@@ -395,11 +411,11 @@ export default function Home() {
             placeholder="Search for anything — a denim jacket, a camera, a print…"
             className="tnt-input"
           />
-          <button type="submit" className="tnt-btn shrink-0 !px-5">
+          <button type="submit" className="tnt-btn tnt-btn--green shrink-0 !px-5">
             Search
           </button>
         </form>
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="relative flex flex-wrap justify-center gap-3">
           <Link href="/browse" className="tnt-btn tnt-btn--ghost">
             Browse everything
           </Link>

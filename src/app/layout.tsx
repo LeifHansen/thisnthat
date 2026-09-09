@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { DM_Sans, Fraunces } from "next/font/google";
+import { Fredoka, Nunito } from "next/font/google";
 import Link from "next/link";
 import Image from "next/image";
 import Script from "next/script";
@@ -22,15 +22,16 @@ import { Toaster, ToastFromQuery } from "@/lib/toast";
 // is only emitted when one is configured.
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID?.trim() || "";
 
-// Typography: DM Sans for body/UI, Fraunces (a warm serif) for headings.
+// Typography: Nunito (rounded sans) for body/UI, Fredoka (chunky rounded
+// display) for headings, buttons and badges — the cartoon half of the theme.
 // Both are variable fonts, so no weight list is needed. globals.css reads
 // --font-body and --font-heading (and aliases the latter to --font-display).
-const dmSans = DM_Sans({
+const nunito = Nunito({
   variable: "--font-body",
   subsets: ["latin"],
   display: "swap",
 });
-const fraunces = Fraunces({
+const fredoka = Fredoka({
   variable: "--font-heading",
   subsets: ["latin"],
   display: "swap",
@@ -102,7 +103,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#faf7f2",
+  themeColor: "#0a0a0a",
 };
 
 const NAV: { href: string; label: string }[] = [
@@ -112,9 +113,10 @@ const NAV: { href: string; label: string }[] = [
   { href: "/blog", label: "Blog" },
 ];
 
+// Header sits on black: white pills that light up neon on hover.
 const navLink =
-  "rounded-full px-3.5 py-1.5 text-[0.95rem] font-semibold !text-ink hover:bg-[var(--tnt-surface)] transition-colors";
-const footerLink = "block py-1 hover:!text-ink";
+  "rounded-full px-3.5 py-1.5 font-display text-[0.95rem] font-bold !text-white hover:bg-[var(--tnt-neon-green)] hover:!text-ink transition-colors";
+const footerLink = "block py-1 !text-white/80 hover:!text-[var(--tnt-neon-pink)]";
 
 export default async function RootLayout({
   children,
@@ -134,7 +136,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${nunito.variable} ${fredoka.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[var(--tnt-bg)] text-ink">
         {/* Stops the mouse wheel from silently changing focused number inputs
@@ -199,11 +201,11 @@ export default async function RootLayout({
             }}
           />
 
-          <header className="sticky top-0 z-50 bg-[var(--tnt-bg2)]/90 backdrop-blur border-b border-[var(--tnt-line)]">
+          <header className="sticky top-0 z-50 bg-[var(--tnt-dark)] border-b-[4px] border-[var(--tnt-neon-green)] text-white">
             <div className="mx-auto max-w-7xl px-4 h-16 flex flex-nowrap items-center gap-2 lg:gap-4">
               <Link
                 href="/"
-                className="shrink-0 flex items-center gap-2 !text-ink"
+                className="shrink-0 flex items-center gap-2 !text-white"
                 aria-label={`${SITE_NAME} home`}
               >
                 {/* `sizes` pins the srcset to the real display size so a
@@ -219,8 +221,8 @@ export default async function RootLayout({
                 />
                 {/* Hidden at the very smallest widths so the cart, admin pill
                     and menu button still fit a 360px header. */}
-                <span className="hidden min-[400px]:inline font-display text-[1.45rem] sm:text-[1.6rem] font-semibold tracking-tight leading-none">
-                  This<span className="!text-[var(--tnt-red)]">&rsquo;n&rsquo;</span>that
+                <span className="hidden min-[400px]:inline font-display text-[1.5rem] sm:text-[1.7rem] font-bold tracking-tight leading-none !text-white">
+                  This<span className="!text-[var(--tnt-neon-pink)]">&rsquo;n&rsquo;</span>that
                 </span>
               </Link>
 
@@ -245,7 +247,7 @@ export default async function RootLayout({
                     {showAdminButton && (
                       <Link
                         href={adminHref}
-                        className="rounded-full bg-[var(--tnt-red)] !text-white px-3 py-1.5 text-xs font-bold hover:bg-[var(--tnt-red-dark)]"
+                        className="rounded-full border-2 border-white bg-[var(--tnt-neon-yellow)] !text-ink px-3 py-1.5 text-xs font-bold hover:bg-[var(--tnt-neon-pink)]"
                       >
                         Admin
                       </Link>
@@ -273,7 +275,7 @@ export default async function RootLayout({
                     href="/messages"
                     aria-label={`Inbox${unreadMessages > 0 ? ` (${unreadMessages} unread)` : ""}`}
                     title="Inbox"
-                    className="relative rounded-full border border-[var(--tnt-line-strong)] bg-white !text-ink p-2 hover:bg-[var(--tnt-surface)] transition-colors"
+                    className="relative rounded-full border-[3px] border-[var(--tnt-ink)] bg-white !text-ink p-2 shadow-[3px_3px_0_var(--tnt-neon-blue)] hover:bg-[var(--tnt-neon-yellow)] transition-colors"
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -289,7 +291,7 @@ export default async function RootLayout({
                       <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
                     </svg>
                     {unreadMessages > 0 && (
-                      <span className="absolute -top-2 -right-2 rounded-full bg-[var(--tnt-red)] text-white text-[10px] font-bold leading-none px-1.5 py-1">
+                      <span className="absolute -top-2 -right-2 rounded-full border-2 border-[var(--tnt-ink)] bg-[var(--tnt-neon-pink)] text-ink text-[10px] font-bold leading-none px-1.5 py-1">
                         {unreadMessages > 99 ? "99+" : unreadMessages}
                       </span>
                     )}
@@ -301,7 +303,7 @@ export default async function RootLayout({
               {showAdminButton && (
                 <Link
                   href={adminHref}
-                  className="lg:hidden ml-auto inline-flex items-center h-10 rounded-full bg-[var(--tnt-red)] px-3 !text-white text-xs font-bold hover:bg-[var(--tnt-red-dark)]"
+                  className="lg:hidden ml-auto inline-flex items-center h-10 rounded-full border-2 border-white bg-[var(--tnt-neon-yellow)] px-3 !text-ink text-xs font-bold hover:bg-[var(--tnt-neon-pink)]"
                 >
                   Admin
                 </Link>
@@ -331,11 +333,11 @@ export default async function RootLayout({
             <ToastFromQuery />
           </Suspense>
 
-          <footer className="bg-[var(--tnt-surface)] border-t border-[var(--tnt-line)] py-12 text-sm text-muted">
+          <footer className="bg-[var(--tnt-dark)] border-t-[4px] border-[var(--tnt-neon-pink)] py-12 text-sm text-white/80">
             {/* Phones: brand full-width, then link sections paired 2-up. */}
             <div className="mx-auto max-w-6xl px-4 grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-5 lg:gap-8">
               <div className="space-y-3 col-span-2 lg:col-span-1">
-                <Link href="/" className="!text-ink inline-flex items-center gap-2">
+                <Link href="/" className="!text-white inline-flex items-center gap-2">
                   <Image
                     src="/tnt-mark.svg"
                     alt=""
@@ -344,8 +346,8 @@ export default async function RootLayout({
                     sizes="28px"
                     className="h-7 w-7"
                   />
-                  <span className="font-display text-lg font-semibold tracking-tight">
-                    This<span className="!text-[var(--tnt-red)]">&rsquo;n&rsquo;</span>that
+                  <span className="font-display text-lg font-bold tracking-tight !text-white">
+                    This<span className="!text-[var(--tnt-neon-pink)]">&rsquo;n&rsquo;</span>that
                   </span>
                 </Link>
                 <p className="text-xs leading-relaxed max-w-xs">
@@ -355,7 +357,7 @@ export default async function RootLayout({
                 </p>
               </div>
               <div className="space-y-2.5">
-                <p className="font-semibold text-ink">Marketplace</p>
+                <p className="font-display font-bold text-[var(--tnt-neon-green)] uppercase tracking-wide text-xs">Marketplace</p>
                 <Link href="/browse" className={footerLink}>
                   Browse
                 </Link>
@@ -367,7 +369,7 @@ export default async function RootLayout({
                 </Link>
               </div>
               <div className="space-y-2.5">
-                <p className="font-semibold text-ink">Account</p>
+                <p className="font-display font-bold text-[var(--tnt-neon-green)] uppercase tracking-wide text-xs">Account</p>
                 {session?.user ? (
                   <Link href="/dashboard" className={footerLink}>
                     Dashboard
@@ -382,7 +384,7 @@ export default async function RootLayout({
                 </Link>
               </div>
               <div className="space-y-2.5">
-                <p className="font-semibold text-ink">Help</p>
+                <p className="font-display font-bold text-[var(--tnt-neon-green)] uppercase tracking-wide text-xs">Help</p>
                 <Link href="/blog" className={footerLink}>
                   Blog
                 </Link>
@@ -394,7 +396,7 @@ export default async function RootLayout({
                 </Link>
               </div>
               <div className="space-y-2.5">
-                <p className="font-semibold text-ink">Legal</p>
+                <p className="font-display font-bold text-[var(--tnt-neon-green)] uppercase tracking-wide text-xs">Legal</p>
                 <Link href="/terms" className={footerLink}>
                   Terms
                 </Link>
@@ -406,11 +408,11 @@ export default async function RootLayout({
                 </Link>
               </div>
             </div>
-            <div className="mx-auto max-w-6xl px-4 mt-10 pt-6 border-t border-[var(--tnt-line)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="mx-auto max-w-6xl px-4 mt-10 pt-6 border-t-2 border-white/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
               <p>
                 © {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
               </p>
-              <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:!text-ink">
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="!text-white/80 hover:!text-[var(--tnt-neon-green)]">
                 {SUPPORT_EMAIL}
               </a>
             </div>

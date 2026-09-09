@@ -1,11 +1,18 @@
 name: Deploy to Fly.io
 
-# Deploys the `thisnthat` Fly app (see fly.toml). Pushing to `main` deploys;
-# the manual trigger is for re-deploying the current tree without a commit.
+# Deploys the `thisnthat` Fly app (see fly.toml). Pushing to the production
+# branch deploys; the manual trigger is for re-deploying the current tree
+# without a commit. Needs the FLY_API_TOKEN repository secret (and optionally
+# NEXT_PUBLIC_GA_ID) — scripts/fly-setup.sh walks through creating both.
+#
+# `main` is the intended production branch. The repository's default branch
+# is currently `claude/gallant-hopper-kzsuj4`; rename it to `main` (GitHub →
+# Settings → Branches) or leave both listed here — either way only pushes to a
+# branch named below deploy.
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude/gallant-hopper-kzsuj4]
   workflow_dispatch:
 
 concurrency:

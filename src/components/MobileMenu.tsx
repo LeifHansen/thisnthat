@@ -34,7 +34,7 @@ export function MobileMenu({
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="-mr-1 p-2.5 text-ink"
+        className="-mr-1 p-2.5 text-white"
       >
         <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden>
           {open ? (
