@@ -1,7 +1,8 @@
 import "server-only";
 import type { z } from "zod";
 import { prisma } from "@/lib/db";
-import { recordCatalogueSubmission } from "@/lib/catalogue";
+import { categoryIdForSlug } from "@/lib/categoryStore";
+import { getCategory, validateAttributes } from "@/lib/categories";
 import type { listingSchema } from "@/lib/validation";
 
 /**
@@ -10,63 +11,47 @@ import type { listingSchema } from "@/lib/validation";
  *
  * The two callers differ only in how they get their input and where they send
  * the seller afterwards — a FormData post that redirects, versus a JSON post
- * that returns an id. What a listing *is* lives here, so the app can't drift
- * into publishing subtly different rows: which fields survive by auth type,
- * the dollars-to-cents conversion, and the catalogue submission that has to
- * happen on publish but not on save-as-draft.
+ * that returns an id. What a listing *is* lives here: the category lookup, the
+ * per-category attribute validation and the dollars-to-cents conversion.
  */
 export type ListingInput = z.infer<typeof listingSchema>;
 
+export class ListingInputError extends Error {}
+
 export async function createListingForSeller(
-  // The web's session user has an optional name; the app's always has one.
-  // recordCatalogueSubmission already takes it nullable, so accept both.
-  seller: { id: string; name?: string | null },
+  seller: { id: string },
   input: ListingInput,
   options: {
-    /** The authentication dropdown is a declaration, not a purchase — a
-     *  non-draft listing publishes immediately. */
+    /** A non-draft listing publishes immediately. */
     status: "DRAFT" | "ACTIVE";
     /** Seller's auto-accept floor in cents; null means every offer waits. */
     minAutoAcceptCents: number | null;
   },
 ): Promise<{ id: string }> {
+  const category = getCategory(input.categorySlug);
+  if (!category) throw new ListingInputError("Pick a category.");
+  const attrs = validateAttributes(category, input.attributes);
+  if (!attrs.ok) throw new ListingInputError(attrs.error);
+  const categoryId = await categoryIdForSlug(category.slug);
+
   const listing = await prisma.listing.create({
     data: {
       sellerId: seller.id,
       title: input.title,
-      beanieName: input.beanieName,
+      categoryId,
+      brand: input.brand || null,
+      itemName: input.itemName || null,
+      attributes: attrs.attributes,
       description: input.description,
       condition: input.condition,
-      year: input.year ?? null,
       priceCents: Math.round(input.price * 100),
       quantity: input.quantity,
-      authType: input.authType,
       photos: input.photos,
-      // A COA image only means something on a third-party COA listing, and a
-      // True Blue certificate id only on a True Blue one. Dropping the other
-      // keeps a seller from switching type and leaving stale provenance
-      // attached to the row.
-      coaImageUrl:
-        input.authType === "THIRD_PARTY_COA" ? input.coaImageUrl || null : null,
-      trueBlueCertId:
-        input.authType === "TRUE_BLUE" ? input.trueBlueCertId || null : null,
       minAutoAcceptCents: options.minAutoAcceptCents,
       status: options.status,
     },
+    select: { id: true },
   });
-
-  // If this beanie isn't in the catalogue, record it for admin review. The
-  // listing is already live — this is non-blocking and never fails a listing.
-  // A draft records nothing yet; publishing it later does this same call.
-  if (options.status === "ACTIVE") {
-    await recordCatalogueSubmission({
-      beanieName: input.beanieName,
-      year: input.year ?? null,
-      submittedByName: seller.name,
-      listingId: listing.id,
-    });
-  }
-
   return { id: listing.id };
 }
 
@@ -80,4 +65,24 @@ export function parseMinAutoAcceptCents(raw: unknown): number | null {
   const dollars = Number(text);
   if (!Number.isFinite(dollars) || dollars <= 0) return null;
   return Math.round(dollars * 100);
+}
+
+/**
+ * Parse the JSON `attributes` form field the wizards send. Anything that is
+ * not a flat object comes back empty so the schema reports a clean error
+ * rather than the action throwing.
+ */
+export function parseAttributesField(raw: unknown): Record<string, string> {
+  if (typeof raw !== "string" || !raw.trim()) return {};
+  try {
+    const obj: unknown = JSON.parse(raw);
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) return {};
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      out[k] = String(v ?? "");
+    }
+    return out;
+  } catch {
+    return {};
+  }
 }

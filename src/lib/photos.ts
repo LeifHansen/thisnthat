@@ -2,28 +2,17 @@ import type { Prisma } from "@prisma/client";
 
 // Single source of truth for "what counts as a real listing photo."
 //
-// Listings whose owner hasn't uploaded photos yet use a placeholder image (see
-// scripts/seed-inventory.ts). For ranking and "featured" purposes the
-// placeholder must NOT count as a real picture — listings with genuine photos
-// should surface above placeholder-only ones.
+// Listings whose owner hasn't uploaded photos yet use a placeholder image.
+// For ranking and "featured" purposes the placeholder must NOT count as a real
+// picture — listings with genuine photos should surface above placeholder-only
+// ones.
 
-/**
- * The placeholder rendered for listings with no real photo yet. WebP (22KB)
- * rather than the 1.7MB source PNG — it's rendered `unoptimized` in grids, so
- * the file is served as-is and its weight hits every visitor directly.
- */
-export const PLACEHOLDER_PHOTO = "/placeholderlisting.webp";
+/** The placeholder rendered for listings with no real photo yet. */
+export const PLACEHOLDER_PHOTO = "/placeholder-listing.svg";
 
-// Older rows stored earlier placeholder paths (the BX logo, then the raw PNG).
-// Keep recognising them so those listings are still treated as placeholder-only
-// (and render the current PLACEHOLDER_PHOTO rather than the heavy original).
-const LEGACY_PLACEHOLDERS = ["/bx-logo.png", "/placeholderlisting.png"];
-const PLACEHOLDER_PATHS: ReadonlySet<string> = new Set([
-  PLACEHOLDER_PHOTO,
-  ...LEGACY_PLACEHOLDERS,
-]);
+const PLACEHOLDER_PATHS: ReadonlySet<string> = new Set([PLACEHOLDER_PHOTO]);
 
-/** True if a photo URL is one of our placeholders (current or legacy). */
+/** True if a photo URL is one of our placeholders. */
 export function isPlaceholder(photo: string | null | undefined): boolean {
   return !!photo && PLACEHOLDER_PATHS.has(photo);
 }
@@ -48,26 +37,13 @@ export function firstRealPhoto(
 
 /**
  * Prisma `where` fragment approximating hasRealPhoto at the query layer: the
- * photos array is non-empty and is not exactly a lone placeholder (current or
- * legacy). Used to pull real-photo listings directly (e.g. the homepage
- * "featured" strip).
+ * photos array is non-empty and is not exactly a lone placeholder. Used to
+ * pull real-photo listings directly (e.g. the homepage "featured" strip).
  */
 export const realPhotoWhere: Prisma.ListingWhereInput = {
   photos: { isEmpty: false },
-  AND: [PLACEHOLDER_PHOTO, ...LEGACY_PLACEHOLDERS].map((p) => ({
-    NOT: { photos: { equals: [p] } },
-  })),
+  NOT: { photos: { equals: [PLACEHOLDER_PHOTO] } },
 };
-
-/**
- * Normalized key for matching a listing's beanieName to a catalogue entry
- * name ("Brownie / Cubbie" and "brownie/cubbie" both → "browniecubbie").
- * Intentionally exact (no substring matching) so an eBay-style long title
- * never false-matches a different beanie's catalogue row.
- */
-export function beaniePhotoKey(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
 
 /**
  * Parse the hidden `photos` form field. Current clients send a JSON array
@@ -99,7 +75,7 @@ export function parsePhotosField(raw: unknown): string[] {
  * `unoptimized`, or the optimizer 400s and the image breaks.
  *
  * Local paths are always fine. Remote URLs must be on an R2 host we serve
- * from; legacy photos on other hosts fall back to unoptimized.
+ * from; photos on other hosts fall back to unoptimized.
  */
 const OPTIMIZABLE_HOST = process.env.NEXT_PUBLIC_R2_PUBLIC_HOST ?? "";
 

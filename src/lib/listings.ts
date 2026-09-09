@@ -1,9 +1,7 @@
 import type { Prisma } from "@prisma/client";
-import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireStripe } from "@/lib/stripe";
 import * as notify from "@/lib/notify";
-import { firstRealPhoto } from "@/lib/photos";
 import type { ListingCardData } from "@/components/ListingCard";
 
 /**
@@ -43,7 +41,7 @@ async function releaseAbandonedReservations(
   // Orders that never reached Stripe hold no money — reclaim directly.
   let freed = await runSweep(stale.filter((o) => !o.stripePaymentIntentId));
 
-  // Orders WITH an intent may hold real money: an authorized escrow whose
+  // Orders WITH an intent may hold real money: an authorized hold whose
   // webhook was missed, or a 3-D Secure flow still completing. Ask Stripe
   // before touching them — advance the paid ones, leave the in-flight ones,
   // and reclaim the dead ones WITH their card authorization cancelled (never
@@ -127,17 +125,11 @@ async function advancePaidOrder(order: {
  *
  * releaseAbandonedReservations() already reconciles the orders IT looks at, but
  * it deliberately looks at a narrow slice: only orders past the abandonment
- * cutoff, and never offer-backed ones (those are paid on the buyer's own
- * schedule, so a sweep must never touch them). That leaves the two cases a
- * broken webhook hits hardest with nothing to rescue them — a fresh cart
- * authorization, and every accepted-offer payment. The buyer's card holds the
- * money, the seller is never told to ship, nobody is emailed, and the
- * authorization expires unclaimed in about a week.
- *
- * So this pass asks Stripe about every pending order that has an intent and
- * advances the authorized ones. It only ever moves an order FORWARD — nothing
- * here cancels, refunds or restocks — which is what makes it safe to run over
- * the orders the abandonment sweep must leave alone.
+ * cutoff, and never offer-backed ones. That leaves a fresh cart authorization
+ * and every accepted-offer payment with nothing to rescue them when the
+ * webhook is unreachable. So this pass asks Stripe about every pending order
+ * that has an intent and advances the authorized ones. It only ever moves an
+ * order FORWARD — nothing here cancels, refunds or restocks.
  */
 async function reconcilePaidOrders(): Promise<number> {
   let stripe;
@@ -157,9 +149,8 @@ async function reconcilePaidOrders(): Promise<number> {
       where: {
         status: "PENDING_PAYMENT",
         stripePaymentIntentId: { not: null },
-        // Never-completed checkouts sit here indefinitely; without a window
-        // every pass would re-read the same dead intents. A card authorization
-        // only lives ~7 days, so nothing older can still be rescued.
+        // A card authorization only lives ~7 days, so nothing older can still
+        // be rescued; the window keeps dead intents from being re-read forever.
         createdAt: { gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
       },
       select: { id: true, listingId: true, stripePaymentIntentId: true },
@@ -171,8 +162,8 @@ async function reconcilePaidOrders(): Promise<number> {
     return 0;
   }
 
-  // Legacy carts share one intent across their orders, so read each intent once
-  // and apply its verdict to every order that points at it.
+  // Carts share one intent across their orders, so read each intent once and
+  // apply its verdict to every order that points at it.
   const byIntent = new Map<string, { id: string; listingId: string }[]>();
   for (const o of pending) {
     const key = o.stripePaymentIntentId as string;
@@ -243,9 +234,8 @@ async function runSweep(
 //
 // Two passes, both reading Stripe as the source of truth for what actually
 // happened to a pending order. Paid-but-unheard-of orders are advanced FIRST,
-// so by the time the abandonment pass runs they no longer look pending and it
-// neither re-reads their intents nor has to consider reclaiming them; what is
-// left really is abandoned. Each pass swallows its own failure so it can't
+// so by the time the abandonment pass runs they no longer look pending; what
+// is left really is abandoned. Each pass swallows its own failure so it can't
 // take the other down with it.
 let lastSweepAt = 0;
 export function sweepAbandonedReservations(windowMs = 5 * 60_000): void {
@@ -258,171 +248,69 @@ export function sweepAbandonedReservations(windowMs = 5 * 60_000): void {
   })();
 }
 
+// ── Storefront queries ───────────────────────────────────────────────
+
 // Columns a ListingCard needs — keep queries lean.
-const CARD_SELECT = {
-  status: true,
-  quantity: true,
+export const CARD_SELECT = {
   id: true,
   title: true,
-  beanieName: true,
   priceCents: true,
   photos: true,
-  authType: true,
-  registrationNumber: true,
-  grade: true,
+  condition: true,
   sellerId: true,
+  status: true,
+  quantity: true,
+  isLot: true,
+  categoryId: true,
 } satisfies Prisma.ListingSelect;
 
-// ── Beanie "options" model ───────────────────────────────────────────
-// Many sellers post the same beanie, so the storefront groups active
-// listings by beanieName into a single card that shows a price range and an
-// option count. Add-to-Cart grabs the cheapest; "Shop Options" opens them all.
-
-export type BeanieOption = {
-  beanieName: string;
-  year: number | null;
-  /** Cheapest listing's first real photo (what the card shows), or null. */
-  photo: string | null;
-  optionCount: number;
-  minCents: number;
-  maxCents: number;
-  /** Cheapest active listing — used for Add to Cart, the card link, and badge. */
-  cheapest: ListingCardData;
+/** Listings that are for sale right now: published with stock left. */
+export const FOR_SALE: Prisma.ListingWhereInput = {
+  status: "ACTIVE",
+  quantity: { gt: 0 },
 };
 
-const GROUP_SELECT = {
-  ...CARD_SELECT,
-  year: true,
-} satisfies Prisma.ListingSelect;
+export type ListingSort = "newest" | "price_asc" | "price_desc";
 
-type GroupRow = Prisma.ListingGetPayload<{ select: typeof GROUP_SELECT }>;
-
-function toCardData(r: GroupRow): ListingCardData {
-  // Strip the extra `year` so the shape matches ListingCardData exactly.
-  const { year: _year, ...card } = r;
-  void _year;
-  return card;
-}
+const ORDER_BY: Record<ListingSort, Prisma.ListingOrderByWithRelationInput[]> = {
+  newest: [{ createdAt: "desc" }, { id: "desc" }],
+  price_asc: [{ priceCents: "asc" }, { id: "desc" }],
+  price_desc: [{ priceCents: "desc" }, { id: "desc" }],
+};
 
 /**
- * Uncached core: scans all active listings matching `where` and groups them.
- * This is a full-table scan + in-JS group/sort, so callers go through the
- * cached wrapper below — every marketplace page (home, browse, each
- * infinite-scroll step of /api/listings) hits this, and recomputing the whole
- * grouping per request is O(n) DB + CPU per page served.
+ * One page of for-sale listings matching `where`, plus the total so callers
+ * can paginate. The default excludes lots (they get their own browse view);
+ * pass `isLot: true` in `where` to page lots instead.
  */
-async function computeBeanieGroups(
-  where: Prisma.ListingWhereInput,
-): Promise<BeanieOption[]> {
-  const rows = await prisma.listing.findMany({
-    // Lots are unique bundles, not one-of-many options for a single beanie, so
-    // they're excluded here and surfaced through their own browse view.
-    where: { ...where, status: "ACTIVE", quantity: { gt: 0 }, isLot: false },
-    orderBy: { priceCents: "asc" },
-    select: GROUP_SELECT,
-  });
-
-  const byName = new Map<string, GroupRow[]>();
-  for (const r of rows) {
-    const arr = byName.get(r.beanieName);
-    if (arr) arr.push(r);
-    else byName.set(r.beanieName, [r]);
-  }
-
-  const groups: BeanieOption[] = [];
-  for (const [beanieName, list] of byName) {
-    // `list` is already price-ascending (rows came back ordered).
-    const cheapest = list[0];
-    groups.push({
-      beanieName,
-      year: cheapest.year,
-      photo: firstRealPhoto(cheapest.photos),
-      optionCount: list.length,
-      minCents: cheapest.priceCents,
-      maxCents: list[list.length - 1].priceCents,
-      cheapest: toCardData(cheapest),
-    });
-  }
-
-  // Real-photo groups first, then the most-competitive (most options), then
-  // alphabetical for stable ordering.
-  groups.sort(
-    (a, b) =>
-      Number(!!b.photo) - Number(!!a.photo) ||
-      b.optionCount - a.optionCount ||
-      a.beanieName.localeCompare(b.beanieName),
-  );
-  return groups;
-}
-
-// Cached grouping, keyed by the serialized `where`. A short TTL keeps the
-// storefront fresh (new listings appear within a minute) while collapsing the
-// per-request full-table scans — infinite scroll in particular re-requested
-// the entire grouping for every 12-item page. Also stabilizes offset
-// pagination within the TTL window (no duplicated/skipped cards mid-scroll).
-// BeanieOption is plain JSON (no Dates), so unstable_cache round-trips it.
-const cachedBeanieGroups = unstable_cache(
-  async (whereKey: string) =>
-    computeBeanieGroups(JSON.parse(whereKey) as Prisma.ListingWhereInput),
-  ["beanie-groups"],
-  { revalidate: 60 },
-);
-
-/** Group all active listings (optionally filtered) into beanie options. */
-export async function getBeanieGroups(
-  where: Prisma.ListingWhereInput = {},
-): Promise<BeanieOption[]> {
-  try {
-    return await cachedBeanieGroups(JSON.stringify(where));
-  } catch {
-    // Cache layer hiccup — fall back to the direct computation.
-    return computeBeanieGroups(where);
-  }
-}
-
-/** Paginated beanie options (groups are computed in full, then sliced). */
-export async function getBeanieGroupsPage({
+export async function getListingsPage({
   where = {},
   skip,
   take,
+  sort = "newest",
 }: {
   where?: Prisma.ListingWhereInput;
   skip: number;
   take: number;
-}): Promise<{ items: BeanieOption[]; total: number }> {
-  const all = await getBeanieGroups(where);
-  return { items: all.slice(skip, skip + take), total: all.length };
-}
-
-/** A single purchasing option (one seller's listing) of a beanie. */
-export type ListingOption = ListingCardData & { condition: string };
-
-/** Other active listings of the same beanie (cheapest first), excluding one. */
-export async function getOtherOptions(
-  beanieName: string,
-  excludeId: string,
-  take = 12,
-): Promise<ListingOption[]> {
-  return prisma.listing.findMany({
-    // quantity > 0 matches computeBeanieGroups: an ACTIVE listing can sit at
-    // zero stock (an edit can land the count exactly on 0 without flipping the
-    // status), and offering it here dead-ends the buyer at checkout.
-    where: {
-      status: "ACTIVE",
-      quantity: { gt: 0 },
-      beanieName,
-      isLot: false,
-      NOT: { id: excludeId },
-    },
-    orderBy: { priceCents: "asc" },
-    take,
-    select: { ...CARD_SELECT, condition: true },
-  });
+  sort?: ListingSort;
+}): Promise<{ items: ListingCardData[]; total: number }> {
+  const full: Prisma.ListingWhereInput = { isLot: false, ...where, ...FOR_SALE };
+  const [items, total] = await Promise.all([
+    prisma.listing.findMany({
+      where: full,
+      orderBy: ORDER_BY[sort],
+      skip,
+      take,
+      select: CARD_SELECT,
+    }),
+    prisma.listing.count({ where: full }),
+  ]);
+  return { items, total };
 }
 
 // ── Lot listings ─────────────────────────────────────────────────────
-// A lot is a single listing bundling many beanies. It renders as one card
-// (its own listing), never grouped, with a "N beanies" piece count.
+// A lot is a single listing bundling several items. It renders as one card
+// with a piece count.
 
 export type LotCardData = ListingCardData & { pieces: number };
 
@@ -436,7 +324,7 @@ export async function getLots(
   where: Prisma.ListingWhereInput = {},
 ): Promise<LotCardData[]> {
   const rows = await prisma.listing.findMany({
-    where: { ...where, status: "ACTIVE", quantity: { gt: 0 }, isLot: true },
+    where: { ...where, ...FOR_SALE, isLot: true },
     orderBy: { createdAt: "desc" },
     select: LOT_SELECT,
   });
@@ -449,23 +337,74 @@ export async function getLots(
 /** Count of active lots — cheap existence/badge check for entry points. */
 export async function countActiveLots(): Promise<number> {
   try {
-    return await prisma.listing.count({
-      where: { status: "ACTIVE", quantity: { gt: 0 }, isLot: true },
-    });
+    return await prisma.listing.count({ where: { ...FOR_SALE, isLot: true } });
   } catch {
     return 0;
   }
 }
 
-/** Similar beanies (other names) to suggest when an item has no other options. */
-export async function getSimilarBeanies(
-  beanieName: string,
+/** Other for-sale listings from the same seller (newest first), excluding one. */
+export async function getMoreFromSeller(
+  sellerId: string,
+  excludeId: string,
   take = 8,
-): Promise<BeanieOption[]> {
-  // Read the ONE shared unfiltered group cache and exclude in JS. Passing
-  // `beanieName: { not: ... }` as the where would mint a distinct cache entry
-  // (and a full catalogue scan) per beanie name — near-zero hit rate on
-  // exactly the long-tail listings that render this.
-  const groups = await getBeanieGroups({});
-  return groups.filter((g) => g.beanieName !== beanieName).slice(0, take);
+): Promise<ListingCardData[]> {
+  return prisma.listing.findMany({
+    where: { ...FOR_SALE, sellerId, NOT: { id: excludeId } },
+    orderBy: { createdAt: "desc" },
+    take,
+    select: CARD_SELECT,
+  });
+}
+
+/** For-sale listings in the same category (newest first), excluding one. */
+export async function getSimilarListings(
+  categoryId: string,
+  excludeId: string,
+  take = 8,
+): Promise<ListingCardData[]> {
+  return prisma.listing.findMany({
+    where: { ...FOR_SALE, categoryId, isLot: false, NOT: { id: excludeId } },
+    orderBy: { createdAt: "desc" },
+    take,
+    select: CARD_SELECT,
+  });
+}
+
+/** Per-category counts of for-sale listings, for browse tiles and facets. */
+export async function countByCategory(
+  where: Prisma.ListingWhereInput = {},
+): Promise<Map<string, number>> {
+  const rows = await prisma.listing.groupBy({
+    by: ["categoryId"],
+    where: { isLot: false, ...where, ...FOR_SALE },
+    _count: { _all: true },
+  });
+  return new Map(rows.map((r) => [r.categoryId, r._count._all]));
+}
+
+/**
+ * Postgres full-text search over title, description and brand. Returns the
+ * matching ids (ranked) so callers can combine it with normal Prisma filters;
+ * empty query → null (no filter).
+ */
+export async function searchListingIds(
+  q: string,
+  limit = 500,
+): Promise<string[] | null> {
+  const query = q.trim();
+  if (!query) return null;
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT "id"
+    FROM "Listing"
+    WHERE "status" = 'ACTIVE'
+      AND to_tsvector('english', coalesce("title", '') || ' ' || coalesce("brand", '') || ' ' || coalesce("itemName", '') || ' ' || coalesce("description", ''))
+          @@ websearch_to_tsquery('english', ${query})
+    ORDER BY ts_rank(
+      to_tsvector('english', coalesce("title", '') || ' ' || coalesce("brand", '') || ' ' || coalesce("itemName", '')),
+      websearch_to_tsquery('english', ${query})
+    ) DESC, "createdAt" DESC
+    LIMIT ${limit}
+  `;
+  return rows.map((r) => r.id);
 }

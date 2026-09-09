@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { SUPPORT_EMAIL } from "@/lib/site";
 
 /**
  * Self-serve account deletion.
@@ -59,9 +60,9 @@ export async function accountDeletionBlocker(
       reason: "in_flight_orders",
       message:
         `You have ${inFlight} order${inFlight === 1 ? "" : "s"} still in progress. ` +
-        "We can't delete your account while money is held in escrow or an item " +
+        "We can't delete your account while a payment is being held or an item " +
         "is in transit — finish or cancel those first, or email " +
-        "support@beaniexchange.com and we'll sort it out with you.",
+        `${SUPPORT_EMAIL} and we'll sort it out with you.`,
     };
   }
 
@@ -90,9 +91,6 @@ export async function deleteAccount(userId: string): Promise<DeleteAccountResult
   await prisma.$transaction(async (tx) => {
     // Things the account said. Conversations go with the messages so the other
     // party isn't left with an empty thread.
-    await tx.forumVote.deleteMany({ where: { userId } });
-    await tx.forumPost.deleteMany({ where: { authorId: userId } });
-    await tx.forumThread.deleteMany({ where: { authorId: userId } });
     await tx.productReview.deleteMany({ where: { buyerId: userId } });
     await tx.message.deleteMany({ where: { senderId: userId } });
     await tx.conversation.deleteMany({
@@ -102,9 +100,6 @@ export async function deleteAccount(userId: string): Promise<DeleteAccountResult
     // Things the account wanted. Open offers must go or a seller could accept
     // one from someone who no longer exists.
     await tx.offer.deleteMany({ where: { buyerId: userId } });
-    await tx.tradeOffer.deleteMany({
-      where: { OR: [{ proposerId: userId }, { ownerId: userId }] },
-    });
     await tx.listingLike.deleteMany({ where: { userId } });
     await tx.follow.deleteMany({
       where: { OR: [{ followerId: userId }, { followedId: userId }] },
@@ -114,7 +109,7 @@ export async function deleteAccount(userId: string): Promise<DeleteAccountResult
     // hide it, but a seller who deleted their account is not coming back to
     // ship it.
     await tx.listing.updateMany({
-      where: { sellerId: userId, status: { in: ["ACTIVE", "DRAFT", "PENDING_AUTH"] } },
+      where: { sellerId: userId, status: { in: ["ACTIVE", "DRAFT"] } },
       data: { status: "REMOVED" },
     });
 
