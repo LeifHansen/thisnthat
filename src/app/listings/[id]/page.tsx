@@ -1,33 +1,37 @@
 import type { Metadata } from "next";
-import { jsonLdScript } from "@/lib/jsonLd";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Condition } from "@prisma/client";
+import { jsonLdScript } from "@/lib/jsonLd";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { computeSaleFees, formatCents } from "@/lib/fees";
 import { firstRealPhoto } from "@/lib/photos";
 import { makeOffer, expireStaleOffers } from "@/lib/offers";
-import { AuthBadge } from "@/components/AuthBadge";
+import { attributeEntries, getCategory, readAttributes } from "@/lib/categories";
+import { conditionLabel } from "@/lib/listingOptions";
+import { getMoreFromSeller, getSimilarListings } from "@/lib/listings";
+import { displayNameOf } from "@/lib/users";
+import { SITE_NAME } from "@/lib/site";
 import { Avatar } from "@/components/Avatar";
+import { BuyBox } from "@/components/BuyBox";
+import { ConditionBadge } from "@/components/ConditionBadge";
 import { FollowButton } from "@/components/FollowButton";
 import { LikeButton } from "@/components/LikeButton";
-import { MessageUserButton } from "@/components/MessageUserButton";
-import { displayNameOf } from "@/lib/users";
-import { BuyBox } from "@/components/BuyBox";
-import { PhotoCarousel } from "@/components/PhotoCarousel";
+import { ListingCard } from "@/components/ListingCard";
 import { MakeOfferButton } from "@/components/MakeOfferButton";
-import { getOtherOptions, getSimilarBeanies } from "@/lib/listings";
-import { OtherOptions } from "@/components/OtherOptions";
-import { BeanieOptionCard } from "@/components/BeanieOptionCard";
+import { MessageUserButton } from "@/components/MessageUserButton";
+import { PhotoCarousel } from "@/components/PhotoCarousel";
 
 export const dynamic = "force-dynamic";
 
-const AUTH_LABEL: Record<string, string> = {
-  TRUE_BLUE: "True Blue Verified",
-  BX_FULL_SERVICE: "BX Full Service Authenticated",
-  BX_EXPRESS_COA: "BX Express COA",
-  THIRD_PARTY_COA: "Third-Party COA",
-  UNAUTHENTICATED: "Unauthenticated",
+// schema.org OfferItemCondition per our condition vocabulary.
+const SCHEMA_CONDITION: Record<Condition, string> = {
+  NEW: "https://schema.org/NewCondition",
+  LIKE_NEW: "https://schema.org/UsedCondition",
+  GOOD: "https://schema.org/UsedCondition",
+  FAIR: "https://schema.org/UsedCondition",
+  FOR_PARTS: "https://schema.org/DamagedCondition",
 };
 
 export async function generateMetadata({
@@ -41,34 +45,33 @@ export async function generateMetadata({
       where: { id },
       select: {
         title: true,
-        beanieName: true,
+        brand: true,
         description: true,
         priceCents: true,
         photos: true,
-        authType: true,
         status: true,
-        year: true,
         condition: true,
+        category: { select: { name: true } },
       },
     })
     .catch(() => null);
 
   if (!listing) {
-    return { title: "Beanie Baby listing", robots: { index: false } };
+    return { title: "Listing", robots: { index: false } };
   }
 
-  const price = `$${(listing.priceCents / 100).toFixed(2)}`;
-  const authLabel = AUTH_LABEL[listing.authType] ?? listing.authType;
-  const yearPart = listing.year ? ` (${listing.year})` : "";
-  const title = `${listing.title}${yearPart} — ${authLabel} | ${price}`;
+  const price = formatCents(listing.priceCents);
+  const cond = conditionLabel(listing.condition);
+  const title = `${listing.title} — ${cond} | ${price}`;
+  const lead = [listing.brand, listing.category.name, cond]
+    .filter(Boolean)
+    .join(" · ");
+  const excerpt = listing.description
+    ? listing.description.slice(0, 140).replace(/\s+/g, " ").trim()
+    : "";
   const description =
-    `${listing.beanieName}${yearPart} for sale on Beanie Xchange — ` +
-    `${authLabel}. ${listing.condition ? `Condition: ${listing.condition}. ` : ""}` +
-    `Escrow-protected. ${
-      listing.description
-        ? listing.description.slice(0, 140).replace(/\s+/g, " ").trim()
-        : "Authenticated Beanie Baby marketplace."
-    }`;
+    `${lead} — for sale on ${SITE_NAME} for ${price}. ` +
+    (excerpt || "Your payment is held until you confirm delivery.");
 
   const ogImages = (listing.photos ?? []).slice(0, 1).map((url) => ({ url }));
   const noIndex = listing.status === "DRAFT" || listing.status === "REMOVED";
@@ -98,6 +101,7 @@ export default async function ListingPage({
     where: { id },
     include: {
       seller: true,
+      category: true,
       lotItems: { orderBy: { position: "asc" } },
     },
   });
@@ -115,54 +119,55 @@ export default async function ListingPage({
   const fees = computeSaleFees(listing.priceCents);
   const isOwn = session?.user?.id === listing.sellerId;
 
-  // DRAFT (never published) and REMOVED (pulled, e.g. failed authentication)
-  // listings are not public: the JSON endpoint already 404s them "like the web
-  // page" (api/listings/[id]/route.ts) — this is that gate, which was missing.
-  // The seller still previews their own from the dashboard, and admins can
-  // review anything.
+  // DRAFT (never published) and REMOVED (pulled by the seller or a moderator)
+  // listings are not public: the JSON endpoint 404s them
+  // (api/listings/[id]/route.ts) and so does this page. The seller still
+  // previews their own from the dashboard, and admins can review anything.
   const isHidden = listing.status === "DRAFT" || listing.status === "REMOVED";
   if (isHidden && !isOwn && session?.user?.role !== "ADMIN") notFound();
 
   const sold = listing.status === "SOLD" || listing.quantity <= 0;
-  const unauth = listing.authType === "UNAUTHENTICATED";
+  const categoryDef = getCategory(listing.category.slug);
+  const specs = attributeEntries(categoryDef, readAttributes(listing.attributes));
+  const sellerName = displayNameOf(listing.seller);
 
   // Everything below depends only on `listing` and `session`, so it runs as
   // ONE parallel wave instead of a serial waterfall — this is the most-linked
   // page on the site and each extra round trip is pure latency floor.
   //
-  // - otherOptions: other sellers' active listings of the same beanie (lots
-  //   are unique bundles and skip it).
-  // - reviews: verified-buyer aggregate + latest, feeding JSON-LD
-  //   aggregateRating (best-effort: a hiccup renders without reviews).
+  // - reviews: the SELLER's verified-buyer aggregate + latest three (reviews
+  //   are keyed by seller, so a brand-new listing still shows a track record),
+  //   feeding JSON-LD aggregateRating (best-effort: a hiccup renders without).
+  // - moreFromSeller / similar: the two card rails under the fold.
   // - like/follow state for the ♥ button and follow-seller pill.
   // - myPendingOffer: "offer sent" feedback after a server-action redirect.
   const [
-    otherOptions,
     reviewAgg,
     recentReviews,
+    moreFromSeller,
+    similar,
     likeCount,
     myLike,
     myFollow,
     myPendingOffer,
   ] = await Promise.all([
-    sold || listing.isLot
-      ? []
-      : getOtherOptions(listing.beanieName, listing.id, 12),
     prisma.productReview
       .aggregate({
-        where: { beanieName: listing.beanieName },
+        where: { sellerId: listing.sellerId },
         _avg: { rating: true },
         _count: true,
       })
       .catch(() => null),
     prisma.productReview
       .findMany({
-        where: { beanieName: listing.beanieName },
+        where: { sellerId: listing.sellerId },
         orderBy: { createdAt: "desc" },
         take: 3,
         include: { buyer: { select: { name: true, displayName: true } } },
       })
       .catch(() => [] as never[]),
+    getMoreFromSeller(listing.sellerId, listing.id, 8).catch(() => []),
+    getSimilarListings(listing.categoryId, listing.id, 8).catch(() => []),
     prisma.listingLike.count({ where: { listingId: listing.id } }),
     session?.user
       ? prisma.listingLike.findUnique({
@@ -203,13 +208,6 @@ export default async function ListingPage({
       ? Math.round(reviewAgg._avg.rating * 10) / 10
       : null;
 
-  // Only when this is the beanie's lone listing: suggest similar beanies
-  // (reads the shared cached group set, so it's cheap after the first hit).
-  const similar =
-    !sold && !listing.isLot && otherOptions.length === 0
-      ? await getSimilarBeanies(listing.beanieName, 8)
-      : [];
-
   // Product JSON-LD so Google can render rich-result cards for the
   // listing in search and Shopping. We only emit it for publicly
   // surfaceable statuses (ACTIVE / SOLD).
@@ -220,12 +218,17 @@ export default async function ListingPage({
         "@context": "https://schema.org",
         "@type": "Product",
         name: listing.title,
-        description: listing.description || `${listing.beanieName} on Beanie Xchange`,
+        description:
+          listing.description ||
+          `${listing.title} — ${listing.category.name} on ${SITE_NAME}`,
         image: listing.photos?.slice(0, 6) ?? [],
-        brand: { "@type": "Brand", name: "Ty" },
-        category: "Beanie Babies",
+        ...(listing.brand
+          ? { brand: { "@type": "Brand", name: listing.brand } }
+          : {}),
+        category: listing.category.name,
         // Only emitted when genuine verified-buyer reviews exist — Google's
-        // policy requires real user reviews for these fields.
+        // policy requires real user reviews for these fields. Ours are the
+        // seller's reviews, which is what a buyer is actually rating.
         ...(ratingAvg !== null
           ? {
               aggregateRating: {
@@ -256,7 +259,7 @@ export default async function ListingPage({
           availability: sold
             ? "https://schema.org/SoldOut"
             : "https://schema.org/InStock",
-          itemCondition: "https://schema.org/UsedCondition",
+          itemCondition: SCHEMA_CONDITION[listing.condition],
           // Mirrors /returns: 3-day window from delivery, $5 restocking fee
           // (waived when the fault is ours), buyer pays return shipping.
           hasMerchantReturnPolicy: {
@@ -301,6 +304,8 @@ export default async function ListingPage({
       }
     : null;
 
+  const categoryHref = `/browse?category=${encodeURIComponent(listing.category.slug)}`;
+
   return (
     <div className="grid lg:grid-cols-2 gap-8">
       {productLd && (
@@ -320,12 +325,7 @@ export default async function ListingPage({
 
       <div className="space-y-5">
         <div className="flex items-start justify-between gap-3">
-          <AuthBadge
-            authType={listing.authType}
-            registrationNumber={listing.registrationNumber}
-            grade={listing.grade}
-            size="lg"
-          />
+          <ConditionBadge condition={listing.condition} size="lg" />
           <LikeButton
             listingId={listing.id}
             count={likeCount}
@@ -334,20 +334,36 @@ export default async function ListingPage({
           />
         </div>
         <h1 className="text-3xl">{listing.title}</h1>
-        {listing.isLot ? (
-          <p className="text-muted">
-            <span className="font-semibold text-[var(--tnt-purple-text)]">
-              🎁 Lot · {lotPieces} {lotPieces === 1 ? "beanie" : "beanies"}
-            </span>{" "}
-            · {listing.condition}
-          </p>
-        ) : (
-          <p className="text-muted">
-            {listing.beanieName}
-            {listing.year ? ` · ${listing.year}` : ""} · {listing.condition}
-          </p>
-        )}
+        <p className="text-muted">
+          {listing.isLot && (
+            <>
+              <span className="font-semibold text-[var(--tnt-purple-text)]">
+                Lot · {lotPieces} {lotPieces === 1 ? "item" : "items"}
+              </span>
+              {" · "}
+            </>
+          )}
+          {listing.brand && <>{listing.brand} · </>}
+          {listing.itemName && <>{listing.itemName} · </>}
+          <Link href={categoryHref} className="!text-ink font-semibold hover:underline">
+            {listing.category.name}
+          </Link>
+        </p>
         <p className="whitespace-pre-wrap">{listing.description}</p>
+
+        {specs.length > 0 && (
+          <div className="tnt-panel p-5 space-y-2">
+            <p className="font-display text-lg">Details</p>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+              {specs.map((s) => (
+                <div key={s.key} className="contents">
+                  <dt className="text-muted">{s.label}</dt>
+                  <dd className="text-ink font-medium break-words">{s.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
 
         {listing.isLot && listing.lotItems.length > 0 && (
           <div className="tnt-panel p-5 space-y-2">
@@ -363,15 +379,7 @@ export default async function ListingPage({
                   key={it.id}
                   className="flex items-center justify-between gap-3 py-1.5 text-sm"
                 >
-                  <Link
-                    href={`/database?q=${encodeURIComponent(it.beanieName)}`}
-                    className="!text-ink hover:!text-[var(--tnt-red)] truncate"
-                  >
-                    {it.beanieName}
-                    {it.year ? (
-                      <span className="text-muted"> · {it.year}</span>
-                    ) : null}
-                  </Link>
+                  <span className="text-ink truncate">{it.name}</span>
                   <span className="text-muted shrink-0 font-semibold">
                     ×{it.quantity}
                   </span>
@@ -380,19 +388,30 @@ export default async function ListingPage({
             </ul>
           </div>
         )}
-        <p className="text-muted text-sm flex items-center gap-2">
-          Seller:{" "}
-          <Link
-            href={`/u/${listing.sellerId}`}
-            className="inline-flex items-center gap-1.5 font-semibold !text-ink hover:underline"
-          >
-            <Avatar
-              src={listing.seller.avatarUrl}
-              name={displayNameOf(listing.seller)}
-              size={22}
-            />
-            {displayNameOf(listing.seller)}
+
+        {/* Seller */}
+        <div className="tnt-panel p-4 flex items-center gap-3">
+          <Link href={`/u/${listing.sellerId}`} className="shrink-0">
+            <Avatar src={listing.seller.avatarUrl} name={sellerName} size={44} />
           </Link>
+          <div className="min-w-0 flex-1">
+            <Link
+              href={`/u/${listing.sellerId}`}
+              className="font-semibold !text-ink hover:underline block truncate"
+            >
+              {sellerName}
+            </Link>
+            <p className="text-muted text-sm">
+              {ratingAvg !== null ? (
+                <>
+                  <span className="text-[#f5a623]" aria-hidden="true">★</span>{" "}
+                  <span className="text-ink font-semibold">{ratingAvg}</span> ({reviewCount})
+                </>
+              ) : (
+                "No reviews yet"
+              )}
+            </p>
+          </div>
           {!isOwn && (
             <FollowButton
               userId={listing.sellerId}
@@ -402,32 +421,7 @@ export default async function ListingPage({
               callbackPath={`/listings/${listing.id}`}
             />
           )}
-        </p>
-        {listing.trueBlueCertId && (
-          <p className="text-sm text-muted">
-            True Blue Cert:{" "}
-            <span className="text-ink font-medium">
-              {listing.trueBlueCertId}
-            </span>
-          </p>
-        )}
-        {listing.bxCertId && (
-          <p className="text-sm text-muted">
-            BX Certificate:{" "}
-            <span className="text-ink font-medium">{listing.bxCertId}</span>
-            {listing.registrationNumber ? (
-              <>
-                {" · "}
-                <Link
-                  href={`/registry?n=${listing.registrationNumber}`}
-                  className="!text-[var(--tnt-green)] font-semibold"
-                >
-                  verify #{listing.registrationNumber}
-                </Link>
-              </>
-            ) : null}
-          </p>
-        )}
+        </div>
 
         <div className="tnt-panel p-5 space-y-2">
           <Row label="Item price" value={formatCents(fees.itemCents)} />
@@ -439,9 +433,8 @@ export default async function ListingPage({
             <span>{formatCents(fees.itemCents)} + shipping</span>
           </div>
           <p className="text-muted text-sm">
-            {unauth
-              ? "⚠ Sold AS-IS — no authentication, no Certificate of Authenticity. Ships directly from the seller. Buy at your own risk."
-              : "Authenticated before listing. Ships directly from the seller; funds held in escrow until you confirm receipt."}
+            Pay now — your payment is held until you confirm delivery, then the
+            seller is paid.
           </p>
         </div>
 
@@ -574,10 +567,9 @@ export default async function ListingPage({
       {reviewCount > 0 && (
         <section className="lg:col-span-2 min-w-0 space-y-3 pt-2">
           <h2 className="text-xl">
-            Buyer reviews{" "}
+            Reviews for {sellerName}{" "}
             <span className="text-muted text-base font-normal">
-              ★ {ratingAvg} · {reviewCount} review{reviewCount === 1 ? "" : "s"}{" "}
-              {listing.isLot ? "for this lot" : `of ${listing.beanieName}`}
+              ★ {ratingAvg} · {reviewCount} review{reviewCount === 1 ? "" : "s"}
             </span>
           </h2>
           <div className="grid sm:grid-cols-3 gap-3">
@@ -602,29 +594,49 @@ export default async function ListingPage({
               </div>
             ))}
           </div>
+          <Link
+            href={`/u/${listing.sellerId}`}
+            className="inline-block text-sm font-semibold !text-[var(--tnt-red)]"
+          >
+            See all reviews →
+          </Link>
         </section>
       )}
 
-      {otherOptions.length > 0 ? (
+      {moreFromSeller.length > 0 && (
         <section className="lg:col-span-2 min-w-0 space-y-3 pt-2">
           <h2 className="text-xl">
-            Similar Listings{" "}
-            <span className="text-muted text-base font-normal">
-              ({otherOptions.length} option{otherOptions.length === 1 ? "" : "s"})
-            </span>
+            More from this seller{" "}
+            <Link
+              href={`/u/${listing.sellerId}`}
+              className="text-base font-normal !text-[var(--tnt-red)]"
+            >
+              View all →
+            </Link>
           </h2>
-          <OtherOptions options={otherOptions} />
-        </section>
-      ) : similar.length > 0 ? (
-        <section className="lg:col-span-2 min-w-0 space-y-3 pt-2">
-          <h2 className="text-xl">Similar beanies</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {similar.slice(0, 4).map((o) => (
-              <BeanieOptionCard key={o.beanieName} option={o} />
+            {moreFromSeller.map((l) => (
+              <ListingCard key={l.id} listing={l} />
             ))}
           </div>
         </section>
-      ) : null}
+      )}
+
+      {similar.length > 0 && (
+        <section className="lg:col-span-2 min-w-0 space-y-3 pt-2">
+          <h2 className="text-xl">
+            Similar in{" "}
+            <Link href={categoryHref} className="!text-ink hover:underline">
+              {listing.category.name}
+            </Link>
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {similar.map((l) => (
+              <ListingCard key={l.id} listing={l} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

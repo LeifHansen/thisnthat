@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { computeSaleFees, PLATFORM_FEE_LABEL } from "@/lib/fees";
 import { displayNameOf } from "@/lib/users";
-import { getOtherOptions } from "@/lib/listings";
+import { readAttributes } from "@/lib/categories";
+import { conditionLabel } from "@/lib/listingOptions";
+import { getSimilarListings } from "@/lib/listings";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +30,7 @@ export async function GET(
         seller: {
           select: { id: true, name: true, displayName: true, avatarUrl: true },
         },
+        category: { select: { slug: true, name: true } },
         lotItems: { orderBy: { position: "asc" } },
       },
     })
@@ -40,43 +43,48 @@ export async function GET(
   const sold = listing.status === "SOLD" || listing.quantity <= 0;
   const fees = computeSaleFees(listing.priceCents);
 
-  // Other active listings of the same beanie, so the app can offer the same
-  // "compare options" rail the web detail page shows. A lot is a unique bundle
-  // with no same-beanie peers, so it skips this. Best-effort.
-  const otherOptions =
-    sold || listing.isLot
-      ? []
-      : await getOtherOptions(listing.beanieName, listing.id, 12).catch(
-          () => [],
-        );
+  // Seller rating (aggregated over every review of this seller) and other
+  // for-sale listings in the same category, so the app can show the same
+  // trust line and "similar" rail as the web page. Both best-effort.
+  const [reviewAgg, similar] = await Promise.all([
+    prisma.productReview
+      .aggregate({
+        where: { sellerId: listing.sellerId },
+        _avg: { rating: true },
+        _count: true,
+      })
+      .catch(() => null),
+    getSimilarListings(listing.categoryId, listing.id, 8).catch(() => []),
+  ]);
+  const ratingCount = reviewAgg?._count ?? 0;
+  const ratingAvg =
+    ratingCount > 0 && reviewAgg?._avg.rating
+      ? Math.round(reviewAgg._avg.rating * 10) / 10
+      : null;
 
   return NextResponse.json({
     id: listing.id,
     title: listing.title,
-    beanieName: listing.beanieName,
-    year: listing.year,
+    brand: listing.brand,
+    itemName: listing.itemName,
+    category: { slug: listing.category.slug, name: listing.category.name },
+    attributes: readAttributes(listing.attributes),
     condition: listing.condition,
+    conditionLabel: conditionLabel(listing.condition),
     description: listing.description,
     priceCents: listing.priceCents,
     photos: listing.photos,
-    authType: listing.authType,
-    grade: listing.grade,
-    registrationNumber: listing.registrationNumber,
-    trueBlueCertId: listing.trueBlueCertId,
-    bxCertId: listing.bxCertId,
     quantity: listing.quantity,
     status: listing.status,
     sold,
     isLot: listing.isLot,
     lotItems: listing.lotItems.map((it) => ({
-      beanieName: it.beanieName,
-      year: it.year,
+      name: it.name,
       quantity: it.quantity,
     })),
     lotPieces: listing.isLot
       ? listing.lotItems.reduce((n, it) => n + it.quantity, 0)
       : 0,
-    unauthenticated: listing.authType === "UNAUTHENTICATED",
     fees: {
       itemCents: fees.itemCents,
       // Platform fee is deducted from the seller's proceeds, not added to the
@@ -92,16 +100,9 @@ export async function GET(
       id: listing.seller.id,
       name: displayNameOf(listing.seller),
       avatarUrl: listing.seller.avatarUrl,
+      rating: { avg: ratingAvg, count: ratingCount },
     },
-    otherOptions: otherOptions.map((o) => ({
-      id: o.id,
-      title: o.title,
-      beanieName: o.beanieName,
-      priceCents: o.priceCents,
-      photos: o.photos,
-      authType: o.authType,
-      condition: o.condition,
-    })),
+    similar,
     webUrl: `/listings/${listing.id}`,
   });
 }
