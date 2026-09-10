@@ -1,0 +1,173 @@
+name: Production diagnostics
+
+# Read-only production introspection for debugging. Runs flyctl against the
+# live app and prints the results into the job log, which is the only way to
+# see production state from an environment that doesn't hold FLY_API_TOKEN
+# (the secret is write-only from outside Actions).
+#
+# Every step is read-only and non-fatal: this workflow must never be able to
+# change, restart or redeploy production, and one unavailable subcommand must
+# not hide the output of the others. `flyctl secrets list` prints names and
+# digests only -- never values.
+#
+# Manual runs only. It needs FLY_API_TOKEN, which PR branches don't have, so a
+# push trigger would only ever fail on every PR.
+
+on:
+  workflow_dispatch:
+    inputs:
+      log_seconds:
+        description: "How long to collect streaming logs (seconds)"
+        required: false
+        default: "45"
+      app:
+        description: "Fly app name (probes https://<app>.fly.dev)"
+        required: false
+        default: "thisnthat"
+
+concurrency:
+  group: prod-diagnostics
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Inspect production
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP: ${{ inputs.app || 'thisnthat' }}
+      # The origin's own hostname. When a custom domain is attached, add a
+      # second probe for it here to compare the edge against the origin.
+      APP_URL: https://${{ inputs.app || 'thisnthat' }}.fly.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Token sanity check
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::error::FLY_API_TOKEN is empty -- the secret is not set or not visible to this workflow."
+            exit 1
+          fi
+          echo "FLY_API_TOKEN is present (${#FLY_API_TOKEN} chars)."
+          flyctl version
+          flyctl auth whoami || echo "(whoami unavailable for deploy tokens -- expected)"
+
+      - name: App status
+        run: flyctl status --app "$APP" || true
+
+      - name: Machines
+        run: flyctl machine list --app "$APP" || true
+
+      - name: Health checks
+        run: flyctl checks list --app "$APP" || true
+
+      - name: Recent releases
+        run: flyctl releases --app "$APP" || true
+
+      - name: Secret names present (values are never printed)
+        run: flyctl secrets list --app "$APP" || true
+
+      - name: Effective config
+        run: flyctl config show --app "$APP" || true
+
+      - name: Production logs
+        run: |
+          echo "--- buffered logs (--no-tail) ---"
+          timeout 120 flyctl logs --app "$APP" --no-tail || true
+          echo "--- streaming logs ---"
+          timeout "${{ inputs.log_seconds || '45' }}" flyctl logs --app "$APP" || true
+
+      - name: Public endpoint probes
+        run: |
+          BROWSER_UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+
+          get() { # url, user-agent, label
+            printf '%-58s %-22s ' "$1" "$3"
+            curl -sS -o /tmp/body -D /tmp/hdr -w 'http=%{http_code} t=%{time_total}s' --max-time 30 -A "$2" "$1" \
+              || printf 'curl-failed'
+            srv=$(grep -i '^server:' /tmp/hdr | tr -d '\r' || true)
+            printf ' | %s\n' "${srv:-no-server-hdr}"
+          }
+
+          post() { # url, user-agent, label -- unsigned body; both webhook
+                   # handlers reject on the missing signature header before
+                   # touching any state, so this mutates nothing.
+            printf '%-58s %-22s ' "$1" "$3"
+            code=$(curl -sS -o /tmp/body -D /tmp/hdr -w '%{http_code}' --max-time 30 \
+              -X POST -H 'content-type: application/json' -d '{"diagnostic":true}' -A "$2" "$1" || echo 000)
+            srv=$(grep -i '^server:' /tmp/hdr | tr -d '\r' || true)
+            printf 'http=%s | %s | body=%s\n' "$code" "${srv:-no-server-hdr}" "$(head -c 90 /tmp/body | tr -d '\n')"
+          }
+
+          echo "########## GET, browser UA vs bot UA"
+          get "$APP_URL/"            "$BROWSER_UA"                    "browser-UA"
+          get "$APP_URL/"            "curl/8.5.0"                     "bot-UA"
+          get "$APP_URL/api/health"  "$BROWSER_UA"                    "browser-UA"
+          get "$APP_URL/robots.txt"  "Googlebot/2.1 (+http://www.google.com/bot.html)" "googlebot-UA"
+          get "$APP_URL/sitemap.xml" "Googlebot/2.1 (+http://www.google.com/bot.html)" "googlebot-UA"
+
+          echo
+          echo "########## POST to webhook receivers (expect 400 'missing signature' if reachable)"
+          post "$APP_URL/api/stripe/webhook"   "Stripe/1.0 (+https://stripe.com/docs/webhooks)" "stripe-UA"
+          post "$APP_URL/api/easypost/webhook" "EasyPost/2.0"                                   "easypost-UA"
+
+          echo
+          echo "########## DNS"
+          getent ahosts "${APP_URL#https://}" | sort -u || true
+
+      - name: Lighthouse (mobile)
+        run: |
+          # Runs Lighthouse here rather than reading pagespeed.web.dev, which
+          # needs an API key past the shared anonymous quota.
+          audit() {
+            echo "==================== $1"
+            npx -y lighthouse@12 "$1" \
+              --output=json --output-path="/tmp/lh-$2.json" \
+              --form-factor=mobile --screenEmulation.mobile \
+              --throttling-method=simulate \
+              --only-categories=performance \
+              --chrome-flags="--headless=new --no-sandbox --disable-dev-shm-usage" \
+              --quiet 2>&1 | tail -5 || { echo "lighthouse failed for $1"; return 0; }
+            node -e '
+              const r = require("/tmp/lh-'"$2"'.json");
+              const pct = (v) => v == null ? "n/a" : Math.round(v * 100);
+              console.log("finalUrl :", r.finalDisplayedUrl || r.finalUrl);
+              const doc = (r.audits?.["network-requests"]?.details?.items || [])[0];
+              if (doc) console.log("mainDoc  : status=" + doc.statusCode + " bytes=" + (doc.transferSize ?? "?"));
+              console.log("PERFORMANCE SCORE:", pct(r.categories?.performance?.score));
+              for (const id of ["first-contentful-paint","largest-contentful-paint","total-blocking-time","cumulative-layout-shift","speed-index","server-response-time","interactive"]) {
+                const a = r.audits?.[id];
+                if (a) console.log(`  ${id.padEnd(26)} ${String(a.displayValue ?? "").padEnd(12)} score=${pct(a.score)}`);
+              }
+              const lcpEl = r.audits?.["largest-contentful-paint-element"]?.details?.items?.[0]?.items?.[0]?.node?.snippet;
+              if (lcpEl) console.log("  LCP element:", lcpEl.slice(0, 160));
+              console.log("  --- opportunities & diagnostics (>0 savings) ---");
+              const rows = Object.values(r.audits || {})
+                .filter(a => a.details && (a.details.overallSavingsMs > 0 || a.details.overallSavingsBytes > 0))
+                .sort((a,b) => (b.details.overallSavingsMs||0) - (a.details.overallSavingsMs||0));
+              if (!rows.length) console.log("  (none reported)");
+              for (const a of rows.slice(0, 14)) {
+                const ms = a.details.overallSavingsMs ? `${Math.round(a.details.overallSavingsMs)}ms` : "";
+                const kb = a.details.overallSavingsBytes ? `${Math.round(a.details.overallSavingsBytes/1024)}KB` : "";
+                console.log(`  ${String(a.title).slice(0,58).padEnd(60)} ${ms.padStart(7)} ${kb.padStart(8)}`);
+              }
+            ' || echo "(could not parse report for $1)"
+          }
+          audit "$APP_URL/" origin
+
+      - name: Which code is live (fingerprint the served HTML)
+        run: |
+          # Fly release numbers say nothing about which git ref built the
+          # image, and a manual `fly deploy` ships whatever was on someone's
+          # disk. The served HTML is the ground truth: print its size and the
+          # site title, and check a few markers that change between releases.
+          curl -sS --max-time 30 -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36" \
+            "$APP_URL/" -o /tmp/live.html
+          echo "bytes: $(wc -c </tmp/live.html)"
+          echo "title: $(grep -o '<title>[^<]*</title>' /tmp/live.html | head -1)"
+          mark() { printf '  %-46s %s\n' "$1" "$(grep -qF -- "$2" /tmp/live.html && echo PRESENT || echo absent)"; }
+          echo "marker                                         state"
+          mark 'gtag preconnect (GA configured)'        'rel="preconnect" href="https://www.googletagmanager.com"'
+          mark 'category tiles rendered'                'href="/browse?category='
+          mark 'placeholder listing art'                '/placeholder-listing.svg'

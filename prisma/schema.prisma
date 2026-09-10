@@ -1,0 +1,460 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// The one condition vocabulary for every category. Sellers pick one; browse
+// filters on it; the listing page and cards render it as a badge.
+enum Condition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  FOR_PARTS
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  SOLD
+  REMOVED
+}
+
+// Every order ships direct, seller -> buyer. The buyer's card is authorized at
+// checkout (PENDING_PAYMENT -> AWAITING_SHIP_TO_BUYER once Stripe confirms),
+// captured and transferred to the seller when the buyer confirms receipt or
+// the carrier reports delivery (-> COMPLETED).
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID_ESCROW
+  AWAITING_SHIP_TO_BUYER
+  SHIPPED_TO_BUYER
+  COMPLETED
+  REFUNDED
+  CANCELLED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  AUTO_ACCEPTED
+  REJECTED
+  EXPIRED
+  SUPERSEDED
+}
+
+model User {
+  id                     String    @id @default(cuid())
+  email                  String    @unique
+  passwordHash           String
+  name                   String
+  role                   Role      @default(USER)
+  // Superadmin-only moderation: a suspended user is blocked from signing in and
+  // has their active listings pulled from the marketplace.
+  suspended              Boolean   @default(false)
+  // Self-serve account deletion. The row survives as a scrubbed tombstone
+  // because Order and Listing reference it and are the counterparty's history —
+  // see src/lib/deleteAccount.ts. Set together with `suspended`, which is what
+  // every existing guard already checks.
+  deletedAt              DateTime?
+  // Public profile customization — all optional; `name` stays the fallback
+  // identity everywhere via displayNameOf().
+  displayName            String?
+  bio                    String?
+  avatarUrl              String?
+  // Public seller handle: /u/<handle>. Lowercase letters, digits and hyphens,
+  // 3-30 chars, unique, reserved words refused (src/lib/handles.ts). Null until
+  // the seller picks one; /u/<id> keeps working as the fallback.
+  handle                 String?   @unique
+  // Stripe Connect. `stripeConnectId` is written the moment the Express account
+  // is provisioned — i.e. when the seller first clicks "Set Up Seller Payouts",
+  // BEFORE they have filled in anything — so its presence means "started", not
+  // "connected". The two timestamps separate those, which is the whole point:
+  // without them a low connect count can't be told apart from a high abandon
+  // rate. Both are stamped once and never cleared.
+  stripeConnectId        String?
+  /// When the Express account was provisioned — the seller started onboarding.
+  stripeConnectStartedAt DateTime?
+  /// When payouts first went live on that account — the seller finished.
+  stripePayoutsEnabledAt DateTime?
+  addressLine1           String?
+  addressLine2           String?
+  city                   String?
+  state                  String?
+  postalCode             String?
+  country                String?   @default("US")
+  // Seller ship-from ZIP: origin for live EasyPost rating of seller -> buyer
+  // shipping. Null = flat-rate fallback.
+  shipFromPostalCode     String?
+
+  // Email notifications. Per-category toggles (default on); the token backs
+  // one-click List-Unsubscribe links so recipients can opt out without
+  // signing in. emailVerified is reserved for a future verify-email flow.
+  emailVerified    DateTime?
+  unsubscribeToken String?   @unique
+  notifyOrders     Boolean   @default(true)
+  notifyOffers     Boolean   @default(true)
+  notifyMessages   Boolean   @default(true)
+  notifySocial     Boolean   @default(true)
+  // Product tips & nudges (e.g. the list-your-first-item email) — its own
+  // opt-out category so unsubscribing from it never touches transactional mail.
+  notifyTips       Boolean   @default(true)
+
+  // When the one-time "list your first item" nudge went out (null = never).
+  // Doubles as the idempotency marker for the nudge sweep.
+  firstListingNudgeSentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  listings         Listing[]
+  buyerOrders      Order[]         @relation("BuyerOrders")
+  sellerOrders     Order[]         @relation("SellerOrders")
+  offers           Offer[]         @relation("BuyerOffers")
+  conversationsAsA Conversation[]  @relation("ConversationsAsA")
+  conversationsAsB Conversation[]  @relation("ConversationsAsB")
+  sentMessages     Message[]       @relation("SentMessages")
+  listingLikes     ListingLike[]   @relation("ListingLikes")
+  following        Follow[]        @relation("Following")
+  followers        Follow[]        @relation("Followers")
+  productReviews   ProductReview[]
+
+  // /admin/users lists newest-first.
+  @@index([createdAt])
+}
+
+// The category tree. Rows are seeded from src/lib/categories.ts, which is the
+// source of truth for the slugs and each category's attribute schema; the
+// table exists so listings can FK to a category and browse can count per
+// category in SQL. `attributeSchema` mirrors the code-side definition so the
+// admin console and any future non-Next reader can see the fields without
+// importing the app.
+model Category {
+  id              String     @id @default(cuid())
+  slug            String     @unique
+  name            String
+  parentId        String?
+  parent          Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children        Category[] @relation("CategoryTree")
+  position        Int        @default(0)
+  attributeSchema Json       @default("[]")
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  listings Listing[]
+
+  @@index([parentId, position])
+}
+
+model Listing {
+  id          String   @id @default(cuid())
+  sellerId    String
+  seller      User     @relation(fields: [sellerId], references: [id])
+  title       String
+  description String
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  // Maker / label, free text ("Levi's", "Nintendo", "handmade"). Optional.
+  brand       String?
+  // What the item is, independent of the marketing title ("denim jacket",
+  // "Game Boy Color"). Optional; search covers title + description + brand.
+  itemName    String?
+  // Per-category attributes ({ size: "M", colour: "indigo", era: "1990s" }),
+  // validated against the category's attribute schema on write. Drives the
+  // spec table on the listing page and the browse facets.
+  attributes  Json     @default("{}")
+  condition   Condition
+  priceCents  Int
+  // Units available. Reserving a unit decrements this; the listing flips to
+  // SOLD only when it reaches 0, and released reservations restore it.
+  quantity    Int      @default(1)
+  // A "lot" bundles several items sold as one unit for one price — the
+  // contents live in `lotItems`. Lots get their own browse view.
+  isLot       Boolean  @default(false)
+  photos      String[]
+
+  // Seller-set floor for auto-accepting offers. Null = no auto-accept; any
+  // incoming offer >= this value bypasses the seller-decide step and lands
+  // straight in an Order at the offer price.
+  minAutoAcceptCents Int?
+
+  status    ListingStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  orders   Order[]
+  offers   Offer[]
+  reviews  ProductReview[]
+  likes    ListingLike[]
+  lotItems LotItem[]
+
+  @@index([status])
+  @@index([sellerId])
+  // Homepage "newest" strips and dashboards read ACTIVE non-lot listings
+  // ordered by createdAt on every render.
+  @@index([status, isLot, createdAt])
+  // Browse filters by category (+ condition / price) over ACTIVE listings.
+  @@index([categoryId, status])
+  @@index([status, condition])
+  @@index([status, priceCents])
+  // The Lots browse view filters `isLot=true, status=ACTIVE`.
+  @@index([isLot, status])
+}
+
+// One line in a lot listing: an item (free text) and how many copies of it the
+// lot contains. Cascades with its parent listing.
+model LotItem {
+  id        String   @id @default(cuid())
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  name      String
+  quantity  Int      @default(1)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([listingId])
+}
+
+// A user's ♥ on a listing. Presence = liked; the @@unique makes the
+// like/unlike toggle idempotent under double-submits. Cascades so likes vanish
+// with their user or listing.
+model ListingLike {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("ListingLikes", fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+}
+
+// follower → followed edge for following another seller's profile.
+model Follow {
+  id         String   @id @default(cuid())
+  followerId String
+  follower   User     @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  followedId String
+  followed   User     @relation("Followers", fields: [followedId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([followerId, followedId])
+  @@index([followedId])
+}
+
+model Order {
+  id         String  @id @default(cuid())
+  listingId  String
+  listing    Listing @relation(fields: [listingId], references: [id])
+  // Buyer is optional: guest checkout creates orders with no account, tracked
+  // by email + a per-order guestToken instead.
+  buyerId    String?
+  buyer      User?   @relation("BuyerOrders", fields: [buyerId], references: [id])
+  // Guest checkout contact + access token (null for signed-in buyers).
+  guestEmail String?
+  guestToken String? @unique
+  // Groups the orders created from a single multi-item cart checkout. All
+  // orders in a cart share one Stripe PaymentIntent (stripePaymentIntentId).
+  cartId     String?
+  sellerId   String
+  seller     User    @relation("SellerOrders", fields: [sellerId], references: [id])
+
+  itemCents        Int
+  platformFeeCents Int
+  shipToBuyerCents Int @default(0)
+  totalCents       Int
+
+  status OrderStatus @default(PENDING_PAYMENT)
+
+  // When each milestone on the order timeline happened. Stamped once by the
+  // transition that reaches it (payment webhook / reconciliation, seller
+  // marks shipped or buys a label, escrow release) and never cleared, so the
+  // order page can show real dates rather than guessing from updatedAt.
+  paidAt      DateTime?
+  shippedAt   DateTime?
+  completedAt DateTime?
+
+  stripePaymentIntentId String?
+  stripeTransferId      String?
+
+  shipName       String
+  shipLine1      String
+  shipLine2      String?
+  shipCity       String
+  shipState      String
+  shipPostalCode String
+  shipCountry    String  @default("US")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shipmentEvents ShipmentEvent[]
+
+  // Order may have originated from an accepted Offer.
+  offer Offer?
+
+  // Verified-buyer review left after the order completed (max one per order).
+  review ProductReview?
+
+  // One reservation per listing per cart — a retried checkout POST can't
+  // double-create orders (NULL cartIds are exempt, as Postgres treats them
+  // as distinct).
+  @@unique([cartId, listingId])
+  // Dashboards read by buyer/seller ordered by createdAt; the sweep filters
+  // status + createdAt — composites serve those without a re-sort.
+  @@index([buyerId, createdAt])
+  @@index([sellerId, createdAt])
+  @@index([status, createdAt])
+  @@index([cartId])
+}
+
+// A verified-buyer review: only the account buyer of a COMPLETED order can
+// leave one, and only one per order (enforced by @unique + the server action's
+// status check). `sellerId` is denormalized so a seller's rating (avg + count)
+// can be read straight off this table for cards, listing pages and profiles.
+model ProductReview {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  buyerId   String
+  buyer     User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  sellerId  String
+  rating    Int // 1-5 stars
+  body      String?
+  createdAt DateTime @default(now())
+
+  @@index([sellerId, createdAt])
+  @@index([listingId])
+}
+
+model Offer {
+  id         String      @id @default(cuid())
+  listingId  String
+  listing    Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerId    String
+  buyer      User        @relation("BuyerOffers", fields: [buyerId], references: [id])
+  priceCents Int
+  message    String?
+  status     OfferStatus @default(PENDING)
+  expiresAt  DateTime
+
+  // Set when accepted (manually or auto). Tracks the order the offer
+  // turned into so the buyer can pay at the locked-in price.
+  orderId String? @unique
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  decidedAt DateTime?
+
+  // Buyer cleared this finished offer off their dashboard. A soft hide, not a
+  // row delete: an offer is part of a listing's negotiation history, and the
+  // admin user view still needs to see it.
+  dismissedAt DateTime?
+
+  @@index([listingId])
+  @@index([buyerId])
+  // expireStaleOffers() sweeps status=PENDING + expiresAt<now on hot pages;
+  // a bare status index over a low-cardinality enum can't serve that.
+  @@index([status, expiresAt])
+}
+
+// --- Direct messages --------------------------------------------------
+// 1:1 DMs. Each unordered pair of users maps to exactly one Conversation
+// (participants stored as userA/userB with userAId < userBId so the @@unique
+// enforces one row per pair). Messages are a flat, time-ordered list;
+// `readAt` powers per-recipient unread counts.
+
+model Conversation {
+  id      String @id @default(cuid())
+  userAId String
+  userA   User   @relation("ConversationsAsA", fields: [userAId], references: [id])
+  userBId String
+  userB   User   @relation("ConversationsAsB", fields: [userBId], references: [id])
+
+  messages Message[]
+
+  // Denormalised for cheap inbox sorting + preview without re-aggregating.
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@unique([userAId, userBId])
+  @@index([userAId, lastMessageAt])
+  @@index([userBId, lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+  body           String
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  // Unread counts filter on readAt (and the read-marking updateMany matches
+  // senderId != me + readAt null) — without this every poll scans the
+  // conversation's full message history.
+  @@index([conversationId, readAt])
+}
+
+// A carrier event on an order's seller -> buyer parcel: the seller's
+// hand-entered tracking, an EasyPost-purchased label, and every tracker
+// status update the EasyPost webhook delivers.
+model ShipmentEvent {
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id])
+  carrier        String?
+  trackingNumber String?
+  // EasyPost-purchased label (PDF/PNG URL) when bought through the platform.
+  labelUrl       String?
+  status         String
+  createdAt      DateTime @default(now())
+
+  // The EasyPost webhook resolves events by trackingNumber on every carrier
+  // status change; the order page reads by FK.
+  @@index([trackingNumber, createdAt])
+  @@index([orderId])
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// Editorial blog. Articles are authored by superadmins, usually via the AI
+// blog generator (which rewrites a reference article into an original post).
+// `sourceUrl` records the reference the draft was built from; `content` is
+// Markdown, rendered server-side on /blog/[slug].
+model BlogPost {
+  id                String     @id @default(cuid())
+  slug              String     @unique
+  title             String
+  excerpt           String
+  content           String
+  coverImageUrl     String?
+  sourceUrl         String?
+  authorDisplayName String?    @default("This'n'that Team")
+  status            BlogStatus @default(DRAFT)
+  publishedAt       DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([status, publishedAt])
+}

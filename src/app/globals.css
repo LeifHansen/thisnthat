@@ -1,0 +1,409 @@
+@import "tailwindcss";
+
+/*
+  This'n'that — cartoon 90s theme.
+  White pages and black bands, neon green / hot pink / electric blue / yellow
+  for everything that wants attention, thick black outlines, hard offset
+  shadows and chunky rounded type. Think Saturday-morning stickers.
+
+  CSS variable NAMES are shared with every component in src/ — only the
+  values live here. Legacy role names (--tnt-red, --tnt-green, --tnt-purple…)
+  map onto the neon palette so nothing else has to change:
+
+    --tnt-red      hot pink   (primary CTA, prices, links)
+    --tnt-green    green      (trust, success, totals)
+    --tnt-blue     blue       (secondary, focus)
+    --tnt-purple   purple     (AI / bundles)
+    --tnt-yellow   yellow     (highlights, badges)
+
+  Text roles use the readable "deep" tone of each colour; fills use the
+  "neon" tone with black text on top.
+*/
+:root {
+  /* Surfaces — white paper, black ink, black lines */
+  --tnt-bg: #ffffff;
+  --tnt-bg2: #ffffff;
+  --tnt-surface: #f2f2f2;
+  --tnt-card: #ffffff;
+  --tnt-ink: #0a0a0a;
+  --tnt-ink-soft: #2a2a2a;
+  --tnt-muted: #5b5b5b;
+  --tnt-line: #0a0a0a;
+  --tnt-line-strong: #0a0a0a;
+  --tnt-outline: #0a0a0a;
+
+  /* The neon palette by name */
+  --tnt-neon-green: #39ff14;
+  --tnt-neon-pink: #ff3eb5;
+  --tnt-neon-blue: #00e5ff;
+  --tnt-neon-yellow: #fff200;
+  --tnt-neon-purple: #b026ff;
+  --tnt-neon-orange: #ff7a00;
+
+  /* Primary — hot pink (legacy "red" role: prices, emphasis, links) */
+  --tnt-red: #ef0f8b;
+  --tnt-red-dark: #b8006a;
+  --tnt-red-soft: #ffd6ee;
+
+  /* Green (legacy "green" role: text/totals) + neon fills */
+  --tnt-green: #00a83e;
+  --tnt-green-bright: var(--tnt-neon-green);
+  --tnt-green-soft: #d9ffd0;
+  --tnt-success: #00a83e;
+
+  /* Blue (legacy "blue"/"cyan" roles: secondary text, focus ring) */
+  --tnt-blue: #0057ff;
+  --tnt-blue-bright: var(--tnt-neon-blue);
+  --tnt-cyan: var(--tnt-neon-blue);
+
+  /* Purple (legacy "purple" roles: AI, lots) */
+  --tnt-purple: var(--tnt-neon-purple);
+  --tnt-purple-dark: #7a00d6;
+  --tnt-purple-bright: #d58cff;
+  --tnt-purple-soft: #f1dcff;
+  --tnt-purple-text: #7a00d6;
+
+  /* Highlights */
+  --tnt-yellow: var(--tnt-neon-yellow);
+  --tnt-amber: #b58a00;
+  --tnt-pink: var(--tnt-neon-pink);
+
+  /* Dark bands (hero, header, footer, stats) */
+  --tnt-dark: #0a0a0a;
+  --tnt-dark-soft: #262626;
+
+  --tnt-panel: var(--tnt-card);
+
+  /* Hard, offset, black. No blur — this is a sticker, not a floating sheet. */
+  --tnt-shadow-sm: 3px 3px 0 var(--tnt-ink);
+  --tnt-shadow: 5px 5px 0 var(--tnt-ink);
+  --tnt-shadow-lg: 8px 8px 0 var(--tnt-ink);
+
+  --tnt-radius: 18px;
+
+  /* Two families from next/font in layout.tsx: --font-body (rounded sans)
+     and --font-heading (chunky rounded display). Aliased to --font-display
+     for the rules below; falls back to the body face if unavailable. */
+  --font-display: var(--font-heading, var(--font-body));
+}
+
+@theme inline {
+  --color-bg: var(--tnt-bg);
+  --color-ink: var(--tnt-ink);
+  --color-muted: var(--tnt-muted);
+  --color-pink: var(--tnt-pink);
+  --color-cyan: var(--tnt-blue);
+  --color-yellow: var(--tnt-amber);
+  --color-purple: var(--tnt-purple);
+  --color-green: var(--tnt-green);
+  --color-panel: var(--tnt-card);
+  --color-red: var(--tnt-red);
+  --color-blue: var(--tnt-blue);
+  --font-sans: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-display), "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+}
+
+html,
+body {
+  background-color: var(--tnt-bg);
+  /* Confetti: a faint two-tone polka grid in pink and blue over white. */
+  background-image:
+    radial-gradient(rgba(255, 62, 181, 0.22) 1.6px, transparent 1.7px),
+    radial-gradient(rgba(0, 229, 255, 0.22) 1.6px, transparent 1.7px);
+  background-size: 28px 28px, 28px 28px;
+  background-position: 0 0, 14px 14px;
+  color: var(--tnt-ink);
+  font-family: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display), "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  line-height: 1.1;
+  color: var(--tnt-ink);
+}
+
+a {
+  color: var(--tnt-ink);
+  text-decoration: none;
+  transition: color 0.12s ease;
+}
+a:hover {
+  color: var(--tnt-red);
+}
+
+/* ── Panel ────────────────────────────────────────────────────── */
+.tnt-panel {
+  background: var(--tnt-card);
+  border: 3px solid var(--tnt-ink);
+  border-radius: var(--tnt-radius);
+  box-shadow: var(--tnt-shadow-sm);
+}
+.tnt-panel--accent {
+  background: var(--tnt-neon-yellow);
+  border-color: var(--tnt-ink);
+}
+
+/* Listing card: sticker frame, jumps up-left on hover */
+.tnt-card {
+  position: relative;
+  background: var(--tnt-card);
+  border: 3px solid var(--tnt-ink);
+  border-radius: var(--tnt-radius);
+  box-shadow: var(--tnt-shadow-sm);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.tnt-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--tnt-ink);
+}
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.tnt-btn {
+  font-family: var(--font-display), "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  border-radius: 999px;
+  border: 3px solid var(--tnt-ink);
+  color: var(--tnt-ink);
+  background: var(--tnt-neon-pink);
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--tnt-ink);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.12s ease;
+}
+.tnt-btn:hover {
+  color: var(--tnt-ink);
+  background: #ff67c6;
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--tnt-ink);
+}
+.tnt-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--tnt-ink);
+}
+.tnt-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 4px 4px 0 var(--tnt-ink);
+}
+.tnt-btn--ghost {
+  background: #ffffff;
+  color: var(--tnt-ink);
+}
+.tnt-btn--ghost:hover {
+  background: var(--tnt-neon-yellow);
+  color: var(--tnt-ink);
+}
+.tnt-btn--green {
+  background: var(--tnt-neon-green);
+  color: var(--tnt-ink);
+}
+.tnt-btn--green:hover {
+  background: #7dff62;
+  color: var(--tnt-ink);
+}
+.tnt-btn--purple {
+  background: var(--tnt-neon-purple);
+  color: #ffffff;
+}
+.tnt-btn--purple:hover {
+  background: #c65cff;
+  color: #ffffff;
+}
+
+/* ── Inputs ───────────────────────────────────────────────────── */
+.tnt-input {
+  width: 100%;
+  background: #ffffff;
+  color: var(--tnt-ink);
+  border: 3px solid var(--tnt-ink);
+  border-radius: 999px;
+  padding: 0.6rem 1rem;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: box-shadow 0.12s ease, background 0.12s ease;
+}
+.tnt-input::placeholder { color: var(--tnt-muted); font-weight: 500; }
+.tnt-input:focus {
+  outline: none;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px var(--tnt-neon-blue);
+}
+/* The pill radius is for single-line inputs only; multi-line textareas and
+   selects need a normal radius so their text lines up cleanly. */
+textarea.tnt-input,
+select.tnt-input {
+  border-radius: 14px;
+}
+textarea.tnt-input {
+  padding: 0.7rem 1rem;
+  line-height: 1.5;
+}
+
+/* ── Badges ───────────────────────────────────────────────────── */
+.tnt-badge {
+  font-family: var(--font-display), "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--tnt-ink);
+  background: var(--tnt-neon-yellow);
+  color: var(--tnt-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 var(--tnt-ink);
+}
+/* Tones used by ConditionBadge and the browse chips: on (active/new),
+   good (like new), default (good), warn (fair), error (for parts / sold out). */
+.tnt-badge--on { background: var(--tnt-neon-blue); color: var(--tnt-ink); }
+.tnt-badge--good { background: var(--tnt-neon-green); color: var(--tnt-ink); }
+.tnt-badge--warn { background: var(--tnt-neon-orange); color: var(--tnt-ink); }
+.tnt-badge--error { background: var(--tnt-neon-pink); color: var(--tnt-ink); }
+
+/* A badge that looks slapped on at an angle. */
+.tnt-sticker {
+  transform: rotate(-3deg);
+  box-shadow: 3px 3px 0 var(--tnt-ink);
+}
+
+/* Hide the scrollbar on swipeable carousels (still scrolls/swipes). */
+.tnt-noscrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.tnt-noscrollbar::-webkit-scrollbar { display: none; }
+
+/* ── Cart count bubble ───────────────────────────────────────────── */
+.tnt-cartdot {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--tnt-neon-pink);
+  color: var(--tnt-ink);
+  border: 2px solid var(--tnt-ink);
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Wizard stepper ───────────────────────────────────────────── */
+.tnt-step {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: 3px solid var(--tnt-ink);
+  color: var(--tnt-ink);
+  background: #ffffff;
+  box-shadow: 2px 2px 0 var(--tnt-ink);
+}
+.tnt-step--active { background: var(--tnt-neon-pink); color: var(--tnt-ink); }
+.tnt-step--done { background: var(--tnt-neon-green); color: var(--tnt-ink); }
+
+/* ── Dark bands ───────────────────────────────────────────────── */
+/* Black with neon glows in the corners; used by the home CTA band. */
+.tnt-stats {
+  background:
+    radial-gradient(70% 90% at 100% 0%, rgba(57, 255, 20, 0.35), transparent 60%),
+    radial-gradient(70% 90% at 0% 100%, rgba(255, 62, 181, 0.4), transparent 60%),
+    radial-gradient(50% 60% at 50% 100%, rgba(0, 229, 255, 0.25), transparent 60%),
+    var(--tnt-dark);
+  color: #ffffff;
+  border: 3px solid var(--tnt-ink);
+  border-radius: 24px;
+  box-shadow: 8px 8px 0 var(--tnt-neon-green);
+}
+
+/* Memphis-style squiggle + confetti backdrop for black hero bands. */
+.tnt-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(40% 55% at 8% 12%, rgba(255, 62, 181, 0.55), transparent 62%),
+    radial-gradient(35% 50% at 92% 20%, rgba(0, 229, 255, 0.45), transparent 62%),
+    radial-gradient(45% 55% at 50% 110%, rgba(57, 255, 20, 0.35), transparent 62%),
+    var(--tnt-dark);
+  color: #ffffff;
+  border: 3px solid var(--tnt-ink);
+  border-radius: 28px;
+  box-shadow: 8px 8px 0 var(--tnt-neon-pink);
+}
+.tnt-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(rgba(255, 242, 0, 0.55) 2px, transparent 2.5px),
+    radial-gradient(rgba(255, 255, 255, 0.25) 1.5px, transparent 2px);
+  background-size: 46px 46px, 31px 31px;
+  background-position: 6px 10px, 20px 24px;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0.9), rgba(0,0,0,0.25));
+}
+
+/* Neon text colours for use on black. */
+.tnt-neon-green { color: var(--tnt-neon-green); }
+.tnt-neon-pink { color: var(--tnt-neon-pink); }
+.tnt-neon-blue { color: var(--tnt-neon-blue); }
+.tnt-neon-yellow { color: var(--tnt-neon-yellow); }
+
+/* ── Toasts ───────────────────────────────────────────────────── */
+@keyframes tnt-toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.tnt-toast-in { animation: tnt-toast-in 0.18s ease-out; }
+
+/* ── Chat dock ────────────────────────────────────────────────── */
+@keyframes tnt-dock-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tnt-dock-in { animation: tnt-dock-in 0.2s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tnt-card,
+  .tnt-btn {
+    transition: none;
+  }
+  .tnt-card:hover,
+  .tnt-btn:hover {
+    transform: none;
+  }
+  .tnt-toast-in,
+  .tnt-dock-in {
+    animation: none;
+  }
+}

@@ -1,0 +1,65 @@
+# fly.toml app configuration file for thisnthat
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'thisnthat'
+# Pick the region closest to most of your buyers: `fly platform regions`.
+primary_region = 'sea'
+
+[build]
+  # NEXT_PUBLIC_* values are inlined into the bundle at BUILD time, so they
+  # must arrive as build args — runtime `fly secrets` are too late for them.
+  # The Stripe publishable key is NOT one of them: baking it in meant one empty
+  # build arg silently killed checkout for every customer until the next deploy,
+  # so it is read at request time from STRIPE_PUBLISHABLE_KEY (an unprefixed name
+  # precisely so nothing inlines it). Set it with `fly secrets set` — no rebuild.
+  # The GA ID is passed by .github/workflows/fly-deploy.yml from a GitHub
+  # secret; the app URL is a public constant so it lives here. Without it,
+  # baseUrl() compiled to "" and Stripe rejected Connect-onboarding redirect
+  # URLs ("Not a valid URL").
+  #
+  # The *.fly.dev hostname is a placeholder until a custom domain exists —
+  # update it (and SITE_URL via `fly secrets set`) when one is attached.
+  [build.args]
+    NEXT_PUBLIC_APP_URL = "https://thisnthat.fly.dev"
+
+[deploy]
+  # Apply committed migrations deterministically, then (re)seed. `migrate
+  # deploy` only applies pending migrations and never touches existing data
+  # (we do not use `prisma db push` on release: without `--accept-data-loss`
+  # it aborts non-interactively the moment Prisma flags any change as lossy,
+  # so the schema silently drifts). The seed is idempotent — it syncs the
+  # category table from src/lib/categories.ts and (re)creates the demo
+  # accounts — and with NODE_ENV=production it seeds no demo listings; it
+  # never touches real user-created data.
+  #
+  # Both steps are non-fatal so a transient migrate/seed hiccup never aborts the
+  # release and leaves prod on stale code. This runs before any machine boots
+  # the new image, so it is the primary applier; docker-entrypoint.js repeats it
+  # as a backstop for a failed release step, but only once the server already
+  # holds the port (the Prisma CLI competing for a shared vCPU during boot is
+  # what pushed cold starts past Fly's ~8.4s proxy cutoff).
+  release_command = "sh scripts/release.sh"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  # Liveness only: /api/live answers 200 as soon as Next is listening. Do not
+  # point this at /api/health — that endpoint deliberately 503s on a missing
+  # or test-mode key, and Fly would keep restarting a healthy machine.
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '20s'
+    method = 'GET'
+    path = '/api/live'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '1gb'

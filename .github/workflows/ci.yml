@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  # No branch filter: the repository's default branch is not `main`, so a
+  # filter on the PR base would skip every PR. Run for all of them.
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      # Build/typecheck only — no real DB needed (pages are dynamic).
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db?sslmode=disable"
+      DIRECT_URL: "postgresql://user:pass@localhost:5432/db?sslmode=disable"
+      AUTH_SECRET: "ci-placeholder-secret-ci-placeholder-secret-32+"
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npx eslint src --quiet
+
+      - name: Build
+        run: npx next build
+
+  # The Expo app is excluded from the root tsconfig and eslint config (it lints
+  # itself), so nothing verified it at all — which is how it drifted sixteen
+  # PRs behind the API it consumes, and how it kept the Expo template's app
+  # icon. Its own tree, its own job.
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      # Catches what typechecking can't: a deleted asset something still
+      # requires, or a native module that doesn't resolve. This is the check
+      # that would have failed on the Expo logo removal.
+      - name: Bundle for iOS
+        run: npx expo export --platform ios --output-dir /tmp/expo-export
