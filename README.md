@@ -211,8 +211,7 @@ build time), then redeploy.
 
 ### Deploys from GitHub
 
-`.github/workflows/fly-deploy.yml` deploys on every push to `main` (and, until
-the default branch is renamed, `claude/gallant-hopper-kzsuj4`), or manually
+`.github/workflows/fly-deploy.yml` deploys on every push to `main`, or manually
 from the Actions tab. It needs two repository secrets:
 
 - `FLY_API_TOKEN` — `fly tokens create deploy -x 999999h`

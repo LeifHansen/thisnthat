@@ -5,14 +5,14 @@ name: Deploy to Fly.io
 # without a commit. Needs the FLY_API_TOKEN repository secret (and optionally
 # NEXT_PUBLIC_GA_ID) — scripts/fly-setup.sh walks through creating both.
 #
-# `main` is the intended production branch. The repository's default branch
-# is currently `claude/gallant-hopper-kzsuj4`; rename it to `main` (GitHub →
-# Settings → Branches) or leave both listed here — either way only pushes to a
-# branch named below deploy.
+# `main` is the production branch: only pushes to a branch named below deploy.
+# If the repository's default branch is still `claude/gallant-hopper-kzsuj4`,
+# rename it to `main` (GitHub → Settings → Branches) — that branch is the
+# superseded prototype and is deliberately no longer deployable from here.
 
 on:
   push:
-    branches: [main, claude/gallant-hopper-kzsuj4]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
