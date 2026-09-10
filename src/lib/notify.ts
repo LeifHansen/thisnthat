@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { absoluteUrl } from "@/lib/site";
 import { displayNameOf } from "@/lib/users";
+import { sellerPath } from "@/lib/handles";
+import { trackingUrl } from "@/lib/tracking";
 import * as T from "@/lib/emailTemplates";
 
 /**
@@ -153,11 +155,18 @@ export async function orderShipped(orderId: string): Promise<void> {
       include: {
         listing: { select: { title: true } },
         buyer: { select: { email: true, name: true } },
+        // The newest event carries the parcel's carrier + tracking number.
+        shipmentEvents: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { carrier: true, trackingNumber: true },
+        },
       },
     });
     if (!order) return;
     const buyerEmail = order.buyer?.email ?? order.guestEmail;
     if (!buyerEmail) return;
+    const shipment = order.shipmentEvents[0];
     // Registered buyers can opt out; guests always get shipping updates.
     if (order.buyer) {
       const r = await recipient(order.buyerId!, "notifyOrders");
@@ -169,6 +178,9 @@ export async function orderShipped(orderId: string): Promise<void> {
       T.orderShippedBuyer({
         itemTitle: order.listing.title,
         orderId: order.id,
+        carrier: shipment?.carrier,
+        trackingNumber: shipment?.trackingNumber,
+        trackingUrl: trackingUrl(shipment?.carrier, shipment?.trackingNumber),
         unsubscribeUrl: u,
       }),
       "order",
@@ -394,7 +406,7 @@ export async function newFollower(
     const follower = await prisma.user
       .findUnique({
         where: { id: followerId },
-        select: { name: true, displayName: true },
+        select: { id: true, name: true, displayName: true, handle: true },
       })
       .catch(() => null);
     if (!follower) return;
@@ -403,7 +415,7 @@ export async function newFollower(
       owner.email,
       T.newFollower({
         followerName: displayNameOf(follower),
-        followerId,
+        followerPath: sellerPath(follower),
         unsubscribeUrl: u,
       }),
       "social",

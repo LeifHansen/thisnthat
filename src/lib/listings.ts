@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireStripe } from "@/lib/stripe";
 import * as notify from "@/lib/notify";
 import type { ListingCardData } from "@/components/ListingCard";
+import { getSellerRatings } from "@/lib/reviews";
 
 /**
  * Free listings stranded SOLD by an abandoned checkout. Checkout reserves a
@@ -101,7 +102,7 @@ async function advancePaidOrder(order: {
   const advanced = await prisma.$transaction(async (tx) => {
     const res = await tx.order.updateMany({
       where: { id: order.id, status: "PENDING_PAYMENT" },
-      data: { status: "AWAITING_SHIP_TO_BUYER" },
+      data: { status: "AWAITING_SHIP_TO_BUYER", paidAt: new Date() },
     });
     if (res.count === 0) return false;
     // The unit was already decremented at reservation; just enforce the
@@ -264,6 +265,22 @@ export const CARD_SELECT = {
   categoryId: true,
 } satisfies Prisma.ListingSelect;
 
+/**
+ * Attach each card's seller rating (average + review count) with one grouped
+ * aggregate for the whole page, so a grid of 12 cards costs one extra query
+ * rather than twelve. Sellers with no reviews get a null average and a zero
+ * count, which the card renders as "No reviews yet".
+ */
+export async function withSellerRatings<T extends { sellerId: string }>(
+  items: T[],
+): Promise<(T & { sellerRating: ListingCardData["sellerRating"] })[]> {
+  const ratings = await getSellerRatings(items.map((l) => l.sellerId));
+  return items.map((l) => ({
+    ...l,
+    sellerRating: ratings.get(l.sellerId) ?? { avg: null, count: 0 },
+  }));
+}
+
 /** Listings that are for sale right now: published with stock left. */
 export const FOR_SALE: Prisma.ListingWhereInput = {
   status: "ACTIVE",
@@ -295,7 +312,7 @@ export async function getListingsPage({
   sort?: ListingSort;
 }): Promise<{ items: ListingCardData[]; total: number }> {
   const full: Prisma.ListingWhereInput = { isLot: false, ...where, ...FOR_SALE };
-  const [items, total] = await Promise.all([
+  const [rows, total] = await Promise.all([
     prisma.listing.findMany({
       where: full,
       orderBy: ORDER_BY[sort],
@@ -305,7 +322,7 @@ export async function getListingsPage({
     }),
     prisma.listing.count({ where: full }),
   ]);
-  return { items, total };
+  return { items: await withSellerRatings(rows), total };
 }
 
 // ── Lot listings ─────────────────────────────────────────────────────
@@ -328,10 +345,12 @@ export async function getLots(
     orderBy: { createdAt: "desc" },
     select: LOT_SELECT,
   });
-  return rows.map(({ lotItems, ...card }) => ({
-    ...card,
-    pieces: lotItems.reduce((n, it) => n + it.quantity, 0),
-  }));
+  return withSellerRatings(
+    rows.map(({ lotItems, ...card }) => ({
+      ...card,
+      pieces: lotItems.reduce((n, it) => n + it.quantity, 0),
+    })),
+  );
 }
 
 /** Count of active lots — cheap existence/badge check for entry points. */
@@ -349,12 +368,13 @@ export async function getMoreFromSeller(
   excludeId: string,
   take = 8,
 ): Promise<ListingCardData[]> {
-  return prisma.listing.findMany({
+  const rows = await prisma.listing.findMany({
     where: { ...FOR_SALE, sellerId, NOT: { id: excludeId } },
     orderBy: { createdAt: "desc" },
     take,
     select: CARD_SELECT,
   });
+  return withSellerRatings(rows);
 }
 
 /** For-sale listings in the same category (newest first), excluding one. */
@@ -363,12 +383,13 @@ export async function getSimilarListings(
   excludeId: string,
   take = 8,
 ): Promise<ListingCardData[]> {
-  return prisma.listing.findMany({
+  const rows = await prisma.listing.findMany({
     where: { ...FOR_SALE, categoryId, isLot: false, NOT: { id: excludeId } },
     orderBy: { createdAt: "desc" },
     take,
     select: CARD_SELECT,
   });
+  return withSellerRatings(rows);
 }
 
 /** Per-category counts of for-sale listings, for browse tiles and facets. */

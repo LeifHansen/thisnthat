@@ -8,6 +8,7 @@ import { publicUrlFor } from "@/lib/r2";
 import { deleteAccount } from "@/lib/deleteAccount";
 import { signOut } from "@/lib/auth";
 import { normalizeHandle, sellerPath, validateHandle } from "@/lib/handles";
+import { US_STATES } from "@/lib/usStates";
 
 const MAX_DISPLAY_NAME = 40;
 const MAX_BIO = 500;
@@ -37,6 +38,23 @@ export async function updateProfile(formData: FormData) {
     redirect(
       "/dashboard/profile?toast=Enter+a+valid+5-digit+ship-from+ZIP&toastKind=error",
     );
+  }
+
+  // Street address: ship-from for bought labels, default ship-to for accepted
+  // offers. Every line is optional on its own (label purchase checks for a
+  // complete address at the point of use), but what is present must be sane.
+  const field = (k: string, max: number) =>
+    String(formData.get(k) ?? "").trim().slice(0, max);
+  const addressLine1 = field("addressLine1", 120);
+  const addressLine2 = field("addressLine2", 120);
+  const city = field("city", 80);
+  const state = field("state", 2).toUpperCase();
+  const postalCode = field("postalCode", 10);
+  if (state !== "" && !US_STATES.some((st) => st.code === state)) {
+    redirect("/dashboard/profile?toast=Pick+a+state+from+the+list&toastKind=error");
+  }
+  if (postalCode !== "" && !/^\d{5}(-\d{4})?$/.test(postalCode)) {
+    redirect("/dashboard/profile?toast=Enter+a+valid+5-digit+ZIP+for+your+address&toastKind=error");
   }
 
   const r2Base = publicUrlFor("avatars/");
@@ -69,6 +87,11 @@ export async function updateProfile(formData: FormData) {
         avatarUrl: avatarUrl || null,
         shipFromPostalCode: shipFromPostalCode || null,
         handle,
+        addressLine1: addressLine1 || null,
+        addressLine2: addressLine2 || null,
+        city: city || null,
+        state: state || null,
+        postalCode: postalCode || null,
       },
     });
   } catch (e) {

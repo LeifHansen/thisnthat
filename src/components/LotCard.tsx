@@ -5,6 +5,7 @@ import type { LotCardData } from "@/lib/listings";
 import { ConditionBadge } from "@/components/ConditionBadge";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { PhotoCarousel } from "@/components/PhotoCarousel";
+import { SellerRating } from "@/components/SellerRating";
 
 /**
  * Storefront card for a lot — a single listing bundling several items sold
@@ -37,6 +38,10 @@ export function LotCard({ lot }: { lot: LotCardData }) {
           {lot.title}
         </h3>
       </Link>
+
+      {lot.sellerRating !== undefined && (
+        <SellerRating rating={lot.sellerRating} className="-mt-1" />
+      )}
 
       <div className="flex items-end justify-between gap-2">
         <div>

@@ -370,7 +370,7 @@ export type ReleaseResult = { released: boolean; reason?: string };
 export async function releaseEscrow(orderId: string): Promise<ReleaseResult> {
   const claimed = await prisma.order.updateMany({
     where: { id: orderId, status: "SHIPPED_TO_BUYER" },
-    data: { status: "COMPLETED" },
+    data: { status: "COMPLETED", completedAt: new Date() },
   });
   if (claimed.count === 0) {
     return { released: false, reason: "order is not awaiting release" };
@@ -382,7 +382,7 @@ export async function releaseEscrow(orderId: string): Promise<ReleaseResult> {
   } catch (e) {
     await prisma.order.updateMany({
       where: { id: orderId, status: "COMPLETED" },
-      data: { status: "SHIPPED_TO_BUYER" },
+      data: { status: "SHIPPED_TO_BUYER", completedAt: null },
     });
     throw e;
   }

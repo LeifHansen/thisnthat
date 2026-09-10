@@ -8,6 +8,7 @@ import { AvatarUploader } from "@/components/AvatarUploader";
 import { displayNameOf } from "@/lib/users";
 import { HANDLE_MAX, HANDLE_MIN, sellerPath } from "@/lib/handles";
 import { SITE_URL } from "@/lib/site";
+import { US_STATES } from "@/lib/usStates";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,11 @@ export default async function ProfileSettingsPage({
       avatarUrl: true,
       shipFromPostalCode: true,
       handle: true,
+      addressLine1: true,
+      addressLine2: true,
+      city: true,
+      state: true,
+      postalCode: true,
     },
   });
   if (!me) return null;
@@ -100,7 +106,7 @@ export default async function ProfileSettingsPage({
               placeholder="your-shop-name"
               minLength={HANDLE_MIN}
               maxLength={HANDLE_MAX}
-              pattern="[a-z0-9]([a-z0-9-]*[a-z0-9])?"
+              pattern="[a-z0-9]([a-z0-9\-]*[a-z0-9])?"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
@@ -150,6 +156,86 @@ export default async function ProfileSettingsPage({
             shipping instead of the flat ${"8"} estimate. Never shown publicly.
           </p>
         </div>
+
+        <fieldset className="space-y-3 rounded-2xl border-[3px] border-[var(--tnt-ink)] p-4">
+          <legend className="font-semibold text-sm px-1">Your address</legend>
+          <p className="text-xs text-muted -mt-1">
+            The ship-from address printed on labels you buy from an order page,
+            and your default delivery address when a seller accepts your offer.
+            Never shown publicly.
+          </p>
+          <div className="space-y-1.5">
+            <label htmlFor="addressLine1" className="font-semibold text-sm block">
+              Street address
+            </label>
+            <input
+              id="addressLine1"
+              name="addressLine1"
+              defaultValue={me.addressLine1 ?? ""}
+              placeholder="123 Main St"
+              maxLength={120}
+              autoComplete="address-line1"
+              className="tnt-input"
+            />
+            <input
+              name="addressLine2"
+              defaultValue={me.addressLine2 ?? ""}
+              placeholder="Apt, suite, unit (optional)"
+              maxLength={120}
+              autoComplete="address-line2"
+              aria-label="Address line 2"
+              className="tnt-input"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_9rem_8rem] gap-3">
+            <div className="space-y-1.5">
+              <label htmlFor="city" className="font-semibold text-sm block">
+                City
+              </label>
+              <input
+                id="city"
+                name="city"
+                defaultValue={me.city ?? ""}
+                maxLength={80}
+                autoComplete="address-level2"
+                className="tnt-input"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="state" className="font-semibold text-sm block">
+                State
+              </label>
+              <select
+                id="state"
+                name="state"
+                defaultValue={me.state ?? ""}
+                autoComplete="address-level1"
+                className="tnt-input"
+              >
+                <option value="">—</option>
+                {US_STATES.map((st) => (
+                  <option key={st.code} value={st.code}>
+                    {st.code}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="postalCode" className="font-semibold text-sm block">
+                ZIP
+              </label>
+              <input
+                id="postalCode"
+                name="postalCode"
+                defaultValue={me.postalCode ?? ""}
+                maxLength={10}
+                inputMode="numeric"
+                autoComplete="postal-code"
+                className="tnt-input"
+              />
+            </div>
+          </div>
+        </fieldset>
 
         <div className="flex items-center gap-3 pt-1">
           <button type="submit" className="tnt-btn">

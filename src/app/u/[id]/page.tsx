@@ -243,7 +243,10 @@ export default async function PublicProfilePage({
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {listings.map((l) => (
-              <ListingCard key={l.id} listing={l} />
+              <ListingCard
+                key={l.id}
+                listing={{ ...l, sellerRating: { avg: ratingAvg, count: reviewCount } }}
+              />
             ))}
           </div>
         )}

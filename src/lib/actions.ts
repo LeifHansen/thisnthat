@@ -5,7 +5,12 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { releaseEscrow, refundOrderPayment } from "@/lib/payout";
-import { createTracker } from "@/lib/shipping";
+import {
+  buySaleLabel,
+  createTracker,
+  isEasyPostConfigured,
+  shipFromAddress,
+} from "@/lib/shipping";
 import { guestTokenMatches } from "@/lib/orderState";
 import type { OrderStatus } from "@prisma/client";
 import * as notify from "@/lib/notify";
@@ -38,7 +43,7 @@ export async function sellerMarkShipped(formData: FormData) {
   const advanced = await prisma.$transaction(async (tx) => {
     const res = await tx.order.updateMany({
       where: { id: orderId, status: "AWAITING_SHIP_TO_BUYER" },
-      data: { status: "SHIPPED_TO_BUYER" },
+      data: { status: "SHIPPED_TO_BUYER", shippedAt: new Date() },
     });
     if (res.count === 0) return false;
     await tx.shipmentEvent.create({
@@ -62,6 +67,99 @@ export async function sellerMarkShipped(formData: FormData) {
   revalidatePath(`/orders/${orderId}`);
   revalidatePath("/dashboard");
   redirect(`/orders/${orderId}?toast=Marked+shipped+%E2%80%94+tracking+shared+with+the+buyer`);
+}
+
+/**
+ * Buy a shipping label for a sale through EasyPost and mark the order shipped.
+ *
+ * The buyer's shipping charge stays with the platform (the seller's payout is
+ * the item price minus the fee), so the platform pays for the label — this is
+ * the path that makes that fair to the seller. The label is emailed nowhere;
+ * it lives on the order page's shipment trail. EasyPost auto-creates a tracker
+ * for labels it sells, so the delivery scan reaches our webhook without a
+ * separate createTracker call.
+ */
+export async function sellerBuyLabel(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+  const orderId = String(formData.get("orderId") ?? "");
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      seller: {
+        select: {
+          name: true,
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          state: true,
+          postalCode: true,
+          country: true,
+        },
+      },
+      listing: { select: { isLot: true, lotItems: { select: { quantity: true } } } },
+    },
+  });
+  if (!order || order.sellerId !== session.user.id) return;
+  if (order.status !== "AWAITING_SHIP_TO_BUYER") return;
+
+  const fail = (msg: string): never =>
+    redirect(`/orders/${orderId}?toast=${encodeURIComponent(msg)}&toastKind=error`);
+
+  if (!isEasyPostConfigured()) {
+    return fail("Label purchase isn't available right now — ship it yourself and enter the tracking number.");
+  }
+  const from = shipFromAddress(order.seller);
+  if (!from) {
+    return fail("Add your ship-from address in Edit Profile to buy labels here.");
+  }
+  const itemCount = order.listing.isLot
+    ? Math.max(1, order.listing.lotItems.reduce((n, it) => n + it.quantity, 0))
+    : 1;
+  const bought = await buySaleLabel(
+    from,
+    {
+      name: order.shipName,
+      line1: order.shipLine1,
+      line2: order.shipLine2,
+      city: order.shipCity,
+      state: order.shipState,
+      postalCode: order.shipPostalCode,
+      country: order.shipCountry,
+    },
+    itemCount,
+  );
+  if (!bought || !bought.tracking) {
+    return fail("We couldn't buy a label for this address. Ship it yourself and enter the tracking number below.");
+  }
+
+  // The label is real postage, so its record is written regardless of the
+  // status claim; only the transition is guarded, so a manual "mark shipped"
+  // racing this can't advance the order twice.
+  const advanced = await prisma.$transaction(async (tx) => {
+    await tx.shipmentEvent.create({
+      data: {
+        orderId,
+        carrier: bought.carrier || null,
+        trackingNumber: bought.tracking,
+        labelUrl: bought.labelUrl || null,
+        status: "LABEL_PURCHASED",
+      },
+    });
+    const res = await tx.order.updateMany({
+      where: { id: orderId, status: "AWAITING_SHIP_TO_BUYER" },
+      data: { status: "SHIPPED_TO_BUYER", shippedAt: new Date() },
+    });
+    return res.count > 0;
+  });
+  if (advanced) void notify.orderShipped(orderId);
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath("/dashboard");
+  redirect(
+    `/orders/${orderId}?toast=${encodeURIComponent(
+      "Label bought — print it from the shipment panel. The buyer has the tracking number.",
+    )}`,
+  );
 }
 
 export async function buyerConfirmReceipt(formData: FormData) {

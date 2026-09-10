@@ -105,7 +105,7 @@ export async function POST(req: Request) {
       const advanced = await prisma.$transaction(async (tx) => {
         const res = await tx.order.updateMany({
           where: { id: order.id, status: "PENDING_PAYMENT" },
-          data: { status: "AWAITING_SHIP_TO_BUYER" },
+          data: { status: "AWAITING_SHIP_TO_BUYER", paidAt: new Date() },
         });
         if (res.count === 0) return false;
         // The unit was already decremented at reservation; just enforce the

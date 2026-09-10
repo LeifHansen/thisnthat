@@ -277,6 +277,14 @@ model Order {
 
   status OrderStatus @default(PENDING_PAYMENT)
 
+  // When each milestone on the order timeline happened. Stamped once by the
+  // transition that reaches it (payment webhook / reconciliation, seller
+  // marks shipped or buys a label, escrow release) and never cleared, so the
+  // order page can show real dates rather than guessing from updatedAt.
+  paidAt      DateTime?
+  shippedAt   DateTime?
+  completedAt DateTime?
+
   stripePaymentIntentId String?
   stripeTransferId      String?
 

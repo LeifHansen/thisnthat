@@ -5,6 +5,7 @@ import { firstRealPhoto } from "@/lib/photos";
 import { ConditionBadge } from "@/components/ConditionBadge";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { PhotoCarousel } from "@/components/PhotoCarousel";
+import { SellerRating, type SellerRatingData } from "@/components/SellerRating";
 
 // The subset of Listing a card actually renders. Accepting a Pick (rather than
 // the full Prisma model) lets the same card render from a server query
@@ -22,7 +23,12 @@ export type ListingCardData = Pick<
   | "quantity"
   | "isLot"
   | "categoryId"
->;
+> & {
+  // The seller's verified-buyer rating, attached by withSellerRatings() in
+  // src/lib/listings.ts. Optional so a card can still render from a bare
+  // Listing row (e.g. the dashboard's liked list) — it then omits the line.
+  sellerRating?: SellerRatingData | null;
+};
 
 export function ListingCard({ listing }: { listing: ListingCardData }) {
   const photo = firstRealPhoto(listing.photos);
@@ -54,6 +60,10 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
           {listing.title}
         </h3>
       </Link>
+
+      {listing.sellerRating !== undefined && (
+        <SellerRating rating={listing.sellerRating} className="-mt-1" />
+      )}
 
       <div className="flex items-center justify-between gap-2">
         <p className="text-lg font-extrabold text-[var(--tnt-red)] leading-none">

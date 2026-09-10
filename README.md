@@ -47,9 +47,18 @@ return window for items not as described (`/returns`).
 - **Offer** — a buyer's bid; sellers accept or reject, or set a
   `minAutoAcceptCents` floor on the listing.
 - **Order** — lifecycle `PENDING_PAYMENT → AWAITING_SHIP_TO_BUYER →
-  SHIPPED_TO_BUYER → COMPLETED` (or `CANCELLED` / `REFUNDED`). Capture and
-  the seller transfer happen together in `captureAndPay()`
-  (`src/lib/payout.ts`) on buyer confirmation or the EasyPost delivery event.
+  SHIPPED_TO_BUYER → COMPLETED` (or `CANCELLED` / `REFUNDED`), with
+  `paidAt` / `shippedAt` / `completedAt` stamped by each transition so the
+  order page's timeline shows real dates. Capture and the seller transfer
+  happen together in `captureAndPay()` (`src/lib/payout.ts`) on buyer
+  confirmation or the EasyPost delivery event. A seller can cancel (and the
+  buyer is refunded or their hold released) from the order page until they
+  ship; an admin can from `/admin/orders` at any point before completion.
+- **ShipmentEvent** — the parcel's trail: a label bought through the platform
+  (`LABEL_PURCHASED`, with the printable `labelUrl`), the seller's hand-entered
+  tracking (`IN_TRANSIT`), then every carrier scan the EasyPost webhook
+  relays. The newest event's carrier + tracking number is what the order page
+  and the "shipped" email link to (`src/lib/tracking.ts`).
 - **Conversation / Message** — 1:1 DMs between members; **ProductReview** —
   a verified-buyer review per completed order; **ListingLike** / **Follow**.
 - **BlogPost** — the editorial blog (`/blog`), written by admins by hand or
@@ -119,6 +128,20 @@ falls back to a flat rate (`SHIPPING_LEG_CENTS`) and sellers enter tracking by
 hand. Add a webhook pointing at `/api/easypost/webhook` and put its HMAC
 secret in `EASYPOST_WEBHOOK_SECRET`; delivery scans then capture payment and
 pay the seller without waiting for the buyer's confirmation.
+
+With a key set, a seller whose profile has a full street address gets a
+**Buy label & mark shipped** button on each order awaiting shipment. The
+buyer's shipping charge stays with the platform (the seller's payout is the
+item price minus the fee), so the platform pays for the label from that; the
+order is marked shipped with the label's tracking number and the buyer is
+emailed it. Sellers without an address are pointed at Edit Profile, and the
+hand-entered tracking form is always there as the fallback.
+
+### Email previews
+
+`npm run emails:preview` renders every transactional email with sample data
+to `.email-previews/` (gitignored) so the brand and links can be checked
+without sending anything. `SITE_URL` controls the link origin.
 
 ### SendGrid
 

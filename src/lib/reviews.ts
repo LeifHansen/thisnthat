@@ -92,3 +92,35 @@ export async function getSellerRating(sellerId: string): Promise<SellerRating> {
     count,
   };
 }
+
+/**
+ * Ratings for a batch of sellers in one grouped aggregate — what a page of
+ * listing cards needs. Sellers without reviews are simply absent from the map
+ * (callers treat a miss as "no reviews yet"). Never throws: a rating is
+ * decoration on a card, and a failed aggregate must not take the grid down.
+ */
+export async function getSellerRatings(
+  sellerIds: string[],
+): Promise<Map<string, SellerRating>> {
+  const ids = Array.from(new Set(sellerIds)).filter(Boolean);
+  const out = new Map<string, SellerRating>();
+  if (ids.length === 0) return out;
+  try {
+    const rows = await prisma.productReview.groupBy({
+      by: ["sellerId"],
+      where: { sellerId: { in: ids } },
+      _avg: { rating: true },
+      _count: { _all: true },
+    });
+    for (const r of rows) {
+      const count = r._count._all;
+      out.set(r.sellerId, {
+        avg: count > 0 && r._avg.rating != null ? r._avg.rating : null,
+        count,
+      });
+    }
+  } catch (e) {
+    console.error("[reviews.getSellerRatings]", e);
+  }
+  return out;
+}

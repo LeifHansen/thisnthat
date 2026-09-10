@@ -8,12 +8,15 @@ import {
 import { formatCents, PLATFORM_FEE_LABEL } from "@/lib/fees";
 
 // Brand tokens mirrored from globals.css (email clients need inline colors).
-const PINK = "#e8479a";
-const INK = "#201c2b";
-const INK_SOFT = "#494357";
-const LINE = "#ece5d9";
-const SURFACE = "#ffffff";
-const PAGE_BG = "#faf6f0";
+// Neon-90s: black ink and hard borders on white, with the neon set for accents.
+const INK = "#0a0a0a";
+const INK_SOFT = "#4a4a4a";
+const WHITE = "#ffffff";
+const NEON_GREEN = "#39ff14";
+const NEON_PINK = "#ff3eb5";
+const NEON_BLUE = "#00e5ff";
+const NEON_YELLOW = "#fff200";
+const SOFT_YELLOW = "#fffbcc";
 
 export type BuiltEmail = { subject: string; html: string };
 
@@ -24,10 +27,14 @@ type LayoutOpts = {
   unsubscribeLabel?: string; // e.g. "offer notifications"
 };
 
+const FONT = "'Arial Rounded MT Bold','Trebuchet MS',Arial,Helvetica,sans-serif";
+
 /**
- * Wrap body HTML in the branded shell: logo header, white card, optional CTA
- * button, and a footer with support contact + one-click unsubscribe. All
- * styling is inline; layout uses tables for Outlook/Gmail compatibility.
+ * Wrap body HTML in the branded shell: logo + wordmark header, a white card
+ * with a thick black border and a neon stripe, an optional pill CTA, and a
+ * footer with support contact + one-click unsubscribe. All styling is inline;
+ * layout uses tables for Outlook/Gmail compatibility. The hard drop shadow is
+ * progressive enhancement — clients that drop box-shadow still get the border.
  */
 export function layout(bodyHtml: string, opts: LayoutOpts = {}): string {
   const preheader = opts.preheader
@@ -37,9 +44,9 @@ export function layout(bodyHtml: string, opts: LayoutOpts = {}): string {
     : "";
 
   const cta = opts.cta
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
-         <tr><td style="border-radius:9999px;background:${PINK};">
-           <a href="${opts.cta.url}" style="display:inline-block;padding:12px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:9999px;">${escapeHtml(
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 4px;">
+         <tr><td style="border-radius:9999px;background:${NEON_PINK};border:3px solid ${INK};box-shadow:4px 4px 0 ${INK};">
+           <a href="${opts.cta.url}" style="display:inline-block;padding:12px 28px;font-family:${FONT};font-size:16px;font-weight:bold;color:${INK};text-decoration:none;border-radius:9999px;">${escapeHtml(
              opts.cta.label,
            )}</a>
          </td></tr>
@@ -52,26 +59,38 @@ export function layout(bodyHtml: string, opts: LayoutOpts = {}): string {
       } from ${escapeHtml(SITE_NAME)}. <a href="${opts.unsubscribeUrl}" style="color:${INK_SOFT};text-decoration:underline;">Manage or unsubscribe</a>.`
     : "";
 
+  // Four neon cells across the top of the card — the theme's "confetti" in a
+  // form every mail client renders.
+  const stripe = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
+    <td width="25%" height="8" style="background:${NEON_GREEN};font-size:0;line-height:0;">&nbsp;</td>
+    <td width="25%" height="8" style="background:${NEON_PINK};font-size:0;line-height:0;">&nbsp;</td>
+    <td width="25%" height="8" style="background:${NEON_BLUE};font-size:0;line-height:0;">&nbsp;</td>
+    <td width="25%" height="8" style="background:${NEON_YELLOW};font-size:0;line-height:0;">&nbsp;</td>
+  </tr></table>`;
+
   return `<!doctype html>
 <html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="color-scheme" content="light"/></head>
-<body style="margin:0;padding:0;background:${PAGE_BG};">
+<body style="margin:0;padding:0;background:${WHITE};">
 ${preheader}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PAGE_BG};padding:24px 12px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${WHITE};padding:24px 12px;">
   <tr><td align="center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
       <tr><td align="center" style="padding:8px 0 20px;">
-        <a href="${SITE_URL}" style="text-decoration:none;">
+        <a href="${SITE_URL}" style="text-decoration:none;font-family:${FONT};font-size:26px;font-weight:bold;color:${INK};">
           <img src="${absoluteUrl(
             "/tnt-logo.png",
-          )}" width="56" height="56" alt="${escapeHtml(SITE_NAME)}" style="display:block;border:0;"/>
+          )}" width="56" height="56" alt="" style="display:inline-block;vertical-align:middle;border:3px solid ${INK};border-radius:14px;margin-right:10px;"/><span style="vertical-align:middle;">This<span style="color:${NEON_PINK};">'n'</span>that</span>
         </a>
       </td></tr>
-      <tr><td style="background:${SURFACE};border:1px solid ${LINE};border-radius:16px;padding:28px 28px 24px;font-family:Arial,Helvetica,sans-serif;color:${INK};font-size:15px;line-height:1.55;">
+      <tr><td style="background:${WHITE};border:3px solid ${INK};border-radius:18px;box-shadow:6px 6px 0 ${INK};overflow:hidden;">
+        ${stripe}
+        <div style="padding:26px 28px 24px;font-family:Arial,Helvetica,sans-serif;color:${INK};font-size:15px;line-height:1.55;">
         ${bodyHtml}
         ${cta}
+        </div>
       </td></tr>
-      <tr><td style="padding:18px 8px 4px;font-family:Arial,Helvetica,sans-serif;color:${INK_SOFT};font-size:12px;line-height:1.5;text-align:center;">
-        ${escapeHtml(SITE_NAME)} — ${escapeHtml(SITE_TAGLINE)}<br/>
+      <tr><td style="padding:22px 8px 4px;font-family:Arial,Helvetica,sans-serif;color:${INK_SOFT};font-size:12px;line-height:1.5;text-align:center;">
+        <strong style="color:${INK};">${escapeHtml(SITE_NAME)}</strong> — ${escapeHtml(SITE_TAGLINE)}<br/>
         Questions? <a href="mailto:${SUPPORT_EMAIL}" style="color:${INK_SOFT};text-decoration:underline;">${escapeHtml(SUPPORT_EMAIL)}</a>${unsub}
       </td></tr>
     </table>
@@ -89,7 +108,7 @@ function escapeHtml(s: string): string {
 }
 
 function h1(text: string): string {
-  return `<h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;color:${INK};">${escapeHtml(
+  return `<h1 style="margin:0 0 12px;font-family:${FONT};font-size:22px;line-height:1.25;color:${INK};">${escapeHtml(
     text,
   )}</h1>`;
 }
@@ -103,18 +122,25 @@ function muted(text: string): string {
 /** A small labeled line item (e.g. "Item: Denim jacket" / "Price: $18.00"). */
 function detail(label: string, value: string): string {
   return `<tr>
-    <td style="padding:4px 12px 4px 0;color:${INK_SOFT};font-size:13px;white-space:nowrap;">${escapeHtml(
+    <td style="padding:6px 12px 6px 0;color:${INK_SOFT};font-size:13px;white-space:nowrap;">${escapeHtml(
       label,
     )}</td>
-    <td style="padding:4px 0;color:${INK};font-size:14px;font-weight:bold;">${escapeHtml(
+    <td style="padding:6px 0;color:${INK};font-size:14px;font-weight:bold;">${escapeHtml(
       value,
     )}</td>
   </tr>`;
 }
 function detailBlock(rows: Array<[string, string]>): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;">${rows
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:10px 0 4px;padding:6px 14px;background:${SOFT_YELLOW};border:2px solid ${INK};border-radius:12px;">${rows
     .map(([l, v]) => detail(l, v))
     .join("")}</table>`;
+}
+
+/** Plain secondary link under the body copy. */
+function link(label: string, url: string): string {
+  return `<p style="margin:0 0 12px;"><a href="${url}" style="color:${INK};font-weight:bold;text-decoration:underline;">${escapeHtml(
+    label,
+  )}</a></p>`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -155,7 +181,7 @@ export function orderPaidSeller(d: {
 }): BuiltEmail {
   const body =
     h1("You made a sale! 🎉") +
-    p(`${escapeHtml(d.itemTitle)} just sold. The buyer's payment is held — ship it and you'll be paid once the parcel is delivered or the buyer confirms receipt.`) +
+    p(`<strong>${escapeHtml(d.itemTitle)}</strong> just sold. The buyer's payment is held — ship it (buy a label or add tracking from the order page) and you're paid once the parcel is delivered or the buyer confirms receipt.`) +
     detailBlock([
       ["Item", d.itemTitle],
       ["Sale price", formatCents(d.priceCents)],
@@ -175,11 +201,20 @@ export function orderPaidSeller(d: {
 export function orderShippedBuyer(d: {
   itemTitle: string;
   orderId: string;
+  carrier?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
   unsubscribeUrl?: string;
 }): BuiltEmail {
   const body =
     h1("Your item is on its way 📦") +
-    p(`The seller has shipped <strong>${escapeHtml(d.itemTitle)}</strong>. When it arrives, confirm receipt from your order page so the seller gets paid — your payment stays held until then.`);
+    p(`The seller has shipped <strong>${escapeHtml(d.itemTitle)}</strong>. When it arrives, confirm receipt from your order page so the seller gets paid — your payment stays held until then.`) +
+    (d.trackingNumber
+      ? detailBlock([
+          ["Carrier", d.carrier || "See tracking"],
+          ["Tracking", d.trackingNumber],
+        ]) + (d.trackingUrl ? link("Track the parcel →", d.trackingUrl) : "")
+      : "");
   return {
     subject: `Shipped: ${d.itemTitle}`,
     html: layout(body, {
@@ -286,7 +321,7 @@ export function newMessage(d: {
   const snippet = d.preview.length > 140 ? d.preview.slice(0, 140) + "…" : d.preview;
   const body =
     h1(`New message from ${d.fromName}`) +
-    `<blockquote style="margin:0 0 12px;padding:10px 14px;border-left:3px solid ${PINK};background:#faf6f0;color:${INK};font-size:14px;">${escapeHtml(
+    `<blockquote style="margin:0 0 12px;padding:10px 14px;border-left:4px solid ${INK};background:${SOFT_YELLOW};color:${INK};font-size:14px;border-radius:0 12px 12px 0;">${escapeHtml(
       snippet,
     )}</blockquote>` +
     muted(`Reply from your ${escapeHtml(SITE_NAME)} inbox.`);
@@ -303,7 +338,8 @@ export function newMessage(d: {
 
 export function newFollower(d: {
   followerName: string;
-  followerId: string;
+  /** Their profile path (handle-first, via sellerPath). */
+  followerPath: string;
   unsubscribeUrl?: string;
 }): BuiltEmail {
   const body =
@@ -314,7 +350,7 @@ export function newFollower(d: {
     subject: `${d.followerName} is now following your store`,
     html: layout(body, {
       preheader: `Someone is following your ${SITE_NAME} store.`,
-      cta: { label: "View their profile", url: absoluteUrl(`/u/${d.followerId}`) },
+      cta: { label: "View their profile", url: absoluteUrl(d.followerPath) },
       unsubscribeUrl: d.unsubscribeUrl,
       unsubscribeLabel: "follower notifications",
     }),

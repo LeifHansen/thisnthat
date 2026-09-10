@@ -4,7 +4,9 @@
 // EASYPOST_API_KEY is absent or a call fails, we fall back to a flat rate /
 // manual tracking entry so a sale never hard-fails on shipping.
 
-const EASYPOST_API = "https://api.easypost.com/v2";
+// EASYPOST_API_URL exists so a local mock can stand in for EasyPost when
+// exercising the label flow end to end; production never sets it.
+const EASYPOST_API = process.env.EASYPOST_API_URL ?? "https://api.easypost.com/v2";
 const key = process.env.EASYPOST_API_KEY;
 
 /** Whether live rating and label purchase are possible at all. */
@@ -21,6 +23,36 @@ export type ShipAddress = {
   postalCode: string;
   country?: string;
 };
+
+/**
+ * A seller's ship-from address for label purchase, from the address on their
+ * profile. Null until every line a carrier needs is filled in — the order page
+ * then points them at Edit Profile instead of offering a label.
+ */
+export function shipFromAddress(u: {
+  name: string;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  state: string | null;
+  postalCode: string | null;
+  country?: string | null;
+}): ShipAddress | null {
+  const line1 = (u.addressLine1 ?? "").trim();
+  const city = (u.city ?? "").trim();
+  const state = (u.state ?? "").trim();
+  const postalCode = (u.postalCode ?? "").trim();
+  if (!line1 || !city || !state || !postalCode) return null;
+  return {
+    name: u.name,
+    line1,
+    line2: u.addressLine2?.trim() || null,
+    city,
+    state,
+    postalCode,
+    country: u.country ?? "US",
+  };
+}
 
 // Flat fallback when EasyPost isn't configured or a live rate fails:
 // ~$8 base + $1.50 per additional item in the parcel.

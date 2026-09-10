@@ -21,16 +21,35 @@ export function guestTokenMatches(
 
 // Every order ships direct, seller -> buyer. The buyer's card is authorized at
 // checkout and only captured (and the seller paid) once the parcel is
-// delivered or the buyer confirms receipt — which is what the timeline on the
-// order page walks through.
-export const ORDER_STEPS: { status: OrderStatus; label: string; blurb: string }[] = [
-  { status: "PENDING_PAYMENT", label: "Payment", blurb: "Awaiting payment authorization" },
-  { status: "PAID_ESCROW", label: "Paid", blurb: "Payment held until delivery" },
-  { status: "AWAITING_SHIP_TO_BUYER", label: "Ship", blurb: "Seller ships to the buyer" },
-  { status: "SHIPPED_TO_BUYER", label: "Shipped", blurb: "On its way to the buyer" },
-  { status: "COMPLETED", label: "Complete", blurb: "Delivered & seller paid" },
+// delivered or the buyer confirms receipt. These are the short status names
+// shown in badges and lists; the order page's Timeline tells the fuller story.
+export const ORDER_STEPS: { status: OrderStatus; label: string }[] = [
+  { status: "PENDING_PAYMENT", label: "Awaiting payment" },
+  { status: "PAID_ESCROW", label: "Paid" },
+  { status: "AWAITING_SHIP_TO_BUYER", label: "To ship" },
+  { status: "SHIPPED_TO_BUYER", label: "Shipped" },
+  { status: "COMPLETED", label: "Complete" },
+  { status: "CANCELLED", label: "Cancelled" },
+  { status: "REFUNDED", label: "Refunded" },
 ];
 
 export function statusLabel(s: OrderStatus): string {
   return ORDER_STEPS.find((x) => x.status === s)?.label ?? s.replace(/_/g, " ");
+}
+
+/** Badge tone for a status chip (see .tnt-badge--* in globals.css). */
+export function statusTone(s: OrderStatus): string {
+  switch (s) {
+    case "COMPLETED":
+      return "tnt-badge--good";
+    case "SHIPPED_TO_BUYER":
+      return "tnt-badge--on";
+    case "CANCELLED":
+    case "REFUNDED":
+      return "tnt-badge--error";
+    case "PENDING_PAYMENT":
+      return "tnt-badge--warn";
+    default:
+      return "";
+  }
 }
