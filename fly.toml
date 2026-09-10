@@ -5,7 +5,10 @@
 
 app = 'thisnthat'
 # Pick the region closest to most of your buyers: `fly platform regions`.
-primary_region = 'sea'
+# Was 'sea' (Seattle), which Fly deprecated — it refuses to provision new
+# resources there, so the release_command machine could not be created and
+# every deploy aborted. 'sjc' (San Jose) is Fly's suggested US-West successor.
+primary_region = 'sjc'
 
 [build]
   # NEXT_PUBLIC_* values are inlined into the bundle at BUILD time, so they
