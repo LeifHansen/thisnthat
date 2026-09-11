@@ -78,10 +78,21 @@ export function SignupWizard() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(f),
       });
-      // Guarded parse: a 429/5xx serves HTML, and an unguarded res.json()
-      // would surface a raw parse error instead of a readable message.
+      // Guarded parse: an error raised in front of the app (a proxy 502, a
+      // gateway 504) serves HTML, and an unguarded res.json() would surface a
+      // raw parse error instead of a readable message.
       const data = await res.json().catch(() => ({}) as { error?: string; signedIn?: boolean });
-      if (!res.ok) throw new Error(data.error ?? "Registration failed — please try again in a minute.");
+      // /api/register answers with a JSON `error` for every failure it can
+      // describe — including its own faults — so falling back here means the
+      // request never reached it. Say that, rather than promising a retry in a
+      // minute will fix whatever it was.
+      if (!res.ok)
+        throw new Error(
+          data.error ??
+            (res.status >= 500
+              ? "We couldn't reach the server — no account was created. Please try again in a minute."
+              : `Registration failed (${res.status}). Please try again.`),
+        );
       // /api/register signs the new account in and sets the session cookie on
       // that response. Only when it couldn't (`signedIn: false`) does the user
       // still need the sign-in form.
