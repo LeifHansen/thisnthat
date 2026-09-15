@@ -37,12 +37,16 @@ primary_region = 'sjc'
   # accounts — and with NODE_ENV=production it seeds no demo listings; it
   # never touches real user-created data.
   #
-  # Both steps are non-fatal so a transient migrate/seed hiccup never aborts the
-  # release and leaves prod on stale code. This runs before any machine boots
-  # the new image, so it is the primary applier; docker-entrypoint.js repeats it
-  # as a backstop for a failed release step, but only once the server already
-  # holds the port (the Prisma CLI competing for a shared vCPU during boot is
-  # what pushed cold starts past Fly's ~8.4s proxy cutoff).
+  # `migrate deploy` is retried and then FATAL: a release whose migrations did
+  # not apply ships code onto a database without its tables, and every write
+  # then fails with what looks like a bug (that is how a P3005 "schema is not
+  # empty" refusal went unnoticed while every deploy stayed green). Failing
+  # the release keeps the previous one serving and prints the Prisma error in
+  # the deploy log. The seed stays non-fatal. This runs before any machine
+  # boots the new image, so it is the primary applier; docker-entrypoint.js
+  # repeats it as a backstop, but only once the server already holds the port
+  # (the Prisma CLI competing for a shared vCPU during boot is what pushed cold
+  # starts past Fly's ~8.4s proxy cutoff).
   release_command = "sh scripts/release.sh"
 
 [http_service]
