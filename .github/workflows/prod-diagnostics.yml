@@ -71,6 +71,15 @@ jobs:
       - name: Effective config
         run: flyctl config show --app "$APP" || true
 
+      # The one question behind every "the site is up but X fails" report:
+      # does the database the app talks to actually have the app's tables?
+      # `migrate status` is read-only; the script derives DIRECT_URL the way
+      # the entrypoint does, so it works where only DATABASE_URL is a secret.
+      - name: Database migration status (read-only)
+        run: |
+          flyctl ssh console --app "$APP" -C "sh /app/scripts/migrate-status.sh" \
+            || echo "(non-zero: migrations are pending — see above — or ssh is not permitted for this token / no machine is running)"
+
       - name: Production logs
         run: |
           echo "--- buffered logs (--no-tail) ---"
@@ -104,6 +113,10 @@ jobs:
           get "$APP_URL/"            "$BROWSER_UA"                    "browser-UA"
           get "$APP_URL/"            "curl/8.5.0"                     "bot-UA"
           get "$APP_URL/api/health"  "$BROWSER_UA"                    "browser-UA"
+          # Anonymous body is { ok, database }: "ok" means every committed
+          # migration is applied; "unmigrated" means migrate deploy has never
+          # succeeded against DATABASE_URL and the app's tables do not exist.
+          echo "  /api/health body: $(curl -sS --max-time 30 -A "$BROWSER_UA" "$APP_URL/api/health" | head -c 300)"
           get "$APP_URL/robots.txt"  "Googlebot/2.1 (+http://www.google.com/bot.html)" "googlebot-UA"
           get "$APP_URL/sitemap.xml" "Googlebot/2.1 (+http://www.google.com/bot.html)" "googlebot-UA"
 

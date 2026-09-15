@@ -30,6 +30,26 @@ function isDbUnreachable(e: unknown): boolean {
 }
 
 /**
+ * The database answered, but does not have the table or column the query
+ * needs. That is not a bad request and not a flaky connection: it is a deploy
+ * whose migrations never applied to the database at DATABASE_URL (or applied
+ * somewhere else), and it fails every signup identically until `prisma
+ * migrate deploy` succeeds there. It was reaching visitors as the generic
+ * "something went wrong" — indistinguishable from a bug in this handler, and
+ * the log line gave no hint that the fix was operational. /api/health now
+ * reports the same state as `database: "unmigrated"` / `"pending"`.
+ */
+const SCHEMA_DB_CODES = new Set([
+  "P2021", // the table does not exist in the current database
+  "P2022", // the column does not exist in the current database
+]);
+
+function isDbSchemaMissing(e: unknown): boolean {
+  const code = (e as { code?: string })?.code;
+  return typeof code === "string" && SCHEMA_DB_CODES.has(code);
+}
+
+/**
  * One retry for those connection-level failures. A serverless Postgres (Neon,
  * which is what production points at) suspends when idle, and the query that
  * wakes it can fail while the next one lands fine — which a new visitor would
@@ -142,6 +162,19 @@ export async function POST(req: Request) {
         {
           error:
             "We couldn't reach our database just now — no account was created. Please try again in a minute.",
+        },
+        { status: 503 },
+      );
+    }
+    if (isDbSchemaMissing(e)) {
+      console.error(
+        "[register] database schema missing or out of date — `prisma migrate deploy` has not succeeded against DATABASE_URL (GET /api/health reports the migration state):",
+        e,
+      );
+      return NextResponse.json(
+        {
+          error:
+            "Our database isn't ready to take new accounts right now — no account was created. Please try again later, and contact support if it keeps happening.",
         },
         { status: 503 },
       );

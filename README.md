@@ -199,6 +199,52 @@ release. `scripts/fly-setup.sh` does the first-time provisioning in one go.
 6. Sign in as `SUPERADMIN_EMAIL` and open `/api/health` — it lists anything
    still missing or in test mode.
 
+### Database troubleshooting
+
+The one failure that hides behind a green deploy: the database at
+`DATABASE_URL` does not have the app's tables. Every page catches its own
+database errors and renders empty, so the site looks up — but every write
+(signup, listing, order) fails, and the signup wizard shows "Our database
+isn't ready to take new accounts right now".
+
+Check it without signing in (signing in needs the `User` table too):
+
+```bash
+curl -s https://thisnthat.fly.dev/api/health      # {"ok":false,"database":"unmigrated"}
+fly ssh console -C "sh /app/scripts/migrate-status.sh"   # which migrations are applied / pending
+fly logs | grep -E "migrate deploy|P3005|\[register\]"
+```
+
+`database` values: `ok` (every committed migration applied), `unmigrated`
+(`prisma migrate deploy` has never succeeded here — no migration history, no
+tables), `pending` (this build shipped migrations that are not applied),
+`failed` (a migration was interrupted; `prisma migrate resolve`), or
+`unreachable`.
+
+**`unmigrated` with `P3005 "The database schema is not empty"`** in the logs
+means `DATABASE_URL` points at a database that already holds tables from
+another app — for this Fly app, the prototype that ran here before — and
+Prisma refuses to lay its schema over them. Fix it one of two ways, then
+redeploy (push to `main`, or re-run the deploy workflow); the release applies
+the migrations and seeds the categories and demo accounts:
+
+1. **Fresh database (recommended).** Create an empty Neon database or branch
+   and point the app at it:
+   ```bash
+   fly secrets set DATABASE_URL='postgresql://…-pooler.…/neondb?sslmode=require' \
+                   DIRECT_URL='postgresql://….neondb?sslmode=require'
+   ```
+2. **Reuse the database** by emptying it. This deletes the old app's tables and
+   whatever they held; the new app cannot read them anyway.
+   ```sql
+   -- psql "$DIRECT_URL"
+   DROP SCHEMA public CASCADE; CREATE SCHEMA public;
+   ```
+
+Either way, the release command now fails the deploy (and prints the Prisma
+error in the deploy log) when migrations cannot be applied, so this state
+cannot recur silently.
+
 ### Custom domain
 
 ```bash
