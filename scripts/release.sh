@@ -35,6 +35,14 @@ The database at DATABASE_URL does not have this release's schema, and the app
 cannot run without it (every signup, listing and order write would fail).
 The Prisma error above says why. The usual ones:
 
+  P1000 "Authentication failed against database server"
+      Migrations connect with DIRECT_URL; the app itself connects with
+      DATABASE_URL. If the site reads fine but this fails, DIRECT_URL is the
+      wrong one: set by hand with stale credentials, or for another Neon
+      project or branch. `fly secrets list` shows whether it is set. Either
+      `fly secrets unset DIRECT_URL` (the entrypoint then derives it from
+      DATABASE_URL by dropping Neon's "-pooler" host suffix) or set it to the
+      direct connection string for the same role from the Neon dashboard.
   P3005 "The database schema is not empty"
       DATABASE_URL points at a database that already holds tables from another
       app (for this Fly app: the prototype that ran here before), and Prisma

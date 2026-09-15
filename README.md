@@ -221,6 +221,22 @@ tables), `pending` (this build shipped migrations that are not applied),
 `failed` (a migration was interrupted; `prisma migrate resolve`), or
 `unreachable`.
 
+**`P1000 "Authentication failed against database server"` in the deploy log
+while the site reads fine** means the credentials in `DIRECT_URL` are rejected
+while `DATABASE_URL`'s work. Migrations (`prisma migrate deploy`, run by the
+release command) connect with `DIRECT_URL`; the app connects with
+`DATABASE_URL`. `fly secrets list` shows whether `DIRECT_URL` was set by hand.
+Either unset it — `docker-entrypoint.js` then derives it from `DATABASE_URL`
+by dropping Neon's `-pooler` host suffix — or set it to the direct connection
+string for the same role from the Neon dashboard, then re-run the deploy:
+
+```bash
+fly secrets unset DIRECT_URL      # derive it from DATABASE_URL, or:
+fly secrets set DIRECT_URL='postgresql://ROLE:PASSWORD@ep-….REGION.aws.neon.tech/neondb?sslmode=require'
+```
+
+If the next deploy then fails with `P3005`, continue below.
+
 **`unmigrated` with `P3005 "The database schema is not empty"`** in the logs
 means `DATABASE_URL` points at a database that already holds tables from
 another app — for this Fly app, the prototype that ran here before — and
