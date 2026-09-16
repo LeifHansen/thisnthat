@@ -44,9 +44,15 @@ probe() { # $1 = url, $2 = label
   printf '%s\n' "$out" | grep -v -E '^(warn |For more information|npm notice|$)' | sed 's/^/release:     /' | head -6
   return 1
 }
+# First with a plain Postgres client, which prints the server's own words
+# (Prisma folds every authentication failure into P1000 and drops them) and
+# the non-secret parts of the URL as parsed — user, host, database, params.
+node scripts/db-probe.mjs "$DATABASE_URL" "DATABASE_URL (the app's own, pooled connection) via pg" || true
+node scripts/db-probe.mjs "$DIRECT_URL" "DIRECT_URL (the migration connection) via pg" || true
+# Then as Prisma sees it, since Prisma is what has to work.
 app_ok=""
-probe "$DATABASE_URL" "DATABASE_URL (the app's own, pooled connection)" && app_ok=1
-probe "$DIRECT_URL" "DIRECT_URL (the migration connection)" || true
+probe "$DATABASE_URL" "DATABASE_URL (the app's own, pooled connection) via Prisma" && app_ok=1
+probe "$DIRECT_URL" "DIRECT_URL (the migration connection) via Prisma" || true
 
 # A serverless Postgres that has scaled to zero can refuse the connection that
 # wakes it; three attempts per URL cover that without masking a real failure.
