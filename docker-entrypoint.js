@@ -102,20 +102,26 @@ function canConnect(host) {
 }
 
 async function migrateWithRetry(attempts = 3) {
-  for (let i = 1; i <= attempts; i++) {
-    try {
-      // The local binary rather than `npx`, which re-resolves the package (and
-      // may reach for the network) on every boot. Resolved from this file's
-      // own directory so it doesn't depend on the working directory.
-      await exec(`${__dirname}/node_modules/.bin/prisma migrate deploy`);
-      return;
-    } catch (e) {
+  if (await tryMigrate(env, attempts)) return;
+
+  // Same fallback as scripts/release.sh: DIRECT_URL is the one secret that can
+  // drift from DATABASE_URL unnoticed (set by hand with credentials since
+  // rotated, or for another Neon branch), and DATABASE_URL is the connection
+  // the app actually runs on — so when the explicit DIRECT_URL is rejected,
+  // try the direct URL derived from DATABASE_URL before giving up.
+  const derived = env.DATABASE_URL ? env.DATABASE_URL.replace("-pooler", "") : "";
+  if (derived && derived !== env.DIRECT_URL) {
+    console.error(
+      "[entrypoint] DIRECT_URL was rejected; retrying migrations with the direct URL derived from DATABASE_URL",
+    );
+    if (await tryMigrate({ ...env, DIRECT_URL: derived }, attempts)) {
       console.error(
-        `[entrypoint] prisma migrate deploy failed (attempt ${i}/${attempts}): ${e.message}`,
+        "[entrypoint] WARNING: migrations applied through the URL derived from DATABASE_URL because the DIRECT_URL secret is rejected. Run `fly secrets unset DIRECT_URL` or set it to the direct connection string for the same role.",
       );
-      if (i < attempts) await sleep(2000 * i);
+      return;
     }
   }
+
   // Don't hard-block startup on a migration failure (a transient DB blip
   // shouldn't take the whole site down, and public reads degrade gracefully)
   // — but make it LOUD so it surfaces in `fly logs`.
@@ -124,12 +130,30 @@ async function migrateWithRetry(attempts = 3) {
   );
 }
 
+async function tryMigrate(environment, attempts) {
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      // The local binary rather than `npx`, which re-resolves the package (and
+      // may reach for the network) on every boot. Resolved from this file's
+      // own directory so it doesn't depend on the working directory.
+      await exec(`${__dirname}/node_modules/.bin/prisma migrate deploy`, environment);
+      return true;
+    } catch (e) {
+      console.error(
+        `[entrypoint] prisma migrate deploy failed (attempt ${i}/${attempts}): ${e.message}`,
+      );
+      if (i < attempts) await sleep(2000 * i);
+    }
+  }
+  return false;
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function spawnChild(command) {
-  const child = spawn(command, { shell: true, stdio: "inherit", env });
+function spawnChild(command, environment = env) {
+  const child = spawn(command, { shell: true, stdio: "inherit", env: environment });
   const done = new Promise((resolve, reject) => {
     child.on("exit", (code) => {
       if (code === 0) {
@@ -142,6 +166,6 @@ function spawnChild(command) {
   return { child, done };
 }
 
-function exec(command) {
-  return spawnChild(command).done;
+function exec(command, environment = env) {
+  return spawnChild(command, environment).done;
 }

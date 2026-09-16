@@ -4,71 +4,8 @@ import { prisma } from "@/lib/db";
 import { signIn } from "@/lib/auth";
 import { registerSchema, firstError } from "@/lib/validation";
 import { rateLimit } from "@/lib/rateLimit";
+import { registrationFailureResponse, retryDbRead } from "@/lib/dbErrors";
 import * as notify from "@/lib/notify";
-
-/**
- * Prisma's connection-level failures: the database was unreachable, timed out,
- * or the client could not initialise (missing/invalid DATABASE_URL). None of
- * them mean the submitted details were bad, and none of them created a row —
- * so they are reported as a retryable 503 rather than lumped in with a bug in
- * this handler.
- */
-const UNREACHABLE_DB_CODES = new Set([
-  "P1000", // authentication against the database server failed
-  "P1001", // can't reach database server
-  "P1002", // server reached but timed out
-  "P1008", // operation timed out
-  "P1017", // server has closed the connection
-]);
-
-function isDbUnreachable(e: unknown): boolean {
-  // PrismaClientKnownRequestError carries `code`; the initialisation error
-  // (thrown when the URL is missing or unparseable) carries `errorCode`.
-  const code =
-    (e as { code?: string })?.code ?? (e as { errorCode?: string })?.errorCode;
-  return typeof code === "string" && UNREACHABLE_DB_CODES.has(code);
-}
-
-/**
- * The database answered, but does not have the table or column the query
- * needs. That is not a bad request and not a flaky connection: it is a deploy
- * whose migrations never applied to the database at DATABASE_URL (or applied
- * somewhere else), and it fails every signup identically until `prisma
- * migrate deploy` succeeds there. It was reaching visitors as the generic
- * "something went wrong" — indistinguishable from a bug in this handler, and
- * the log line gave no hint that the fix was operational. /api/health now
- * reports the same state as `database: "unmigrated"` / `"pending"`.
- */
-const SCHEMA_DB_CODES = new Set([
-  "P2021", // the table does not exist in the current database
-  "P2022", // the column does not exist in the current database
-]);
-
-function isDbSchemaMissing(e: unknown): boolean {
-  const code = (e as { code?: string })?.code;
-  return typeof code === "string" && SCHEMA_DB_CODES.has(code);
-}
-
-/**
- * One retry for those connection-level failures. A serverless Postgres (Neon,
- * which is what production points at) suspends when idle, and the query that
- * wakes it can fail while the next one lands fine — which a new visitor would
- * otherwise experience as "registration failed" on a perfectly healthy site.
- *
- * Reads only, deliberately: replaying a write after an ambiguous connection
- * drop risks inserting the account twice, and the second insert would come
- * back as "that email is already registered" — against the account the caller
- * had just created.
- */
-async function retryRead<T>(op: () => Promise<T>): Promise<T> {
-  try {
-    return await op();
-  } catch (e) {
-    if (!isDbUnreachable(e)) throw e;
-    await new Promise((r) => setTimeout(r, 250));
-    return op();
-  }
-}
 
 export async function POST(req: Request) {
   const limited = rateLimit(req, "register", 5, 60_000);
@@ -89,9 +26,9 @@ export async function POST(req: Request) {
   // parse — so every server-side fault, transient or not, reached the visitor
   // as the same "please try again in a minute" and was logged nowhere with
   // enough context to tell those faults apart. Answer with JSON always, and say
-  // in the log which account attempt it was.
+  // in the log which account attempt it was (src/lib/dbErrors.ts).
   try {
-    const existing = await retryRead(() =>
+    const existing = await retryDbRead(() =>
       prisma.user.findUnique({ where: { email: d.email } }),
     );
     if (existing) {
@@ -156,36 +93,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, signedIn });
   } catch (e) {
-    if (isDbUnreachable(e)) {
-      console.error("[register] database unreachable:", e);
-      return NextResponse.json(
-        {
-          error:
-            "We couldn't reach our database just now — no account was created. Please try again in a minute.",
-        },
-        { status: 503 },
-      );
-    }
-    if (isDbSchemaMissing(e)) {
-      console.error(
-        "[register] database schema missing or out of date — `prisma migrate deploy` has not succeeded against DATABASE_URL (GET /api/health reports the migration state):",
-        e,
-      );
-      return NextResponse.json(
-        {
-          error:
-            "Our database isn't ready to take new accounts right now — no account was created. Please try again later, and contact support if it keeps happening.",
-        },
-        { status: 503 },
-      );
-    }
-    console.error("[register] failed:", e);
-    return NextResponse.json(
-      {
-        error:
-          "Something went wrong on our end and your account wasn't created. Please try again, and contact support if it keeps happening.",
-      },
-      { status: 500 },
-    );
+    return registrationFailureResponse("register", e);
   }
 }

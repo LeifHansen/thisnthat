@@ -2,6 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { prisma } from "@/lib/db";
+import { isDbUnreachable } from "@/lib/dbErrors";
 
 // Answers the one question behind every "the site is up but X fails" report:
 // does the database the app talks to actually have the app's schema?
@@ -42,28 +43,6 @@ export type DatabaseReport = {
   /** Human-readable explanation when status is not "ok". */
   detail?: string;
 };
-
-// Prisma's connection-level codes (the same set the register route treats as
-// "unreachable"), plus the initialisation error for a missing/invalid URL,
-// which carries no code at all.
-const UNREACHABLE_DB_CODES = new Set([
-  "P1000",
-  "P1001",
-  "P1002",
-  "P1003",
-  "P1008",
-  "P1010",
-  "P1011",
-  "P1013",
-  "P1017",
-]);
-
-function isUnreachable(e: unknown): boolean {
-  const err = e as { code?: string; errorCode?: string; name?: string };
-  const code = err?.code ?? err?.errorCode;
-  if (typeof code === "string" && UNREACHABLE_DB_CODES.has(code)) return true;
-  return err?.name === "PrismaClientInitializationError";
-}
 
 function errorMessage(e: unknown): string {
   const m = e instanceof Error ? e.message : String(e);
@@ -114,7 +93,7 @@ export async function inspectDatabase(): Promise<DatabaseReport> {
       `;
     }
   } catch (e) {
-    if (isUnreachable(e)) {
+    if (isDbUnreachable(e)) {
       return {
         status: "unreachable",
         pending: [],
