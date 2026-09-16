@@ -44,16 +44,32 @@ migrate_with_retries() {
 # DIRECT_URL first and, if it is rejected, the direct URL derived from
 # DATABASE_URL (Neon's "-pooler" host suffix dropped — the same derivation
 # docker-entrypoint.js applies when DIRECT_URL is unset).
+#
+# Then the same URL without `channel_binding=require`. Neon's dashboard puts
+# that parameter on every connection string, and Prisma honours it — it then
+# insists on SCRAM channel binding, which Neon's pooled endpoint negotiates
+# but its direct endpoint does not, so the app runs fine while every
+# `migrate deploy` is refused with P1000 (the "(not available)" user in that
+# message is the tell: the failure is client-side, not a wrong password).
+# Dropping the parameter leaves Prisma's default, `prefer`, with TLS still on.
+strip_channel_binding() {
+  printf '%s' "$1" | sed -E 's/([?&])channel_binding=[^&]*&/\1/; s/[?&]channel_binding=[^&]*$//'
+}
+
+try_fallback() { # $1 = candidate URL, $2 = what it is (for the log)
+  echo "release: DIRECT_URL was rejected; retrying migrations with $2..."
+  ( export DIRECT_URL="$1"; migrate_with_retries )
+}
+
 migrated=""
 if migrate_with_retries; then
   migrated=1
-else
-  fallback=$(printf '%s' "$DATABASE_URL" | sed 's/-pooler//')
-  if [ -n "$DATABASE_URL" ] && [ "$fallback" != "$DIRECT_URL" ]; then
-    echo "release: DIRECT_URL was rejected; retrying migrations with the direct URL derived from DATABASE_URL..."
-    if ( export DIRECT_URL="$fallback"; migrate_with_retries ); then
-      migrated=1
-      cat <<'MSG'
+elif [ -n "$DATABASE_URL" ]; then
+  derived=$(printf '%s' "$DATABASE_URL" | sed 's/-pooler//')
+  derived_plain=$(strip_channel_binding "$derived")
+  if [ "$derived" != "$DIRECT_URL" ] && try_fallback "$derived" "the direct URL derived from DATABASE_URL"; then
+    migrated=1
+    cat <<'MSG'
 
 release: WARNING — migrations applied through the URL derived from DATABASE_URL,
 because the DIRECT_URL secret was rejected. This release is fine, but that
@@ -62,7 +78,20 @@ from DATABASE_URL) or set it to the direct connection string for the same role,
 so the next release does not depend on this fallback.
 
 MSG
-    fi
+  elif [ "$derived_plain" != "$derived" ] && [ "$derived_plain" != "$DIRECT_URL" ] \
+    && try_fallback "$derived_plain" "that URL without channel_binding=require"; then
+    migrated=1
+    cat <<'MSG'
+
+release: WARNING — migrations applied only after dropping `channel_binding=require`
+from the connection string: Prisma then insists on SCRAM channel binding, which
+Neon's direct endpoint does not negotiate. This release is fine, but set
+DIRECT_URL to the direct connection string WITHOUT that parameter (keep
+sslmode=require), e.g.
+  fly secrets set DIRECT_URL='postgresql://ROLE:PASSWORD@ep-....aws.neon.tech/neondb?sslmode=require'
+so the next release does not depend on this fallback.
+
+MSG
   fi
 fi
 
@@ -77,10 +106,12 @@ The Prisma error above says why. The usual ones:
 
   P1000 "Authentication failed against database server"
       Migrations connect with DIRECT_URL; the app itself connects with
-      DATABASE_URL. Both the explicit DIRECT_URL and the one derived from
-      DATABASE_URL were rejected, so the credentials in DATABASE_URL itself
-      are not accepted by the direct endpoint. Copy both connection strings
-      fresh from the Neon dashboard (same role) and set them with
+      DATABASE_URL. The explicit DIRECT_URL, the one derived from
+      DATABASE_URL, and that one without channel_binding=require were all
+      rejected, so the credentials in DATABASE_URL itself are not accepted
+      by the direct endpoint. Copy both connection strings fresh from the
+      Neon dashboard (same role, and drop channel_binding=require from the
+      direct one) and set them with
       `fly secrets set DATABASE_URL=... DIRECT_URL=...`.
   P3005 "The database schema is not empty"
       DATABASE_URL points at a database that already holds tables from another

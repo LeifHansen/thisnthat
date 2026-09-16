@@ -222,23 +222,29 @@ tables), `pending` (this build shipped migrations that are not applied),
 `unreachable`.
 
 **`P1000 "Authentication failed against database server"` in the deploy log
-while the site reads fine** means the credentials in `DIRECT_URL` are rejected
-while `DATABASE_URL`'s work. Migrations (`prisma migrate deploy`, run by the
-release command) connect with `DIRECT_URL`; the app connects with
-`DATABASE_URL`. The release then retries with the direct URL derived from
-`DATABASE_URL` (Neon's `-pooler` host suffix dropped) and, if that works,
-finishes with a warning — the deploy is fine, but fix the secret so the next
-one does not depend on the fallback. If both are rejected, `DATABASE_URL`'s
-own credentials are not accepted by the direct endpoint: copy both strings
-fresh from the Neon dashboard. `fly secrets list` shows whether `DIRECT_URL`
-was set by hand. Either unset it — `docker-entrypoint.js` then derives it —
-or set it to the direct connection string for the same role, then re-run the
-deploy:
+while the site reads fine** means the direct connection migrations use is
+rejected while the app's pooled one works. Migrations (`prisma migrate
+deploy`, run by the release command) connect with `DIRECT_URL`; the app
+connects with `DATABASE_URL`. The usual cause is **`channel_binding=require`**,
+which Neon's dashboard puts on every connection string: Prisma honours it and
+insists on SCRAM channel binding, which Neon's pooled endpoint negotiates but
+its direct endpoint does not — the tell is the user shown as `(not available)`
+in the P1000 message, a client-side failure rather than a wrong password. The
+release retries with the direct URL derived from `DATABASE_URL` (Neon's
+`-pooler` host suffix dropped), then with that URL without
+`channel_binding=require`, and finishes with a warning saying which worked —
+the deploy is fine, but fix the secret so the next one does not depend on the
+fallback. `fly secrets list` shows whether `DIRECT_URL` was set by hand. Set
+it to the direct connection string for the same role **without**
+`channel_binding=require` (keep `sslmode=require`), then re-run the deploy:
 
 ```bash
-fly secrets unset DIRECT_URL      # derive it from DATABASE_URL, or:
 fly secrets set DIRECT_URL='postgresql://ROLE:PASSWORD@ep-….REGION.aws.neon.tech/neondb?sslmode=require'
 ```
+
+If all three candidates are rejected, `DATABASE_URL`'s own credentials are not
+accepted by the direct endpoint: copy both strings fresh from the Neon
+dashboard (same role).
 
 If the next deploy then fails with `P3005`, continue below.
 
