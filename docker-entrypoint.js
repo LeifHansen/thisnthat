@@ -137,6 +137,24 @@ async function migrateWithRetry(attempts = 3) {
       return;
     }
   }
+  // Last resort, as in scripts/release.sh: the pooled DATABASE_URL the app
+  // itself is serving on, with pgbouncer=true (no prepared statements, as
+  // Prisma requires behind PgBouncer). A pooler cannot hold Prisma's
+  // migration lock, so this is a way to get a schema in place, not a home.
+  if (env.DATABASE_URL) {
+    const pooled = /[?&]pgbouncer=/.test(env.DATABASE_URL)
+      ? env.DATABASE_URL
+      : env.DATABASE_URL + (env.DATABASE_URL.includes("?") ? "&" : "?") + "pgbouncer=true";
+    console.error(
+      "[entrypoint] retrying migrations through the pooled DATABASE_URL (pgbouncer=true) as a last resort",
+    );
+    if (await tryMigrate({ ...env, DIRECT_URL: pooled }, attempts)) {
+      console.error(
+        "[entrypoint] WARNING: migrations applied through the pooled DATABASE_URL because every direct connection was rejected. Set DIRECT_URL to a direct connection string the direct endpoint accepts.",
+      );
+      return;
+    }
+  }
 
   // Don't hard-block startup on a migration failure (a transient DB blip
   // shouldn't take the whole site down, and public reads degrade gracefully)

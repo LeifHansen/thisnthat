@@ -22,6 +22,32 @@
 # a key, never fails the deploy.
 node scripts/check-stripe-key.mjs || echo "stripe key check errored (non-fatal)"
 
+# --- Connectivity report ------------------------------------------------------
+# One line per URL, before anything else: does the app's own connection
+# (DATABASE_URL, pooled) accept the credentials, and does the migration
+# connection (DIRECT_URL)? With the raw error when not. This is the
+# discriminator a failed deploy needs. If DATABASE_URL itself is rejected the
+# site is not "up with empty pages" — it is down: reset the role's password in
+# Neon and set both secrets fresh. If only DIRECT_URL is rejected, the direct
+# endpoint refuses what the pooled one accepts, and the fallbacks below apply.
+probe() { # $1 = url, $2 = label
+  if [ -z "$1" ]; then
+    echo "release: $2 is not set"
+    return 1
+  fi
+  out=$(printf 'SELECT 1;' | npx prisma db execute --stdin --url "$1" 2>&1)
+  if [ $? -eq 0 ]; then
+    echo "release: $2: OK, authenticated"
+    return 0
+  fi
+  echo "release: $2: REJECTED —"
+  printf '%s\n' "$out" | grep -v -E '^(warn |For more information|npm notice|$)' | sed 's/^/release:     /' | head -6
+  return 1
+}
+app_ok=""
+probe "$DATABASE_URL" "DATABASE_URL (the app's own, pooled connection)" && app_ok=1
+probe "$DIRECT_URL" "DIRECT_URL (the migration connection)" || true
+
 # A serverless Postgres that has scaled to zero can refuse the connection that
 # wakes it; three attempts per URL cover that without masking a real failure.
 migrate_with_retries() {
@@ -92,6 +118,33 @@ sslmode=require), e.g.
 so the next release does not depend on this fallback.
 
 MSG
+  elif [ -n "$app_ok" ]; then
+    # Last resort: every direct connection was refused but the app's own
+    # pooled one authenticates (the probe above proved it). Prisma prefers a
+    # direct connection for migrations because a transaction-mode pooler
+    # cannot hold its advisory lock across statements, but for a release that
+    # otherwise cannot run at all, applying these migrations through the
+    # pooler (pgbouncer=true turns off prepared statements, as Prisma
+    # requires behind PgBouncer) beats shipping no schema at all.
+    case "$DATABASE_URL" in
+      *pgbouncer=*) pooled="$DATABASE_URL" ;;
+      *\?*) pooled="$DATABASE_URL&pgbouncer=true" ;;
+      *) pooled="$DATABASE_URL?pgbouncer=true" ;;
+    esac
+    if try_fallback "$pooled" "DATABASE_URL itself (the pooled connection, pgbouncer=true) as a last resort"; then
+      migrated=1
+      cat <<'MSG'
+
+release: WARNING — every direct connection was rejected; migrations were applied
+through the pooled DATABASE_URL instead. That worked for these migrations, but a
+pooler cannot hold Prisma's migration lock, so do not rely on it: set DIRECT_URL
+to a direct connection string the direct endpoint accepts — copy it from the
+Neon dashboard for the same role, without channel_binding=require — and check
+`fly secrets list` for a DIRECT_URL set by hand. The connectivity report at the
+top of this log shows exactly what the direct endpoint answered.
+
+MSG
+    fi
   fi
 fi
 
@@ -102,7 +155,9 @@ release: prisma migrate deploy failed — aborting this release.
 
 The database at DATABASE_URL does not have this release's schema, and the app
 cannot run without it (every signup, listing and order write would fail).
-The Prisma error above says why. The usual ones:
+The connectivity report at the top of this log says whether DATABASE_URL
+itself authenticates; the Prisma error above says why migrations did not.
+The usual ones:
 
   P1000 "Authentication failed against database server"
       Migrations connect with DIRECT_URL; the app itself connects with
