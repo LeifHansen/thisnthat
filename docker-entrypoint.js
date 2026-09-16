@@ -121,6 +121,22 @@ async function migrateWithRetry(attempts = 3) {
       return;
     }
   }
+  // Then without `channel_binding=require`: Neon puts it on every connection
+  // string and Prisma honours it, insisting on SCRAM channel binding, which
+  // Neon's direct endpoint does not negotiate (the app's pooled connection
+  // does, which is why the site runs while migrations are refused).
+  const plain = withoutChannelBinding(derived);
+  if (plain && plain !== derived && plain !== env.DIRECT_URL) {
+    console.error(
+      "[entrypoint] retrying migrations with that URL without channel_binding=require",
+    );
+    if (await tryMigrate({ ...env, DIRECT_URL: plain }, attempts)) {
+      console.error(
+        "[entrypoint] WARNING: migrations applied only after dropping channel_binding=require. Set DIRECT_URL to the direct connection string without that parameter (keep sslmode=require).",
+      );
+      return;
+    }
+  }
 
   // Don't hard-block startup on a migration failure (a transient DB blip
   // shouldn't take the whole site down, and public reads degrade gracefully)
@@ -128,6 +144,12 @@ async function migrateWithRetry(attempts = 3) {
   console.error(
     "[entrypoint] WARNING: migrations not applied after retries; the app is serving on whatever schema the database currently has. Check `fly logs` and run `prisma migrate deploy`.",
   );
+}
+
+function withoutChannelBinding(url) {
+  return url
+    .replace(/([?&])channel_binding=[^&]*&/, "$1")
+    .replace(/[?&]channel_binding=[^&]*$/, "");
 }
 
 async function tryMigrate(environment, attempts) {
