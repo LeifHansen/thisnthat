@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { registerSchema, firstError } from "@/lib/validation";
 import { rateLimit } from "@/lib/rateLimit";
 import { signMobileToken } from "@/lib/mobileAuth";
+import { registrationFailureResponse, retryDbRead } from "@/lib/dbErrors";
 import * as notify from "@/lib/notify";
 
 // Mobile sign-up: creates the account (same validation + hashing as the web
@@ -21,56 +22,66 @@ export async function POST(req: Request) {
   }
   const d = parsed.data;
 
-  const existing = await prisma.user.findUnique({ where: { email: d.email } });
-  if (existing) {
-    return NextResponse.json(
-      { error: "That email is already registered." },
-      { status: 409 },
-    );
-  }
-
-  let user;
+  // Same guard as the web route: every database fault answers JSON with an
+  // accurate message (src/lib/dbErrors.ts). The lookup below used to sit
+  // outside any try, so an unreachable database or a missing table reached
+  // the app as Next's HTML 500 page.
   try {
-    user = await prisma.user.create({
-      data: {
-        name: d.name,
-        email: d.email,
-        passwordHash: await bcrypt.hash(d.password, 10),
-        role: "USER",
-        addressLine1: d.addressLine1,
-        addressLine2: d.addressLine2,
-        city: d.city,
-        state: d.state,
-        postalCode: d.postalCode,
-        country: "US",
-      },
-    });
-    void notify.welcome(d.email, d.name).catch(() => {});
-  } catch (e) {
-    if (
-      e &&
-      typeof e === "object" &&
-      "code" in e &&
-      (e as { code?: string }).code === "P2002"
-    ) {
+    const existing = await retryDbRead(() =>
+      prisma.user.findUnique({ where: { email: d.email } }),
+    );
+    if (existing) {
       return NextResponse.json(
         { error: "That email is already registered." },
         { status: 409 },
       );
     }
-    throw e;
-  }
 
-  const token = signMobileToken({ sub: user.id, email: user.email });
-  return NextResponse.json({
-    token,
-    user: {
-      id: user.id,
-      name: user.name,
-      displayName: user.displayName,
-      email: user.email,
-      role: user.role,
-      avatarUrl: user.avatarUrl,
-    },
-  });
+    let user;
+    try {
+      user = await prisma.user.create({
+        data: {
+          name: d.name,
+          email: d.email,
+          passwordHash: await bcrypt.hash(d.password, 10),
+          role: "USER",
+          addressLine1: d.addressLine1,
+          addressLine2: d.addressLine2,
+          city: d.city,
+          state: d.state,
+          postalCode: d.postalCode,
+          country: "US",
+        },
+      });
+      void notify.welcome(d.email, d.name).catch(() => {});
+    } catch (e) {
+      if (
+        e &&
+        typeof e === "object" &&
+        "code" in e &&
+        (e as { code?: string }).code === "P2002"
+      ) {
+        return NextResponse.json(
+          { error: "That email is already registered." },
+          { status: 409 },
+        );
+      }
+      throw e;
+    }
+
+    const token = signMobileToken({ sub: user.id, email: user.email });
+    return NextResponse.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        displayName: user.displayName,
+        email: user.email,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+      },
+    });
+  } catch (e) {
+    return registrationFailureResponse("mobile-register", e);
+  }
 }

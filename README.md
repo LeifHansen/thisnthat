@@ -225,10 +225,15 @@ tables), `pending` (this build shipped migrations that are not applied),
 while the site reads fine** means the credentials in `DIRECT_URL` are rejected
 while `DATABASE_URL`'s work. Migrations (`prisma migrate deploy`, run by the
 release command) connect with `DIRECT_URL`; the app connects with
-`DATABASE_URL`. `fly secrets list` shows whether `DIRECT_URL` was set by hand.
-Either unset it — `docker-entrypoint.js` then derives it from `DATABASE_URL`
-by dropping Neon's `-pooler` host suffix — or set it to the direct connection
-string for the same role from the Neon dashboard, then re-run the deploy:
+`DATABASE_URL`. The release then retries with the direct URL derived from
+`DATABASE_URL` (Neon's `-pooler` host suffix dropped) and, if that works,
+finishes with a warning — the deploy is fine, but fix the secret so the next
+one does not depend on the fallback. If both are rejected, `DATABASE_URL`'s
+own credentials are not accepted by the direct endpoint: copy both strings
+fresh from the Neon dashboard. `fly secrets list` shows whether `DIRECT_URL`
+was set by hand. Either unset it — `docker-entrypoint.js` then derives it —
+or set it to the direct connection string for the same role, then re-run the
+deploy:
 
 ```bash
 fly secrets unset DIRECT_URL      # derive it from DATABASE_URL, or:
